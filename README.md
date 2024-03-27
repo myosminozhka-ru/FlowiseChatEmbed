@@ -48,7 +48,7 @@ yarn build
     apiHost: 'http://localhost:3000',
   });
 </script>
-<flowise-fullchatbot></flowise-fullchatbot>
+<start-ai-fullchatbot></start-ai-fullchatbot>
 ```
 
 To enable full screen, add `margin: 0` to <code>body</code> style, and confirm you don't set height and width
