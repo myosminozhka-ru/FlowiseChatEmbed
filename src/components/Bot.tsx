@@ -63,6 +63,7 @@ export type BotProps = {
   apiHost?: string;
   chatflowConfig?: Record<string, unknown>;
   welcomeMessage?: string;
+  errorMessage?: string;
   botMessage?: BotMessageTheme;
   userMessage?: UserMessageTheme;
   textInput?: TextInputTheme;
@@ -182,7 +183,9 @@ export const Bot = (botProps: BotProps & { class?: string }) => {
   );
   const [socketIOClientId, setSocketIOClientId] = createSignal('');
   const [isChatFlowAvailableToStream, setIsChatFlowAvailableToStream] = createSignal(false);
-  const [chatId, setChatId] = createSignal(uuidv4());
+  const [chatId, setChatId] = createSignal(
+    (props.chatflowConfig?.vars as any)?.customerId ? `${(props.chatflowConfig?.vars as any).customerId.toString()}+${uuidv4()}` : uuidv4(),
+  );
   const [starterPrompts, setStarterPrompts] = createSignal<string[]>([], { equals: false });
   const [chatFeedbackStatus, setChatFeedbackStatus] = createSignal<boolean>(false);
   const [uploadsConfig, setUploadsConfig] = createSignal<UploadsConfig>();
@@ -274,7 +277,7 @@ export const Bot = (botProps: BotProps & { class?: string }) => {
   // Handle errors
   const handleError = (message = 'Oops! There seems to be an error. Please try again.') => {
     setMessages((prevMessages) => {
-      const messages: MessageType[] = [...prevMessages, { message, type: 'apiMessage' }];
+      const messages: MessageType[] = [...prevMessages, { message: props.errorMessage || message, type: 'apiMessage' }];
       addChatMessage(messages);
       return messages;
     });
@@ -395,9 +398,11 @@ export const Bot = (botProps: BotProps & { class?: string }) => {
     if (result.error) {
       const error = result.error;
       console.error(error);
-      const err: any = error;
-      const errorData = typeof err === 'string' ? err : err.response.data || `${err.response.status}: ${err.response.statusText}`;
-      handleError(errorData);
+      if (typeof error === 'object') {
+        handleError(`Error: ${error?.message.replaceAll('Error:', ' ')}`);
+        return;
+      }
+      handleError();
       return;
     }
   };
@@ -405,7 +410,9 @@ export const Bot = (botProps: BotProps & { class?: string }) => {
   const clearChat = () => {
     try {
       localStorage.removeItem(`${props.chatflowid}_EXTERNAL`);
-      setChatId(uuidv4());
+      setChatId(
+        (props.chatflowConfig?.vars as any)?.customerId ? `${(props.chatflowConfig?.vars as any).customerId.toString()}+${uuidv4()}` : uuidv4(),
+      );
       setMessages([
         {
           message: props.welcomeMessage ?? defaultWelcomeMessage,
@@ -470,7 +477,7 @@ export const Bot = (botProps: BotProps & { class?: string }) => {
         Object.getOwnPropertyNames(chatbotConfig.starterPrompts).forEach((key) => {
           prompts.push(chatbotConfig.starterPrompts[key].prompt);
         });
-        setStarterPrompts(prompts);
+        setStarterPrompts(prompts.filter((prompt) => prompt !== ''));
       }
       if (chatbotConfig.chatFeedback) {
         const chatFeedbackStatus = chatbotConfig.chatFeedback.status;
@@ -536,7 +543,14 @@ export const Bot = (botProps: BotProps & { class?: string }) => {
   };
 
   const addRecordingToPreviews = (blob: Blob) => {
-    const mimeType = blob.type.substring(0, blob.type.indexOf(';'));
+    let mimeType = '';
+    const pos = blob.type.indexOf(';');
+    if (pos === -1) {
+      mimeType = blob.type;
+    } else {
+      mimeType = blob.type.substring(0, pos);
+    }
+
     // read blob and add to previews
     const reader = new FileReader();
     reader.readAsDataURL(blob);
@@ -843,7 +857,7 @@ export const Bot = (botProps: BotProps & { class?: string }) => {
                     {message.type === 'userMessage' && loading() && index() === messages().length - 1 && <LoadingBubble />}
                     {message.type === 'apiMessage' && message.message === '' && loading() && index() === messages().length - 1 && <LoadingBubble />}
                     {message.sourceDocuments && message.sourceDocuments.length && (
-                      <div style={{ display: 'flex', 'flex-direction': 'row', width: '100%' }}>
+                      <div style={{ display: 'flex', 'flex-direction': 'row', width: '100%', 'flex-wrap': 'wrap' }}>
                         <For each={[...removeDuplicateURL(message)]}>
                           {(src) => {
                             const URL = isValidURL(src.metadata.source);
