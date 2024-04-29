@@ -70,6 +70,7 @@ export type BotProps = {
   poweredByTextColor?: string;
   badgeBackgroundColor?: string;
   bubbleBackgroundColor?: string;
+  bubbleHeaderTitleColor?: string;
   bubbleTextColor?: string;
   showTitle?: boolean;
   title?: string;
@@ -791,7 +792,7 @@ export const Bot = (botProps: BotProps & { class?: string }) => {
             class="flex flex-row items-center w-full h-[50px] absolute top-0 left-0 z-10"
             style={{
               background: props.bubbleBackgroundColor,
-              color: props.bubbleTextColor,
+              color: props.bubbleHeaderTitleColor || props.bubbleTextColor,
               'border-top-left-radius': props.isFullPage ? '0px' : '6px',
               'border-top-right-radius': props.isFullPage ? '0px' : '6px',
             }}

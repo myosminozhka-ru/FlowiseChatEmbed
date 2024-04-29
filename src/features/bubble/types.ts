@@ -43,11 +43,13 @@ export type ChatWindowTheme = {
   textInput?: TextInputTheme;
   poweredByTextColor?: string;
   headerBackgroundColor?: string;
+  headerTitleColor?: string;
 };
 
 export type ButtonTheme = {
   size?: 'medium' | 'large';
   backgroundColor?: string;
+  titleColor?: string;
   iconColor?: string;
   customIconSrc?: string;
   bottom?: number;

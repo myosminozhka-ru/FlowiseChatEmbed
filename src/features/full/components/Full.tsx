@@ -4,6 +4,7 @@ import { BubbleParams } from '@/features/bubble/types';
 import { createSignal, onCleanup, onMount, Show } from 'solid-js';
 
 const defaultButtonColor = '#3B81F6';
+const defaultHeaderTitleColor = '#ffffff';
 const defaultIconColor = 'white';
 
 export type FullProps = BotProps & BubbleParams;
@@ -42,6 +43,7 @@ export const Full = (props: FullProps, { element }: { element: HTMLElement }) =>
           <Bot
             badgeBackgroundColor={props.theme?.chatWindow?.backgroundColor}
             bubbleBackgroundColor={props.theme?.button?.backgroundColor ?? props.theme?.chatWindow?.headerBackgroundColor ?? defaultButtonColor}
+            bubbleHeaderTitleColor={props.theme?.button?.titleColor ?? props.theme?.chatWindow?.headerTitleColor ?? defaultHeaderTitleColor}
             bubbleTextColor={props.theme?.button?.iconColor ?? defaultIconColor}
             showTitle={props.theme?.chatWindow?.showTitle}
             title={props.theme?.chatWindow?.title}
