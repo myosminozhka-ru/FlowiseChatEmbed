@@ -43,6 +43,7 @@ export type BotProps = {
     poweredByTextColor?: string;
     badgeBackgroundColor?: string;
     bubbleBackgroundColor?: string;
+    bubbleHeaderTitleColor?: string;
     bubbleTextColor?: string;
     showTitle?: boolean;
     title?: string;
