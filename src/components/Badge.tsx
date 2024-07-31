@@ -44,18 +44,7 @@ export const Badge = (props: Props) => {
         'background-color': props.badgeBackgroundColor ?? '#ffffff',
       }}
     >
-      Разработано на платформе
-      <a
-        ref={liteBadge}
-        href={'https://start-ai.ru/'}
-        target="_blank"
-        rel="noopener noreferrer"
-        class="lite-badge"
-        id="lite-badge"
-        style={{ 'font-weight': 'bold', color: props.poweredByTextColor ?? defaultTextColor }}
-      >
-        <span>Start.AI</span>
-      </a>
+      Разработано на платформе Start.AI
     </span>
   );
 };
