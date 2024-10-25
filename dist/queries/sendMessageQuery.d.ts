@@ -1,16 +1,20 @@
-import { FileUpload, MessageType } from '@/components/Bot';
+import { FileUpload, IAction } from '@/components/Bot';
 export type IncomingInput = {
     question: string;
-    history: MessageType[];
     uploads?: FileUpload[];
     overrideConfig?: Record<string, unknown>;
     socketIOClientId?: string;
     chatId?: string;
     fileName?: string;
+    leadEmail?: string;
+    action?: IAction;
 };
-export type MessageRequest = {
-    chatflowid?: string;
+type BaseRequest = {
     apiHost?: string;
+    onRequest?: (request: RequestInit) => Promise<void>;
+};
+export type MessageRequest = BaseRequest & {
+    chatflowid?: string;
     body?: IncomingInput;
 };
 export type FeedbackRatingType = 'THUMBS_UP' | 'THUMBS_DOWN';
@@ -20,38 +24,64 @@ export type FeedbackInput = {
     rating: FeedbackRatingType;
     content?: string;
 };
-export type CreateFeedbackRequest = {
+export type CreateFeedbackRequest = BaseRequest & {
     chatflowid?: string;
-    apiHost?: string;
     body?: FeedbackInput;
 };
-export type UpdateFeedbackRequest = {
+export type UpdateFeedbackRequest = BaseRequest & {
     id: string;
-    apiHost?: string;
     body?: Partial<FeedbackInput>;
 };
-export declare const sendFeedbackQuery: ({ chatflowid, apiHost, body }: CreateFeedbackRequest) => Promise<{
+export type UpsertRequest = BaseRequest & {
+    chatflowid: string;
+    apiHost?: string;
+    formData: FormData;
+};
+export type LeadCaptureInput = {
+    chatflowid: string;
+    chatId: string;
+    name?: string;
+    email?: string;
+    phone?: string;
+};
+export type LeadCaptureRequest = BaseRequest & {
+    body: Partial<LeadCaptureInput>;
+};
+export declare const sendFeedbackQuery: ({ chatflowid, apiHost, body, onRequest }: CreateFeedbackRequest) => Promise<{
     data?: unknown;
     error?: Error | undefined;
 }>;
-export declare const updateFeedbackQuery: ({ id, apiHost, body }: UpdateFeedbackRequest) => Promise<{
+export declare const updateFeedbackQuery: ({ id, apiHost, body, onRequest }: UpdateFeedbackRequest) => Promise<{
     data?: unknown;
     error?: Error | undefined;
 }>;
-export declare const sendMessageQuery: ({ chatflowid, apiHost, body }: MessageRequest) => Promise<{
+export declare const sendMessageQuery: ({ chatflowid, apiHost, body, onRequest }: MessageRequest) => Promise<{
     data?: any;
     error?: Error | undefined;
 }>;
-export declare const getChatbotConfig: ({ chatflowid, apiHost }: MessageRequest) => Promise<{
+export declare const createAttachmentWithFormData: ({ chatflowid, apiHost, formData, onRequest }: UpsertRequest) => Promise<{
+    data?: unknown;
+    error?: Error | undefined;
+}>;
+export declare const upsertVectorStoreWithFormData: ({ chatflowid, apiHost, formData, onRequest }: UpsertRequest) => Promise<{
+    data?: unknown;
+    error?: Error | undefined;
+}>;
+export declare const getChatbotConfig: ({ chatflowid, apiHost, onRequest }: MessageRequest) => Promise<{
     data?: any;
     error?: Error | undefined;
 }>;
-export declare const isStreamAvailableQuery: ({ chatflowid, apiHost }: MessageRequest) => Promise<{
+export declare const isStreamAvailableQuery: ({ chatflowid, apiHost, onRequest }: MessageRequest) => Promise<{
     data?: any;
     error?: Error | undefined;
 }>;
-export declare const sendFileDownloadQuery: ({ apiHost, body }: MessageRequest) => Promise<{
+export declare const sendFileDownloadQuery: ({ apiHost, body, onRequest }: MessageRequest) => Promise<{
     data?: any;
     error?: Error | undefined;
 }>;
+export declare const addLeadQuery: ({ apiHost, body, onRequest }: LeadCaptureRequest) => Promise<{
+    data?: any;
+    error?: Error | undefined;
+}>;
+export {};
 //# sourceMappingURL=sendMessageQuery.d.ts.map
