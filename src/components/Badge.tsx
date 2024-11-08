@@ -49,14 +49,14 @@ export const Badge = (props: Props) => {
       Разработано на платформе{' '}
       <a
         ref={liteBadge}
-        href={'https://start-ai.ru/'}
+        href={'https://myosminozhka.ru/'}
         target="_blank"
         rel="noopener noreferrer"
         class="lite-badge"
         id="lite-badge"
         style={{ 'font-weight': 'bold', color: props.poweredByTextColor ?? defaultTextColor }}
       >
-        <span>Start.AI</span>
+        <span>Осьминожка</span>
       </a>
     </span>
   );
