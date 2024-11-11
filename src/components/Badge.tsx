@@ -46,7 +46,7 @@ export const Badge = (props: Props) => {
         'background-color': props.badgeBackgroundColor ?? '#ffffff',
       }}
     >
-      Разработано на платформе{' '}
+      Разработано компанией{' '}
       <a
         ref={liteBadge}
         href={'https://myosminozhka.ru/'}
