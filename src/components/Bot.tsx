@@ -1400,12 +1400,12 @@ export const Bot = (botProps: BotProps & { class?: string }) => {
               'border-top-left-radius': props.isFullPage ? '0px' : '6px',
               'border-top-right-radius': props.isFullPage ? '0px' : '6px',
             }}
-          > 
+          >
             <button class="flex items-center gap-2 py-2 px-4 text-white" onClick={() => setInfoPopupOpen(!infoPopupOpen())}>
               Инструкция
               <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-question-circle" viewBox="0 0 16 16">
-                <path d="M8 15A7 7 0 1 1 8 1a7 7 0 0 1 0 14m0 1A8 8 0 1 0 8 0a8 8 0 0 0 0 16"/>
-                <path d="M5.255 5.786a.237.237 0 0 0 .241.247h.825c.138 0 .248-.113.266-.25.09-.656.54-1.134 1.342-1.134.686 0 1.314.343 1.314 1.168 0 .635-.374.927-.965 1.371-.673.489-1.206 1.06-1.168 1.987l.003.217a.25.25 0 0 0 .25.246h.811a.25.25 0 0 0 .25-.25v-.105c0-.718.273-.927 1.01-1.486.609-.463 1.244-.977 1.244-2.056 0-1.511-1.276-2.241-2.673-2.241-1.267 0-2.655.59-2.75 2.286m1.557 5.763c0 .533.425.927 1.01.927.609 0 1.028-.394 1.028-.927 0-.552-.42-.94-1.029-.94-.584 0-1.009.388-1.009.94"/>
+                <path d="M8 15A7 7 0 1 1 8 1a7 7 0 0 1 0 14m0 1A8 8 0 1 0 8 0a8 8 0 0 0 0 16" />
+                <path d="M5.255 5.786a.237.237 0 0 0 .241.247h.825c.138 0 .248-.113.266-.25.09-.656.54-1.134 1.342-1.134.686 0 1.314.343 1.314 1.168 0 .635-.374.927-.965 1.371-.673.489-1.206 1.06-1.168 1.987l.003.217a.25.25 0 0 0 .25.246h.811a.25.25 0 0 0 .25-.25v-.105c0-.718.273-.927 1.01-1.486.609-.463 1.244-.977 1.244-2.056 0-1.511-1.276-2.241-2.673-2.241-1.267 0-2.655.59-2.75 2.286m1.557 5.763c0 .533.425.927 1.01.927.609 0 1.028-.394 1.028-.927 0-.552-.42-.94-1.029-.94-.584 0-1.009.388-1.009.94" />
               </svg>
             </button>
             <Show when={props.titleAvatarSrc}>
@@ -1430,56 +1430,67 @@ export const Bot = (botProps: BotProps & { class?: string }) => {
           </div>
         ) : null}
         <div class="flex flex-col w-full h-full justify-start z-0">
-          <div 
+          <div
             class="absolute left-5 top-24 right-5 bottom-10 z-10 overflow-y-scroll"
             style={{
               'background-color': 'rgba(255, 255, 255, 0.10)',
               'backdrop-filter': 'blur(98px)',
-              'color': '#000',
+              color: '#000',
               'font-size': '14px',
               'border-radius': '16px',
-              'display': infoPopupOpen() ? 'block' : 'none',
+              display: infoPopupOpen() ? 'block' : 'none',
             }}
           >
             <div class="flex h-0 justify-end sticky right-0 top-4 pr-4">
               <button onClick={() => setInfoPopupOpen(false)}>
-                <svg viewBox="0 0 24 24" width="24" height="24"><path d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12 19 6.41z" fill="black"></path></svg>
+                <svg viewBox="0 0 24 24" width="24" height="24">
+                  <path
+                    d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12 19 6.41z"
+                    fill="black"
+                  />
+                </svg>
               </button>
             </div>
-            <div 
-              class="px-4 py-2 prose pr-8" 
+            <div
+              class="px-4 py-2 prose pr-8"
               style={{
                 'font-size': '14px',
-                'padding-top': '14px'
+                'padding-top': '14px',
               }}
             >
-              <h4 style={{'font-size': '16px', 'font-weight': '600'}}>Инструкция по поиску товара</h4>
+              <h4 style={{ 'font-size': '16px', 'font-weight': '600' }}>Инструкция по поиску товара</h4>
               <ul>
                 <li>Введите, если знаете, партномер детали. Перейдите в карточку товара или категорию товара по ссылке.</li>
               </ul>
-              <div class="flex items-center justify-between" style={{'white-space': 'nowrap',}}>
-                <div style={{'height': '1px', 'background': '#eee', 'flex-grow': '1'}}></div>
-                <div style={{'white-space': 'nowrap', 'margin': '0 10px', 'flex-shrink': '0'}}>или</div> 
-                <div style={{'height': '1px', 'background': '#eee', 'flex-grow': '1'}}></div>
+              <div class="flex items-center justify-between" style={{ 'white-space': 'nowrap' }}>
+                <div style={{ height: '1px', background: '#eee', 'flex-grow': '1' }} />
+                <div style={{ 'white-space': 'nowrap', margin: '0 10px', 'flex-shrink': '0' }}>или</div>
+                <div style={{ height: '1px', background: '#eee', 'flex-grow': '1' }} />
               </div>
               <ul>
-                <li>Введите название товара и его основные параметры в одном сообщении. После получения списка категорий - выберите нужную категорию. Далее, перейдите в карточку товара или категорию товара по ссылке.</li>
-                <li>Если бот не нашел нужный товар:
+                <li>
+                  Введите название товара и его основные параметры в одном сообщении. После получения списка категорий - выберите нужную категорию.
+                  Далее, перейдите в карточку товара или категорию товара по ссылке.
+                </li>
+                <li>
+                  Если бот не нашел нужный товар:
                   <ul>
                     <li>Попробуйте изменить запрос, поменяйте или уберите лишние характеристики.</li>
                     <li>Перейдите в каталог на интересующую категорию и вручную выполните поиск с нужными характеристиками</li>
                   </ul>
                 </li>
               </ul>
-              <h4 style={{'font-size': '16px', 'font-weight': '600'}}>Примеры запросов</h4>
+              <h4 style={{ 'font-size': '16px', 'font-weight': '600' }}>Примеры запросов</h4>
               <ul>
-                <li>❌ Неправильно:
+                <li>
+                  ❌ Неправильно:
                   <ul>
                     <li>"Хочу транс на 750 ВА от SolaHD"</li>
                     <li>"Синяк на 470 нм".</li>
                   </ul>
                 </li>
-                <li>✅ Правильно:
+                <li>
+                  ✅ Правильно:
                   <ul>
                     <li>"Трансформатор от производителя SolaHD на 750 ВА"</li>
                     <li>"Светодиод синий на 470 нм".</li>
