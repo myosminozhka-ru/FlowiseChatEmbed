@@ -1401,7 +1401,7 @@ export const Bot = (botProps: BotProps & { class?: string }) => {
               'border-top-right-radius': props.isFullPage ? '0px' : '6px',
             }}
           >
-            <button class="flex items-center gap-2 py-2 px-4 text-white" onClick={() => setInfoPopupOpen(!infoPopupOpen())}>
+            <button class="hover:underline flex items-center gap-2 py-2 px-4 text-white" onClick={() => setInfoPopupOpen(!infoPopupOpen())}>
               Инструкция
               <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-question-circle" viewBox="0 0 16 16">
                 <path d="M8 15A7 7 0 1 1 8 1a7 7 0 0 1 0 14m0 1A8 8 0 1 0 8 0a8 8 0 0 0 0 16" />
@@ -1435,14 +1435,16 @@ export const Bot = (botProps: BotProps & { class?: string }) => {
             style={{
               'background-color': 'rgba(255, 255, 255, 0.10)',
               'backdrop-filter': 'blur(98px)',
-              color: '#000',
+              'color': '#000',
+              'top': '60px',
+              'bottom': '40px',
               'font-size': '14px',
               'border-radius': '16px',
               display: infoPopupOpen() ? 'block' : 'none',
             }}
           >
             <div class="flex h-0 justify-end sticky right-0 top-4 pr-4">
-              <button onClick={() => setInfoPopupOpen(false)}>
+              <button class="hover:opacity-70" onClick={() => setInfoPopupOpen(false)}>
                 <svg viewBox="0 0 24 24" width="24" height="24">
                   <path
                     d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12 19 6.41z"
