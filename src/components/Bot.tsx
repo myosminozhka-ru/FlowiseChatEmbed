@@ -1435,9 +1435,9 @@ export const Bot = (botProps: BotProps & { class?: string }) => {
             style={{
               'background-color': 'rgba(255, 255, 255, 0.10)',
               'backdrop-filter': 'blur(98px)',
-              'color': '#000',
-              'top': '60px',
-              'bottom': '40px',
+              color: '#000',
+              top: '60px',
+              bottom: '40px',
               'font-size': '14px',
               'border-radius': '16px',
               display: infoPopupOpen() ? 'block' : 'none',
