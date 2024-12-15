@@ -1330,7 +1330,7 @@ export const Bot = (botProps: BotProps & { class?: string }) => {
   );
 
   createEffect(() => {
-    console.log("Статус изменился:", props.isBotOpened);
+    console.log('Статус изменился:', props.isBotOpened);
     if (props.isBotOpened === false) {
       setInfoPopupOpen(false);
     }
@@ -1453,7 +1453,7 @@ export const Bot = (botProps: BotProps & { class?: string }) => {
               bottom: '40px',
               'font-size': '14px',
               'border-radius': '16px',
-              display: (infoPopupOpen() && props.isBotOpened) ? 'block' : 'none',
+              display: infoPopupOpen() && props.isBotOpened ? 'block' : 'none',
             }}
           >
             <div class="flex h-0 justify-end sticky right-0 top-4 pr-4">
