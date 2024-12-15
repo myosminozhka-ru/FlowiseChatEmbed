@@ -155,6 +155,7 @@ export type BotProps = {
   disclaimer?: DisclaimerPopUpTheme;
   dateTimeToggle?: DateTimeToggleTheme;
   renderHTML?: boolean;
+  isBotOpened?: boolean;
 };
 
 export type LeadsConfig = {
@@ -299,15 +300,6 @@ export const Bot = (botProps: BotProps & { class?: string }) => {
   // drag & drop
   const [isDragActive, setIsDragActive] = createSignal(false);
   const [uploadedFiles, setUploadedFiles] = createSignal<{ file: File; type: string }[]>([]);
-
-  let popupRef: HTMLDivElement | null = null;
-  const handleClickOutside = (event: MouseEvent) => {
-    if (popupRef && !popupRef.contains(event.target as Node)) {
-      setInfoPopupOpen(false);
-    }
-  };
-
-  document.addEventListener('mousedown', handleClickOutside);
 
   createMemo(() => {
     const customerId = (props.chatflowConfig?.vars as any)?.customerId;
@@ -1337,6 +1329,13 @@ export const Bot = (botProps: BotProps & { class?: string }) => {
     }),
   );
 
+  createEffect(() => {
+    console.log("Статус изменился:", props.isBotOpened);
+    if (props.isBotOpened === false) {
+      setInfoPopupOpen(false);
+    }
+  });
+
   const previewDisplay = (item: FilePreview) => {
     if (item.mime.startsWith('image/')) {
       return (
@@ -1415,7 +1414,7 @@ export const Bot = (botProps: BotProps & { class?: string }) => {
               'border-top-right-radius': props.isFullPage ? '0px' : '6px',
             }}
           >
-            <button class="hover:underline flex items-center gap-2 py-2 px-4 text-white" onClick={() => setInfoPopupOpen(!infoPopupOpen())}>
+            <button class="hover:underline flex items-center gap-2 py-2 px-4 text-white" onClick={() => setInfoPopupOpen(true)}>
               Инструкция
               <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-question-circle" viewBox="0 0 16 16">
                 <path d="M8 15A7 7 0 1 1 8 1a7 7 0 0 1 0 14m0 1A8 8 0 1 0 8 0a8 8 0 0 0 0 16" />
@@ -1445,7 +1444,6 @@ export const Bot = (botProps: BotProps & { class?: string }) => {
         ) : null}
         <div class="flex flex-col w-full h-full justify-start z-0">
           <div
-            ref={(el) => (popupRef = el)}
             class="absolute left-5 top-24 right-5 bottom-10 z-10 overflow-y-scroll"
             style={{
               'background-color': 'rgba(255, 255, 255, 0.10)',
@@ -1455,7 +1453,7 @@ export const Bot = (botProps: BotProps & { class?: string }) => {
               bottom: '40px',
               'font-size': '14px',
               'border-radius': '16px',
-              display: infoPopupOpen() ? 'block' : 'none',
+              display: (infoPopupOpen() && props.isBotOpened) ? 'block' : 'none',
             }}
           >
             <div class="flex h-0 justify-end sticky right-0 top-4 pr-4">
