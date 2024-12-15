@@ -302,6 +302,14 @@ export const Bot = (botProps: BotProps & { class?: string }) => {
   const [isDragActive, setIsDragActive] = createSignal(false);
   const [uploadedFiles, setUploadedFiles] = createSignal<{ file: File; type: string }[]>([]);
 
+  let popupRef: HTMLDivElement | null = null;
+  const handleClickOutside = (event: MouseEvent) => {
+    if (popupRef && !popupRef.contains(event.target as Node)) {
+      setInfoPopupOpen(false);
+    }
+  };
+
+  document.addEventListener('mousedown', handleClickOutside);
   onMount(() => {
     if (botProps?.observersConfig) {
       const { observeUserInput, observeLoading, observeMessages } = botProps.observersConfig;
@@ -1431,6 +1439,7 @@ export const Bot = (botProps: BotProps & { class?: string }) => {
         ) : null}
         <div class="flex flex-col w-full h-full justify-start z-0">
           <div
+            ref={(el) => (popupRef = el)}
             class="absolute left-5 top-24 right-5 bottom-10 z-10 overflow-y-scroll"
             style={{
               'background-color': 'rgba(255, 255, 255, 0.10)',
