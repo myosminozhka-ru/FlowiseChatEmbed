@@ -308,7 +308,7 @@ export const Bot = (botProps: BotProps & { class?: string }) => {
   };
 
   document.addEventListener('mousedown', handleClickOutside);
-  
+
   createMemo(() => {
     const customerId = (props.chatflowConfig?.vars as any)?.customerId;
     setChatId(customerId ? `${customerId.toString()}+${uuidv4()}` : uuidv4());
