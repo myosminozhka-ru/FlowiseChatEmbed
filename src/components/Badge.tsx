@@ -46,17 +46,17 @@ export const Badge = (props: Props) => {
         'background-color': props.badgeBackgroundColor ?? '#ffffff',
       }}
     >
-      Разработано компанией{' '}
+      Разработано на{' '}
       <a
         ref={liteBadge}
-        href={'https://myosminozhka.ru/'}
+        href={'https://osmi-it.ru/'}
         target="_blank"
         rel="noopener noreferrer"
         class="lite-badge"
         id="lite-badge"
         style={{ 'font-weight': 'bold', color: props.poweredByTextColor ?? defaultTextColor }}
       >
-        <span>Осьминожка</span>
+        <span>Osmi AI</span>
       </a>
     </span>
   );
