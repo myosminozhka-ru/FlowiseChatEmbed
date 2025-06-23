@@ -8,6 +8,12 @@ export type BubbleTheme = {
   tooltip?: ToolTipTheme;
   disclaimer?: DisclaimerPopUpTheme;
   customCSS?: string;
+  form?: FormTheme;
+};
+
+export type FormTheme = {
+  backgroundColor?: string;
+  textColor?: string;
 };
 
 export type TextInputTheme = {
@@ -55,6 +61,8 @@ export type ChatWindowTheme = {
   showAgentMessages?: boolean; // parameter to show agent reasonings when using agentflows
   title?: string;
   titleAvatarSrc?: string;
+  titleTextColor?: string;
+  titleBackgroundColor?: string;
   welcomeMessage?: string;
   errorMessage?: string;
   backgroundColor?: string;
@@ -69,8 +77,6 @@ export type ChatWindowTheme = {
   footer?: FooterTheme;
   sourceDocsTitle?: string;
   poweredByTextColor?: string;
-  headerBackgroundColor?: string;
-  headerTitleColor?: string;
   starterPrompts?: string[];
   starterPromptFontSize?: number;
   clearChatOnReload?: boolean;
@@ -81,7 +87,6 @@ export type ChatWindowTheme = {
 export type ButtonTheme = {
   size?: 'small' | 'medium' | 'large' | number; // custom size of chatbot in pixels
   backgroundColor?: string;
-  titleColor?: string;
   iconColor?: string;
   customIconSrc?: string;
   bottom?: number;
@@ -113,6 +118,8 @@ export type DisclaimerPopUpTheme = {
   buttonText?: string;
   blurredBackgroundColor?: string;
   backgroundColor?: string;
+  denyButtonBgColor?: string;
+  denyButtonText?: string;
 };
 
 export type DateTimeToggleTheme = {

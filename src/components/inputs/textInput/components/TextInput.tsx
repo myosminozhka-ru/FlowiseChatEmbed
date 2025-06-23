@@ -28,6 +28,7 @@ type TextInputProps = {
   autoFocus?: boolean;
   sendMessageSound?: boolean;
   sendSoundLocation?: string;
+  fullFileUploadAllowedTypes?: string;
   enableInputHistory?: boolean;
   maxHistorySize?: number;
 };
@@ -128,7 +129,7 @@ export const TextInput = (props: TextInputProps) => {
   };
 
   const getFileType = () => {
-    if (props.isFullFileUpload) return '*';
+    if (props.isFullFileUpload) return props.fullFileUploadAllowedTypes === '' ? '*' : props.fullFileUploadAllowedTypes;
     if (props.uploadsConfig?.fileUploadSizeAndTypes?.length) {
       const allowedFileTypes = props.uploadsConfig?.fileUploadSizeAndTypes.map((allowed) => allowed.fileTypes).join(',');
       if (allowedFileTypes.includes('*')) return '*';
@@ -163,7 +164,7 @@ export const TextInput = (props: TextInputProps) => {
               isDisabled={props.disabled || isSendButtonDisabled()}
               on:click={handleImageUploadClick}
             >
-              <span style={{ 'font-family': 'Poppins, sans-serif' }}>Image Upload</span>
+              <span style={{ 'font-family': 'Poppins, sans-serif' }}>Загрузка изображений</span>
             </ImageUploadButton>
             <input
               style={{ display: 'none' }}
@@ -188,7 +189,7 @@ export const TextInput = (props: TextInputProps) => {
               isDisabled={props.disabled || isSendButtonDisabled()}
               on:click={handleFileUploadClick}
             >
-              <span style={{ 'font-family': 'Poppins, sans-serif' }}>File Upload</span>
+              <span style={{ 'font-family': 'Poppins, sans-serif' }}>Загрузка файла</span>
             </AttachmentUploadButton>
             <input
               style={{ display: 'none' }}
@@ -216,7 +217,7 @@ export const TextInput = (props: TextInputProps) => {
             isDisabled={props.disabled || isSendButtonDisabled()}
             on:click={props.onMicrophoneClicked}
           >
-            <span style={{ 'font-family': 'Poppins, sans-serif' }}>Record Audio</span>
+            <span style={{ 'font-family': 'Poppins, sans-serif' }}>Запись звука</span>
           </RecordAudioButton>
         ) : null}
         <SendButton
@@ -226,7 +227,7 @@ export const TextInput = (props: TextInputProps) => {
           class="m-0 h-14 flex items-center justify-center"
           on:click={submit}
         >
-          <span style={{ 'font-family': 'Poppins, sans-serif' }}>Send</span>
+          <span style={{ 'font-family': 'Poppins, sans-serif' }}>Отправить</span>
         </SendButton>
       </div>
     </div>
