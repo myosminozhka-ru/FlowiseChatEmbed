@@ -136,7 +136,7 @@ You can also customize chatbot with different configuration
       },
       disclaimer: {
         title: 'Disclaimer',
-        message: 'By using this chatbot, you agree to the <a target="_blank" href="https://flowiseai.com/terms">Terms & Condition</a>',
+        message: 'Используя этого чат-бота, вы соглашаетесь с <a target="_blank" href="https://flowiseai.com/terms">Terms & Condition</a>',
         textColor: 'black',
         buttonColor: '#3b82f6',
         buttonText: 'Start Chatting',
@@ -158,10 +158,10 @@ You can also customize chatbot with different configuration
         titleAvatarSrc: 'https://raw.githubusercontent.com/walkxcode/dashboard-icons/main/svg/google-messages.svg',
         titleBackgroundColor: '#3B81F6',
         titleTextColor: '#ffffff',
-        welcomeMessage: 'Hello! This is custom welcome message',
-        errorMessage: 'This is a custom error message',
+        welcomeMessage: 'Привет! Это пользовательское приветственное сообщение',
+        errorMessage: 'Это пользовательское сообщение об ошибке',
         backgroundColor: '#ffffff',
-        backgroundImage: 'enter image path or link', // If set, this will overlap the background color of the chat window.
+        backgroundImage: 'введите путь к изображению или ссылку', // If set, this will overlap the background color of the chat window.
         height: 700,
         width: 400,
         fontSize: 16,
@@ -183,12 +183,12 @@ You can also customize chatbot with different configuration
           avatarSrc: 'https://raw.githubusercontent.com/zahidkhawaja/langchain-chat-nextjs/main/public/usericon.png',
         },
         textInput: {
-          placeholder: 'Type your question',
+          placeholder: 'Введите свой вопрос',
           backgroundColor: '#ffffff',
           textColor: '#303235',
           sendButtonColor: '#3B81F6',
           maxChars: 50,
-          maxCharsWarningMessage: 'You exceeded the characters limit. Please input less than 50 characters.',
+          maxCharsWarningMessage: 'Вы превысили лимит по количеству символов. Пожалуйста, введите не более 50 символов.',
           autoFocus: true, // If not used, autofocus is disabled on mobile and enabled on desktop. true enables it on both, false disables it on both.
           sendMessageSound: true,
           // sendSoundLocation: "send_message.mp3", // If this is not used, the default sound effect will be played if sendSoundMessage is true.
@@ -204,9 +204,9 @@ You can also customize chatbot with different configuration
         },
         footer: {
           textColor: '#303235',
-          text: 'Powered by',
-          company: 'Flowise',
-          companyLink: 'https://flowiseai.com',
+          text: 'Разработано на',
+          company: 'Osmi AI',
+          companyLink: 'https://osmi-it.ru/',
         },
       },
     },
