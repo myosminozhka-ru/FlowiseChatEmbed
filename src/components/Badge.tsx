@@ -46,7 +46,7 @@ export const Badge = (props: Props) => {
         'background-color': props.badgeBackgroundColor ?? '#ffffff',
       }}
     >
-      Разработано на{' '}
+      {/* Разработано на{' '}
       <a
         ref={liteBadge}
         href={'https://osmi-it.ru/'}
@@ -57,7 +57,7 @@ export const Badge = (props: Props) => {
         style={{ 'font-weight': 'bold', color: props.poweredByTextColor ?? defaultTextColor }}
       >
         <span>Osmi AI</span>
-      </a>
+      </a> */}
     </span>
   );
 };

@@ -1398,7 +1398,7 @@ export const Bot = (botProps: BotProps & { class?: string }) => {
           <div
             class="flex flex-row items-center w-full h-[50px] absolute top-0 left-0 z-10"
             style={{
-              background: props.bubbleBackgroundColor,
+              background: "rgb(185 145 215)",
               color: props.bubbleHeaderTitleColor || props.bubbleTextColor,
               'border-top-left-radius': props.isFullPage ? '0px' : '6px',
               'border-top-right-radius': props.isFullPage ? '0px' : '6px',
