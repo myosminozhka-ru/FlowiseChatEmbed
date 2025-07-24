@@ -4,7 +4,6 @@ import { BubbleParams } from '@/features/bubble/types';
 import { createSignal, onCleanup, onMount, Show } from 'solid-js';
 
 const defaultButtonColor = '#3B81F6';
-const defaultHeaderTitleColor = '#ffffff';
 const defaultIconColor = 'white';
 
 export type FullProps = BotProps & BubbleParams;
@@ -61,14 +60,18 @@ export const Full = (props: FullProps, { element }: { element: HTMLElement }) =>
           }}
         >
           <Bot
+            backgroundColor={props.theme?.chatWindow?.backgroundColor}
+            formBackgroundColor={props.theme?.form?.backgroundColor}
+            formTextColor={props.theme?.form?.textColor}
             badgeBackgroundColor={props.theme?.chatWindow?.backgroundColor}
-            bubbleBackgroundColor={props.theme?.button?.backgroundColor ?? props.theme?.chatWindow?.headerBackgroundColor ?? defaultButtonColor}
-            bubbleHeaderTitleColor={props.theme?.button?.titleColor ?? props.theme?.chatWindow?.headerTitleColor ?? defaultHeaderTitleColor}
+            bubbleBackgroundColor={props.theme?.button?.backgroundColor ?? defaultButtonColor}
             bubbleTextColor={props.theme?.button?.iconColor ?? defaultIconColor}
             showTitle={props.theme?.chatWindow?.showTitle}
             showAgentMessages={props.theme?.chatWindow?.showAgentMessages}
             title={props.theme?.chatWindow?.title}
             titleAvatarSrc={props.theme?.chatWindow?.titleAvatarSrc}
+            titleTextColor={props.theme?.chatWindow?.titleTextColor}
+            titleBackgroundColor={props.theme?.chatWindow?.titleBackgroundColor}
             welcomeMessage={props.theme?.chatWindow?.welcomeMessage}
             errorMessage={props.theme?.chatWindow?.errorMessage}
             poweredByTextColor={props.theme?.chatWindow?.poweredByTextColor}

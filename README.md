@@ -61,7 +61,7 @@ yarn build
     apiHost: 'http://localhost:3000',
   });
 </script>
-<start-ai-fullchatbot></start-ai-fullchatbot>
+<flowise-fullchatbot></flowise-fullchatbot>
 ```
 
 To enable full screen, add `margin: 0` to <code>body</code> style, and confirm you don't set height and width
@@ -143,13 +143,21 @@ You can also customize chatbot with different configuration
         buttonTextColor: 'white',
         blurredBackgroundColor: 'rgba(0, 0, 0, 0.4)', //The color of the blurred background that overlays the chat interface
         backgroundColor: 'white',
+        denyButtonText: 'Cancel',
+        denyButtonBgColor: '#ef4444',
       },
+      form: {
+        backgroundColor: 'white',
+        textColor: 'black',
+      }
       customCSS: ``, // Add custom CSS styles. Use !important to override default styles
       chatWindow: {
         showTitle: true,
         showAgentMessages: true,
         title: 'Flowise Bot',
         titleAvatarSrc: 'https://raw.githubusercontent.com/walkxcode/dashboard-icons/main/svg/google-messages.svg',
+        titleBackgroundColor: '#3B81F6',
+        titleTextColor: '#ffffff',
         welcomeMessage: 'Hello! This is custom welcome message',
         errorMessage: 'This is a custom error message',
         backgroundColor: '#ffffff',
@@ -175,7 +183,7 @@ You can also customize chatbot with different configuration
           avatarSrc: 'https://raw.githubusercontent.com/zahidkhawaja/langchain-chat-nextjs/main/public/usericon.png',
         },
         textInput: {
-          placeholder: 'Введите свой вопрос',
+          placeholder: 'Type your question',
           backgroundColor: '#ffffff',
           textColor: '#303235',
           sendButtonColor: '#3B81F6',
