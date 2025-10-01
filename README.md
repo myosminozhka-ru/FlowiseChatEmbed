@@ -183,7 +183,7 @@ You can also customize chatbot with different configuration
           avatarSrc: 'https://raw.githubusercontent.com/zahidkhawaja/langchain-chat-nextjs/main/public/usericon.png',
         },
         textInput: {
-          placeholder: 'Type your question',
+          placeholder: 'Введите свой вопрос',
           backgroundColor: '#ffffff',
           textColor: '#303235',
           sendButtonColor: '#3B81F6',
@@ -204,9 +204,9 @@ You can also customize chatbot with different configuration
         },
         footer: {
           textColor: '#303235',
-          text: 'Powered by',
-          company: 'Flowise',
-          companyLink: 'https://flowiseai.com',
+          text: 'Разработано на',
+          company: 'Osmi AI',
+          companyLink: 'https://osmi-it.ru/',
         },
       },
     },

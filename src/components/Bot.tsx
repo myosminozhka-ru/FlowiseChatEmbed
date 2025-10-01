@@ -183,7 +183,7 @@ export type LeadsConfig = {
   successMessage?: string;
 };
 
-const defaultWelcomeMessage = 'Hi there! How can I help?';
+const defaultWelcomeMessage = 'Привет! Чем я могу помочь?';
 
 /*const sourceDocuments = [
     {
@@ -264,7 +264,7 @@ const defaultWelcomeMessage = 'Hi there! How can I help?';
 
 const defaultBackgroundColor = '#ffffff';
 const defaultTextColor = '#303235';
-const defaultTitleBackgroundColor = '#3B81F6';
+const defaultTitleBackgroundColor = '#c8f14a';
 
 /* FeedbackDialog component - for collecting user feedback */
 const FeedbackDialog = (props: {
