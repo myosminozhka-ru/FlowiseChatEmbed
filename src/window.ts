@@ -15,15 +15,20 @@ let elementUsed: Element | undefined;
 
 export const initFull = (props: BotProps & { id?: string }) => {
   destroy();
-  const fullElement = props.id ? document.getElementById(props.id) : document.querySelector('start-ai-fullchatbot');
-  if (!fullElement) throw new Error('<start-ai-fullchatbot> element not found.');
-  Object.assign(fullElement, props);
+  let fullElement = props.id ? document.getElementById(props.id) : document.querySelector('flowise-fullchatbot');
+  if (!fullElement) {
+    fullElement = document.createElement('flowise-fullchatbot');
+    Object.assign(fullElement, props);
+    document.body.appendChild(fullElement);
+  } else {
+    Object.assign(fullElement, props);
+  }
   elementUsed = fullElement;
 };
 
 export const init = (props: BotProps) => {
   destroy();
-  const element = document.createElement('start-ai-chatbot');
+  const element = document.createElement('flowise-chatbot');
   Object.assign(element, props);
   document.body.appendChild(element);
   elementUsed = element;
