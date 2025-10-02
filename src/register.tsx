@@ -6,6 +6,6 @@ import { Full } from './features/full';
 export const registerWebComponents = () => {
   if (typeof window === 'undefined') return;
   // @ts-expect-error element incorect type
-  customElement('osmi-ai-fullchatbot', defaultBotProps, Full);
+  customElement('start-ai-fullchatbot', defaultBotProps, Full);
   customElement('osmi-ai-chatbot', defaultBotProps, Bubble);
 };

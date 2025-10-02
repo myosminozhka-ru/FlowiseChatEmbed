@@ -28,8 +28,8 @@ export const SendButton = (props: SendButtonProps) => {
   );
 };
 export const DeleteButton = (props: SendButtonProps) => {
-  // Check if <osmi-ai-fullchatbot> is present in the DOM
-  const isFullChatbot = document.querySelector('osmi-ai-fullchatbot') !== null;
+  // Check if <start-ai-fullchatbot> is present in the DOM
+  const isFullChatbot = document.querySelector('start-ai-fullchatbot') !== null;
   const paddingClass = isFullChatbot ? 'px-4' : 'px-12';
 
   return (

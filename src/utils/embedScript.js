@@ -7,7 +7,7 @@ export function generateEmbedScript(serverUrl) {
   })
 </script>`;
 
-  const scriptFull = `<osmi-ai-fullchatbot></osmi-ai-fullchatbot>
+  const scriptFull = `<start-ai-fullchatbot></start-ai-fullchatbot>
 <script type="module">
   import Chatbot from '${serverUrl}/web.js'
   Chatbot.initFull({

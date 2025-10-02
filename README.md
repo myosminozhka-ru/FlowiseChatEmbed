@@ -61,7 +61,7 @@ yarn build
     apiHost: 'http://localhost:3000',
   });
 </script>
-<osmi-ai-fullchatbot></osmi-ai-fullchatbot>
+<start-ai-fullchatbot></start-ai-fullchatbot>
 ```
 
 To enable full screen, add `margin: 0` to <code>body</code> style, and confirm you don't set height and width
@@ -328,7 +328,7 @@ For full page testing, use this configuration instead:
 
 ```html
 <!-- public/index.html -->
-<osmi-ai-fullchatbot></osmi-ai-fullchatbot>
+<start-ai-fullchatbot></start-ai-fullchatbot>
 <script type="module">
   import Chatbot from './web.js';
   Chatbot.initFull({
