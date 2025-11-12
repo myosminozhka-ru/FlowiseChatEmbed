@@ -68,11 +68,10 @@ export const AgentReasoningBubble = (props: Props) => {
       return (
         <span
           innerHTML={Marked.parse(src)}
-          class="prose"
+          class="prose rounded-lg"
           style={{
             'background-color': props.backgroundColor ?? defaultBackgroundColor,
             color: props.textColor ?? defaultTextColor,
-            'border-radius': '6px',
             'font-size': props.fontSize ? `${props.fontSize}px` : `${defaultFontSize}px`,
           }}
         />
