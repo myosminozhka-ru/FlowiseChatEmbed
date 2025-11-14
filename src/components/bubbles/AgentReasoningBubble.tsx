@@ -16,9 +16,8 @@ type Props = {
   renderHTML?: boolean;
 };
 
-const defaultBackgroundColor = '#f7f8ff';
-const defaultTextColor = '#303235';
-const defaultFontSize = 16;
+const defaultBackgroundColor = 'var(--chatbot-host-bubble-bg-color, #f7f8ff)';
+const defaultFontSize = 'var(--chatbot-font-size, 16px)';
 
 export const AgentReasoningBubble = (props: Props) => {
   let botMessageEl: HTMLDivElement | undefined;
@@ -68,11 +67,10 @@ export const AgentReasoningBubble = (props: Props) => {
       return (
         <span
           innerHTML={Marked.parse(src)}
-          class="prose rounded-lg"
+          class={`prose rounded-lg ${props.textColor ? `text-[${props.textColor}]` : 'text-gray-880'}`}
           style={{
             'background-color': props.backgroundColor ?? defaultBackgroundColor,
-            color: props.textColor ?? defaultTextColor,
-            'font-size': props.fontSize ? `${props.fontSize}px` : `${defaultFontSize}px`,
+            'font-size': props.fontSize ? `${props.fontSize}px` : defaultFontSize,
           }}
         />
       );
@@ -93,11 +91,10 @@ export const AgentReasoningBubble = (props: Props) => {
       {props.agentMessage && (
         <span
           ref={botMessageEl}
-          class="prose"
+          class={`prose ${props.textColor ? `text-[${props.textColor}]` : 'text-gray-880'}`}
           style={{
             'background-color': props.backgroundColor ?? defaultBackgroundColor,
-            color: props.textColor ?? defaultTextColor,
-            'font-size': props.fontSize ? `${props.fontSize}px` : `${defaultFontSize}px`,
+            'font-size': props.fontSize ? `${props.fontSize}px` : defaultFontSize,
           }}
         />
       )}

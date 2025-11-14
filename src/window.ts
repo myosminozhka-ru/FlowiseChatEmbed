@@ -15,7 +15,7 @@ let elementUsed: Element | undefined;
 
 export const initFull = (props: BotProps & { id?: string }) => {
   destroy();
-  let fullElement = props.id ? document.getElementById(props.id) : document.querySelector('osmi-ai-fullchatbot');
+  let fullElement = props.id ? document.getElementById(props.id) : document.querySelector('start-ai-fullchatbot');
   if (!fullElement) {
     fullElement = document.createElement('start-ai-fullchatbot');
     Object.assign(fullElement, props);

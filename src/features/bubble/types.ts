@@ -21,13 +21,10 @@ export type TextInputTheme = {
   textColor?: string;
   placeholder?: string;
   sendButtonColor?: string;
+  caretColor?: string;
   maxChars?: number;
   maxCharsWarningMessage?: string;
   autoFocus?: boolean;
-  sendMessageSound?: boolean;
-  sendSoundLocation?: string;
-  receiveMessageSound?: boolean;
-  receiveSoundLocation?: string;
 };
 
 export type UserMessageTheme = {
@@ -54,6 +51,7 @@ export type FooterTheme = {
 
 export type FeedbackTheme = {
   color?: string;
+  reasons?: string[];
 };
 
 export type ChatWindowTheme = {
@@ -63,7 +61,9 @@ export type ChatWindowTheme = {
   titleAvatarSrc?: string;
   titleTextColor?: string;
   titleBackgroundColor?: string;
-  welcomeMessage?: string;
+  welcomeTitle?: string;
+  welcomeText?: string;
+  showWelcomeImage?: boolean;
   errorMessage?: string;
   backgroundColor?: string;
   backgroundImage?: string;
@@ -78,7 +78,6 @@ export type ChatWindowTheme = {
   sourceDocsTitle?: string;
   poweredByTextColor?: string;
   starterPrompts?: string[];
-  starterPromptFontSize?: number;
   clearChatOnReload?: boolean;
   dateTimeToggle?: DateTimeToggleTheme;
   renderHTML?: boolean;

@@ -1,8 +1,9 @@
 type Props = {
   prompt: string;
   onPromptClick?: () => void;
-  starterPromptFontSize?: number;
+  backgroundColor?: string;
 };
+
 export const StarterPromptBubble = (props: Props) => (
   <>
     <div
@@ -12,13 +13,11 @@ export const StarterPromptBubble = (props: Props) => (
       onClick={() => props.onPromptClick?.()}
     >
       <span
-        class="px-2 py-1 ml-1 whitespace-pre-wrap max-w-full chatbot-host-bubble"
+        class="px-3 py-2.5 ml-1 whitespace-pre-wrap max-w-full rounded-lg rounded-tr-none text-gray-880 cursor-pointer"
         data-testid="host-bubble"
         style={{
           width: 'max-content',
-          'font-size': props.starterPromptFontSize ? `${props.starterPromptFontSize}px` : '15px', // Convert to string with unit
-          'border-radius': '15px',
-          cursor: 'pointer',
+          background: props.backgroundColor || 'var(--gradient, linear-gradient(135deg, #B4FF0A 0%, #A4EB04 100%))',
         }}
       >
         {props.prompt}

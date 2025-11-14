@@ -1,5 +1,4 @@
 import { JSX, Show } from 'solid-js';
-import { Spinner } from '@/components';
 import { SendButton } from '@/components/buttons/SendButton';
 
 type LeadCaptureButtonProps = {
@@ -28,12 +27,7 @@ export const CancelLeadCaptureButton = (props: LeadCaptureButtonProps) => {
 };
 
 const SaveLeadFallback = () => {
-  return (
-    <span class="flex items-center gap-2">
-      <Spinner class="text-white" />
-      Saving...
-    </span>
-  );
+  return <span class="flex items-center gap-2">Saving...</span>;
 };
 
 export const SaveLeadButton = (props: LeadCaptureButtonProps) => {
@@ -46,7 +40,7 @@ export const SaveLeadButton = (props: LeadCaptureButtonProps) => {
       {...props}
     >
       <Show when={!props.isLoading} fallback={<SaveLeadFallback />}>
-        <span style={{ 'font-family': 'Poppins, sans-serif' }}>Submit</span>
+        <span class="font-sans">Submit</span>
       </Show>
     </SendButton>
   );

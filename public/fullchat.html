@@ -11,7 +11,7 @@
             padding: 0;
             box-sizing: border-box;
         }
-        
+
         body {
             margin: 0;
             padding: 0;
@@ -19,7 +19,7 @@
             width: 100vw;
             height: 100vh;
         }
-        
+
         start-ai-fullchatbot {
             display: block;
             width: 100%;
@@ -31,14 +31,14 @@
 <body>
     <!-- Элемент для полноэкранного чата -->
     <start-ai-fullchatbot></start-ai-fullchatbot>
-    
+
     <script type="module">
         (async () => {
             try {
                 // Загружаем модуль чатбота
                 const baseUrl = window.location.origin;
                 let module;
-                
+
                 try {
                     module = await import(`${baseUrl}/web.js`);
                 } catch (e1) {
@@ -48,49 +48,42 @@
                         module = await import('/web.js');
                     }
                 }
-                
+
                 // Получаем Chatbot из модуля или window
                 let Chatbot = module.default;
                 if (window.Chatbot) {
                     Chatbot = window.Chatbot;
                 }
-                
+
                 if (!Chatbot || typeof Chatbot.initFull !== 'function') {
                     throw new Error('Chatbot.initFull не доступен');
                 }
-                
+
                 // Инициализируем полноэкранный чат
                 Chatbot.initFull({
                     chatflowid: '416feeac-4a95-4f6e-a81d-73f8f48bc54f',
                     apiHost: 'https://app.osmi-it.ru',
+                    chatflowConfig: {
+                        chatFeedback: {
+                            status: true
+                        }
+                    },
                     theme: {
                         chatWindow: {
-                            backgroundColor: '#ffffff',
                             showTitle: true,
-                            title: 'Сколково AI помощник',
-                            titleBackgroundColor: '#C8F14A',
+                            title: 'Умный помщник',
                             // Не указываем height и width для полноэкранного режима
                             botMessage: {
                                 showAvatar: true,
-                                // Можно использовать любой URL изображения или оставить пустым для дефолтной аватарки
-                                avatarSrc: 'https://raw.githubusercontent.com/zahidkhawaja/langchain-chat-nextjs/main/public/parroticon.png',
-                                backgroundColor: '#f7f8ff',
-                                textColor: '#303235'
                             },
-                            userMessage: {
-                                showAvatar: true,
-                                // Можно использовать любой URL изображения или оставить пустым для дефолтной аватарки
-                                avatarSrc: 'https://raw.githubusercontent.com/zahidkhawaja/langchain-chat-nextjs/main/public/usericon.png',
-                                backgroundColor: '#3B81F6',
-                                textColor: '#ffffff'
-                            }
+                            dateTimeToggle: {
+                                date: false,
+                                time: true
+                            },
                         },
-                        button: {
-                            backgroundColor: '#3B81F6',
-                        }
                     }
                 });
-                
+
                 console.log('✅ Полноэкранный чат инициализирован');
             } catch (error) {
                 console.error('❌ Ошибка загрузки чатбота:', error);

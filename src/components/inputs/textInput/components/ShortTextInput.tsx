@@ -6,6 +6,9 @@ type ShortTextInputProps = {
   onInput: (value: string) => void;
   fontSize?: number;
   disabled?: boolean;
+  caretColor?: string;
+  paddingX?: string;
+  paddingY?: string;
 } & Omit<JSX.TextareaHTMLAttributes<HTMLTextAreaElement>, 'onInput'>;
 
 const DEFAULT_HEIGHT = 56;
@@ -39,15 +42,24 @@ export const ShortTextInput = (props: ShortTextInputProps) => {
     }
   };
 
+  const paddingX = props.paddingX ?? 'px-4';
+  const paddingY = props.paddingY ?? 'py-4';
+  const isEmpty = !props.value || props.value === '';
+  // Для центрирования placeholder: если поле пустое и paddingY = py-0, добавляем padding-top
+  const shouldCenterPlaceholder = isEmpty && paddingY === 'py-0';
+  const fontSize = props.fontSize ?? 16;
+  // Вычисляем padding-top для центрирования: (min-height - font-size) / 2
+  const centerPaddingTop = shouldCenterPlaceholder ? `${(56 - fontSize) / 2}px` : undefined;
+
   return (
     <textarea
       ref={props.ref}
-      class="focus:outline-none bg-transparent px-4 py-4 flex-1 w-full h-full min-h-[56px] max-h-[128px] text-input disabled:opacity-50 disabled:cursor-not-allowed disabled:brightness-100 "
+      class={`focus:outline-none bg-transparent ${paddingX} ${paddingY} flex-1 w-full h-full min-h-[56px] max-h-[128px] text-input placeholder:text-gray-400 disabled:opacity-50 disabled:cursor-not-allowed disabled:brightness-100 ${props.caretColor ? `caret-[${props.caretColor}]` : 'caret-[var(--chatbot-input-caret-color)]'}`}
       disabled={props.disabled}
       style={{
-        'font-size': props.fontSize ? `${props.fontSize}px` : '16px',
+        'font-size': `${fontSize}px`,
         resize: 'none',
-        height: `${props.value !== '' ? height() : DEFAULT_HEIGHT}px`,
+        'padding-top': centerPaddingTop,
       }}
       onInput={handleInput}
       onKeyDown={handleKeyDown}

@@ -1,4 +1,3 @@
-import { ShortTextInput } from './ShortTextInput';
 import { Show, createSignal, createEffect, onMount, Setter } from 'solid-js';
 import { SendButton } from '@/components/buttons/SendButton';
 import { FileEvent, UploadsConfig } from '@/components/Bot';
@@ -6,7 +5,7 @@ import { ImageUploadButton } from '@/components/buttons/ImageUploadButton';
 import { AttachmentUploadButton } from '@/components/buttons/AttachmentUploadButton';
 import { ChatInputHistory } from '@/utils/chatInputHistory';
 
-type TextInputProps = {
+type SendAreaProps = {
   placeholder?: string;
   backgroundColor?: string;
   textColor?: string;
@@ -27,21 +26,35 @@ type TextInputProps = {
   fullFileUploadAllowedTypes?: string;
   enableInputHistory?: boolean;
   maxHistorySize?: number;
+  isFullscreen?: boolean;
 };
 
 const defaultBackgroundColor = 'var(--chatbot-input-bg-color, #ffffff)';
+const DEFAULT_HEIGHT = 56;
 
-export const TextInput = (props: TextInputProps) => {
+export const SendArea = (props: SendAreaProps) => {
   const [isSendButtonDisabled, setIsSendButtonDisabled] = createSignal(false);
   const [warningMessage, setWarningMessage] = createSignal('');
   const [inputHistory] = createSignal(new ChatInputHistory(() => props.maxHistorySize || 10));
-  let inputRef: HTMLInputElement | HTMLTextAreaElement | undefined;
-  let fileUploadRef: HTMLInputElement | HTMLTextAreaElement | undefined;
-  let imgUploadRef: HTMLInputElement | HTMLTextAreaElement | undefined;
+  const [height, setHeight] = createSignal(DEFAULT_HEIGHT);
+  let textareaRef: HTMLTextAreaElement | undefined;
+  let fileUploadRef: HTMLInputElement | undefined;
+  let imgUploadRef: HTMLInputElement | undefined;
 
-  const handleInput = (inputValue: string) => {
+  const handleInput = (e: Event) => {
+    const target = e.currentTarget as HTMLTextAreaElement;
+    const inputValue = target.value;
+
+    // Автоматическое изменение высоты
+    if (inputValue === '') {
+      setHeight(DEFAULT_HEIGHT);
+    } else {
+      setHeight(target.scrollHeight);
+    }
+    target.scrollTo(0, target.scrollHeight);
+
+    // Проверка лимита символов
     const wordCount = inputValue.length;
-
     if (props.maxChars && wordCount > props.maxChars) {
       setWarningMessage(props.maxCharsWarningMessage ?? `You exceeded the characters limit. Please input less than ${props.maxChars} characters.`);
       setIsSendButtonDisabled(true);
@@ -53,7 +66,7 @@ export const TextInput = (props: TextInputProps) => {
     setIsSendButtonDisabled(false);
   };
 
-  const checkIfInputIsValid = () => warningMessage() === '' && inputRef?.reportValidity();
+  const checkIfInputIsValid = () => warningMessage() === '' && textareaRef?.reportValidity();
 
   const submit = () => {
     if (checkIfInputIsValid()) {
@@ -73,6 +86,16 @@ export const TextInput = (props: TextInputProps) => {
   };
 
   const handleKeyDown = (e: KeyboardEvent) => {
+    // Handle Shift + Enter new line
+    if (e.keyCode === 13 && e.shiftKey) {
+      e.preventDefault();
+      e.stopPropagation();
+      const target = e.currentTarget as HTMLTextAreaElement;
+      target.value += '\n';
+      handleInput(e);
+      return;
+    }
+
     if (e.key === 'Enter' && !e.shiftKey) {
       const isIMEComposition = e.isComposing || e.keyCode === 229;
       if (!isIMEComposition) {
@@ -94,14 +117,12 @@ export const TextInput = (props: TextInputProps) => {
 
   createEffect(() => {
     const shouldAutoFocus = props.autoFocus !== undefined ? props.autoFocus : window.innerWidth >= 768;
-
-    if (!props.disabled && shouldAutoFocus && inputRef) inputRef.focus();
+    if (!props.disabled && shouldAutoFocus && textareaRef) textareaRef.focus();
   });
 
   onMount(() => {
     const shouldAutoFocus = props.autoFocus !== undefined ? props.autoFocus : window.innerWidth >= 768;
-
-    if (!props.disabled && shouldAutoFocus && inputRef) inputRef.focus();
+    if (!props.disabled && shouldAutoFocus && textareaRef) textareaRef.focus();
   });
 
   const handleFileChange = (event: FileEvent<HTMLInputElement>) => {
@@ -121,12 +142,11 @@ export const TextInput = (props: TextInputProps) => {
 
   return (
     <div
-      class={`w-full h-auto max-h-[192px] min-h-[72px] flex flex-col items-end justify-between chatbot-input border-t py-4 px-6 lg:px-8 ${props.textColor ? `text-[${props.textColor}]` : 'text-gray-880'}`}
+      class={`sticky bottom-0 w-full h-auto max-h-[192px] min-h-[72px] flex flex-col items-end justify-between chatbot-input border-t pb-4 z-10 ${props.textColor ? `text-[${props.textColor}]` : 'text-gray-880'} ${props.isFullscreen ? 'px-4 md:px-6 lg:px-8' : 'px-6'}`}
       data-testid="input"
       style={{
         'background-color': props.backgroundColor ?? defaultBackgroundColor,
       }}
-      onKeyDown={handleKeyDown}
     >
       <Show when={warningMessage() !== ''}>
         <div class="w-full px-4 pt-4 pb-1 text-red-500 text-sm" data-testid="warning-message">
@@ -180,27 +200,29 @@ export const TextInput = (props: TextInputProps) => {
             />
           </>
         ) : null}
-        <ShortTextInput
-          ref={inputRef as HTMLTextAreaElement}
-          onInput={handleInput}
+        <textarea
+          ref={textareaRef}
           value={props.inputValue}
-          fontSize={props.fontSize}
-          disabled={props.disabled}
           placeholder={props.placeholder ?? 'Введите свой вопрос'}
-          caretColor={props.caretColor}
-          paddingX="px-0"
-          paddingY="py-0"
+          disabled={props.disabled}
+          class={`focus:outline-none bg-transparent px-0 pt-[25px] pb-0 flex-1 w-full h-full min-h-[56px] max-h-[128px] text-input placeholder:text-gray-400 disabled:opacity-50 disabled:cursor-not-allowed disabled:brightness-100 ${props.caretColor ? `caret-[${props.caretColor}]` : 'caret-[var(--chatbot-input-caret-color)]'}`}
+          style={{
+            'font-size': props.fontSize ? `${props.fontSize}px` : '16px',
+            resize: 'none',
+            height: `${props.inputValue !== '' ? height() : DEFAULT_HEIGHT}px`,
+          }}
+          onInput={handleInput}
+          onKeyDown={handleKeyDown}
         />
         <SendButton
           sendButtonColor={props.sendButtonColor}
           type="button"
-          isDisabled={props.disabled || isSendButtonDisabled()}
-          class="m-0 h-14 flex items-center justify-center"
+          isDisabled={props.disabled || isSendButtonDisabled() || !props.inputValue || props.inputValue.trim() === ''}
+          class="m-0 mt-4 h-14 flex items-center justify-center"
           on:click={submit}
-        >
-          <span class="font-sans">Send</span>
-        </SendButton>
+        />
       </div>
     </div>
   );
 };
+

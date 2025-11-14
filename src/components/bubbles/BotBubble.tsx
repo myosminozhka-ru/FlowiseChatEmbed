@@ -10,6 +10,7 @@ import { TickIcon, XIcon } from '../icons';
 import { SourceBubble } from '../bubbles/SourceBubble';
 import { DateTimeToggleTheme } from '@/features/bubble/types';
 import { WorkflowTreeView } from '../treeview/WorkflowTreeView';
+import { TypingBubble } from '../TypingBubble';
 
 type Props = {
   message: MessageType;
@@ -30,14 +31,19 @@ type Props = {
   showAgentMessages?: boolean;
   sourceDocsTitle?: string;
   renderHTML?: boolean;
+  botTitle?: string;
+  enableCopyMessage?: boolean;
   handleActionClick: (elem: any, action: IAction | undefined | null) => void;
   handleSourceDocumentsClick: (src: any) => void;
+  isFullPage?: boolean;
+  isFullscreen?: boolean;
+  isPopup?: boolean;
+  feedbackReasons?: string[];
 };
 
-const defaultBackgroundColor = '#f7f8ff';
-const defaultTextColor = '#303235';
-const defaultFontSize = 16;
-const defaultFeedbackColor = '#3B81F6';
+const defaultBackgroundColor = 'var(--chatbot-host-bubble-bg-color, #f7f8ff)';
+const defaultFontSize = 'var(--chatbot-font-size, 16px)';
+const defaultFeedbackColor = 'rgba(11, 17, 19, 0.5)'; // gray-500
 
 export const BotBubble = (props: Props) => {
   let botDetailsEl: HTMLDetailsElement | undefined;
@@ -59,7 +65,7 @@ export const BotBubble = (props: Props) => {
       el.innerHTML = Marked.parse(props.message.message);
 
       // Apply textColor to all links, headings, and other markdown elements except code
-      const textColor = props.textColor ?? defaultTextColor;
+      const textColor = props.textColor ?? '#15181E'; // gray-880
       el.querySelectorAll('a, h1, h2, h3, h4, h5, h6, strong, em, blockquote, li').forEach((element) => {
         (element as HTMLElement).style.color = textColor;
       });
@@ -245,9 +251,16 @@ export const BotBubble = (props: Props) => {
     }
   };
 
-  const submitFeedbackContent = async (text: string) => {
+  const submitFeedbackContent = async (text: string, reason?: string) => {
+    // API не принимает поле "reason", только "content"
+    // Если выбрана обычная причина (не "Другое"), включаем её label в content
+    let content = text;
+    if (reason && reason !== 'Другое') {
+      content = reason + (text ? `: ${text}` : '');
+    }
+
     const body = {
-      content: text,
+      content: content,
     };
     const result = await updateFeedbackQuery({
       id: feedbackId(),
@@ -280,7 +293,7 @@ export const BotBubble = (props: Props) => {
     // Instead of onMount, we'll use a callback ref to apply styles
     const setArtifactRef = (el: HTMLSpanElement) => {
       if (el) {
-        const textColor = props.textColor ?? defaultTextColor;
+        const textColor = props.textColor ?? '#15181E'; // gray-880
         // Apply textColor to all elements except code blocks
         el.querySelectorAll('a, h1, h2, h3, h4, h5, h6, strong, em, blockquote, li').forEach((element) => {
           (element as HTMLElement).style.color = textColor;
@@ -332,11 +345,10 @@ export const BotBubble = (props: Props) => {
           <span
             ref={setArtifactRef}
             innerHTML={Marked.parse(item.data as string)}
-            class="prose rounded-lg"
+            class={`prose rounded-lg ${props.textColor ? `text-[${props.textColor}]` : 'text-gray-880'}`}
             style={{
               'background-color': props.backgroundColor ?? defaultBackgroundColor,
-              color: props.textColor ?? defaultTextColor,
-              'font-size': props.fontSize ? `${props.fontSize}px` : `${defaultFontSize}px`,
+              'font-size': props.fontSize ? `${props.fontSize}px` : defaultFontSize,
             }}
           />
         </Show>
@@ -356,28 +368,20 @@ export const BotBubble = (props: Props) => {
         return '';
       }
 
+      // В баблах показываем только время, дата остается в разделителе
+      const shouldShowTime = showTime !== false; // По умолчанию true, если не false
+
       let formatted = '';
 
-      if (showDate) {
-        const dateFormatter = new Intl.DateTimeFormat('en-US', {
-          year: 'numeric',
-          month: 'short',
-          day: 'numeric',
-          timeZone: Intl.DateTimeFormat().resolvedOptions().timeZone,
-        });
-        const [{ value: month }, , { value: day }, , { value: year }] = dateFormatter.formatToParts(date);
-        formatted = `${month.charAt(0).toUpperCase() + month.slice(1)} ${day}, ${year}`;
-      }
-
-      if (showTime) {
-        const timeFormatter = new Intl.DateTimeFormat('en-US', {
-          hour: 'numeric',
+      // Показываем только время
+      if (shouldShowTime) {
+        const timeFormatter = new Intl.DateTimeFormat('ru-RU', {
+          hour: '2-digit',
           minute: '2-digit',
-          hour12: true,
+          hour12: false,
           timeZone: Intl.DateTimeFormat().resolvedOptions().timeZone,
         });
-        const timeString = timeFormatter.format(date).toLowerCase();
-        formatted = formatted ? `${formatted}, ${timeString}` : timeString;
+        formatted = timeFormatter.format(date);
       }
 
       return formatted;
@@ -387,13 +391,73 @@ export const BotBubble = (props: Props) => {
     }
   };
 
+  // Определяем классы для ширины бабла в зависимости от режима и размера экрана
+  const getContainerClasses = () => {
+    const isFullMode = props.isFullPage || props.isFullscreen;
+    const isPopupMode = props.isPopup && !props.isFullscreen;
+    const baseClasses = 'flex flex-row justify-start mb-5 items-start host-container';
+
+    if (isPopupMode) {
+      return `${baseClasses} w-full pr-[40px]`;
+    }
+
+    if (isFullMode) {
+      // Для full page/full screen - адаптивные стили: 100% (до sm) -> 70% (sm:640px) -> 60% (lg:1024px) -> 50% (xl:1280px)
+      return `${baseClasses} w-full pr-[40px] sm:w-[70%] sm:pr-0 lg:w-3/5 xl:w-1/2`;
+    }
+
+    // По умолчанию
+    return `${baseClasses} w-2/3`;
+  };
+
   return (
     <div>
-      <div class="flex flex-row justify-start mb-2 items-start host-container" style={{ 'margin-right': '50px' }}>
-        <Show when={props.showAvatar}>
-          <Avatar initialAvatarSrc={props.avatarSrc} />
-        </Show>
-        <div class="flex flex-col justify-start">
+      <div class={getContainerClasses()}>
+        {/* Основной контейнер с контентом */}
+        <div class={`flex flex-col justify-start px-4 py-3 rounded-lg rounded-bl-none chatbot-host-bubble min-h-[52px] ${props.isLoading && !props.message.message ? 'w-[72px]' : 'w-full'} ${props.textColor ? `text-[${props.textColor}]` : 'text-gray-880'}`}
+             style={{
+               'background-color': props.backgroundColor ?? defaultBackgroundColor,
+               'font-size': props.fontSize ? `${props.fontSize}px` : defaultFontSize,
+             }}
+        >
+          {/* Верхняя строка: Аватар, название бота и Feedback кнопки - показываем только когда есть текст сообщения */}
+          <Show when={props.message.message}>
+            <div class="flex flex-row items-center justify-between w-full mb-2">
+              <div class="flex flex-row items-center gap-2">
+                <Show when={props.showAvatar}>
+                  <Avatar initialAvatarSrc={props.avatarSrc} />
+                </Show>
+                <span class="font-semibold text-gray-880">
+                  {props.botTitle || 'Умный помощник'}
+                </span>
+              </div>
+              {/* Feedback кнопки справа */}
+              <Show when={props.chatFeedbackStatus && props.message.messageId}>
+                <div class="flex items-center gap-2">
+                  <Show when={props.enableCopyMessage}>
+                    <CopyToClipboardButton feedbackColor={props.feedbackColor} onClick={() => copyMessageToClipboard()} />
+                    <Show when={copiedMessage()}>
+                      <div class={`copied-message text-xs ${props.feedbackColor ? `text-[${props.feedbackColor}]` : 'text-gray-500'}`}>
+                        Скопировано
+                      </div>
+                    </Show>
+                  </Show>
+                  {rating() === '' || rating() === 'THUMBS_UP' ? (
+                    <ThumbsUpButton feedbackColor={thumbsUpColor()} isDisabled={rating() === 'THUMBS_UP'} rating={rating()} onClick={onThumbsUpClick} />
+                  ) : null}
+                  {rating() === '' || rating() === 'THUMBS_DOWN' ? (
+                    <ThumbsDownButton
+                      feedbackColor={thumbsDownColor()}
+                      isDisabled={rating() === 'THUMBS_DOWN'}
+                      rating={rating()}
+                      onClick={onThumbsDownClick}
+                    />
+                  ) : null}
+                </div>
+              </Show>
+            </div>
+          </Show>
+          {/* Agent Flow Executed Data блок */}
           {props.showAgentMessages &&
             props.message.agentFlowExecutedData &&
             Array.isArray(props.message.agentFlowExecutedData) &&
@@ -402,6 +466,7 @@ export const BotBubble = (props: Props) => {
                 <WorkflowTreeView workflowData={props.message.agentFlowExecutedData} indentationLevel={24} />
               </div>
             )}
+          {/* Agent Reasoning блок */}
           {props.showAgentMessages && props.message.agentReasoning && (
             <details ref={botDetailsEl} class="mb-2 px-4 py-2 ml-2 chatbot-host-bubble rounded-[6px]">
               <summary class="cursor-pointer">
@@ -431,6 +496,7 @@ export const BotBubble = (props: Props) => {
               </For>
             </details>
           )}
+          {/* Artifacts блок */}
           {props.message.artifacts && props.message.artifacts.length > 0 && (
             <div class="flex flex-row items-start flex-wrap w-full gap-2">
               <For each={props.message.artifacts}>
@@ -440,18 +506,22 @@ export const BotBubble = (props: Props) => {
               </For>
             </div>
           )}
-          {props.message.message && (
+          {/* Основное сообщение бота или индикатор загрузки */}
+          {props.message.message ? (
             <span
               ref={setBotMessageRef}
-              class="px-4 py-2 ml-2 max-w-full chatbot-host-bubble prose rounded-lg"
+              class="mt-3 max-w-full prose"
               data-testid="host-bubble"
               style={{
-                'background-color': props.backgroundColor ?? defaultBackgroundColor,
-                color: props.textColor ?? defaultTextColor,
-                'font-size': props.fontSize ? `${props.fontSize}px` : `${defaultFontSize}px`,
+                'font-size': props.fontSize ? `${props.fontSize}px` : defaultFontSize,
               }}
             />
-          )}
+          ) : props.isLoading ? (
+            <div class="mt-3">
+              <TypingBubble />
+            </div>
+          ) : null}
+          {/* Action кнопки (Yes/No) */}
           {props.message.action && (
             <div class="px-4 py-2 flex flex-row justify-start space-x-2">
               <For each={props.message.action.elements || []}>
@@ -474,7 +544,7 @@ export const BotBubble = (props: Props) => {
                           class="px-4 py-2 font-medium text-red-600 border border-red-600 rounded-full hover:bg-red-600 hover:text-white transition-colors duration-300 flex items-center space-x-2"
                           onClick={() => props.handleActionClick(action, props.message.action)}
                         >
-                          <XIcon isCurrentColor={true} />
+                          <XIcon />
                           &nbsp;
                           {action.label}
                         </button>
@@ -487,8 +557,15 @@ export const BotBubble = (props: Props) => {
               </For>
             </div>
           )}
+          {/* Время внизу бабла - справа (скрываем во время загрузки) */}
+          {props.message.dateTime && !(props.isLoading && !props.message.message) && (
+            <div class="text-xs text-gray-500 opacity-70 mt-2 w-full text-right">
+              {formatDateTime(props.message.dateTime, props?.dateTimeToggle?.date, props?.dateTimeToggle?.time)}
+            </div>
+          )}
         </div>
       </div>
+      {/* Source Documents блок */}
       <div>
         {props.message.sourceDocuments && props.message.sourceDocuments.length && (
           <>
@@ -518,45 +595,17 @@ export const BotBubble = (props: Props) => {
           </>
         )}
       </div>
-      <div>
-        {props.chatFeedbackStatus && props.message.messageId && (
-          <>
-            <div class={`flex items-center px-2 pb-2 ${props.showAvatar ? 'ml-10' : ''}`}>
-              <CopyToClipboardButton feedbackColor={props.feedbackColor} onClick={() => copyMessageToClipboard()} />
-              <Show when={copiedMessage()}>
-                <div class="copied-message" style={{ color: props.feedbackColor ?? defaultFeedbackColor }}>
-                  Copied!
-                </div>
-              </Show>
-              {rating() === '' || rating() === 'THUMBS_UP' ? (
-                <ThumbsUpButton feedbackColor={thumbsUpColor()} isDisabled={rating() === 'THUMBS_UP'} rating={rating()} onClick={onThumbsUpClick} />
-              ) : null}
-              {rating() === '' || rating() === 'THUMBS_DOWN' ? (
-                <ThumbsDownButton
-                  feedbackColor={thumbsDownColor()}
-                  isDisabled={rating() === 'THUMBS_DOWN'}
-                  rating={rating()}
-                  onClick={onThumbsDownClick}
-                />
-              ) : null}
-              <Show when={props.message.dateTime}>
-                <div class="text-sm text-gray-500 ml-2">
-                  {formatDateTime(props.message.dateTime, props?.dateTimeToggle?.date, props?.dateTimeToggle?.time)}
-                </div>
-              </Show>
-            </div>
-            <Show when={showFeedbackContentDialog()}>
-              <FeedbackContentDialog
-                isOpen={showFeedbackContentDialog()}
-                onClose={() => setShowFeedbackContentModal(false)}
-                onSubmit={submitFeedbackContent}
-                backgroundColor={props.backgroundColor}
-                textColor={props.textColor}
-              />
-            </Show>
-          </>
-        )}
-      </div>
+      {/* Feedback Dialog */}
+      <Show when={showFeedbackContentDialog()}>
+        <FeedbackContentDialog
+          isOpen={showFeedbackContentDialog()}
+          onClose={() => setShowFeedbackContentModal(false)}
+          onSubmit={submitFeedbackContent}
+          backgroundColor={props.backgroundColor}
+          textColor={props.textColor}
+          reasons={props.feedbackReasons}
+        />
+      </Show>
     </div>
   );
 };

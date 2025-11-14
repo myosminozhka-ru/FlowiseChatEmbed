@@ -12,25 +12,51 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Flowise Chatbot Widget</title>
+    <title>OsmiAI Chatbot Widget</title>
 </head>
 
 <body>
     <div id="root"></div>
     <script type="module">
-        import Chatbot from './web.js'
-        
-        // Example initialization:
-        // If your .env contains:
-        // agent1=xyz789-uvw456,https://example.com
-        // support=abc123-def456,https://example.com
-        // salesbot=ghi123-jkl456,https://example.com
-        //
-        // Then use the environment variable name as chatflowid:
-        Chatbot.init({
-            chatflowid: 'agent1',    // or 'support', 'salesbot', etc.
-            apiHost: window.location.origin
-        })
+        (async () => {
+            try {
+                // Загружаем модуль чатбота
+                const baseUrl = window.location.origin;
+                let module;
+
+                try {
+                    module = await import(`${baseUrl}/web.js`);
+                } catch (e1) {
+                    try {
+                        module = await import('./web.js');
+                    } catch (e2) {
+                        module = await import('/web.js');
+                    }
+                }
+
+                // Получаем Chatbot из модуля или window
+                let Chatbot = module.default;
+                if (window.Chatbot) {
+                    Chatbot = window.Chatbot;
+                }
+
+                if (!Chatbot || typeof Chatbot.init !== 'function') {
+                    throw new Error('Chatbot.init не доступен');
+                }
+
+                // Используем прямой API_HOST, как в fullchat.html
+                const apiHost = 'https://app.osmi-it.ru';
+
+                // Инициализируем чатбот
+                // Используем тот же chatflowid, что и в fullchat.html
+                Chatbot.init({
+                    chatflowid: '416feeac-4a95-4f6e-a81d-73f8f48bc54f',
+                    apiHost: apiHost
+                });
+            } catch (error) {
+                console.error('❌ Ошибка загрузки чатбота:', error);
+            }
+        })();
     </script>
 </body>
 

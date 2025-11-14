@@ -1,18 +1,20 @@
 import { JSX } from 'solid-js/jsx-runtime';
-const defaultButtonColor = '#3B81F6';
-export const XIcon = (props: JSX.SvgSVGAttributes<SVGSVGElement> & { isCurrentColor?: boolean }) => (
+export const XIcon = (props: JSX.SvgSVGAttributes<SVGSVGElement>) => (
   <svg
     xmlns="http://www.w3.org/2000/svg"
-    width="24"
-    height="24"
-    viewBox="0 0 24 24"
-    fill="none"
-    stroke={props.isCurrentColor ? 'currentColor' : props.color ?? defaultButtonColor}
-    stroke-width="2"
-    stroke-linecap="round"
-    stroke-linejoin="round"
+    width="14"
+    height="14"
+    viewBox="0 0 14 14"
+    fill={props.color ?? 'currentColor'}
+    opacity="0.88"
+    class={`transition-colors duration-150 ${props.class || ''}`}
+    {...props}
   >
-    <path d="M18 6 6 18" />
-    <path d="m6 6 12 12" />
+    <path
+      fill-rule="evenodd"
+      clip-rule="evenodd"
+      d="M0.2,12.8c-0.3,0.3-0.3,0.7,0,1c0.3,0.3,0.7,0.3,1,0L7,8l5.8,5.8c0.3,0.3,0.7,0.3,1,0c0.3-0.3,0.3-0.7,0-1L8,7
+	l5.8-5.8c0.3-0.3,0.3-0.7,0-1c-0.3-0.3-0.7-0.3-1,0L7,6L1.2,0.2c-0.3-0.3-0.7-0.3-1,0c-0.3,0.3-0.3,0.7,0,1L6,7L0.2,12.8z"
+    />
   </svg>
 );

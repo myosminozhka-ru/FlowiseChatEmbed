@@ -16,10 +16,37 @@ export const Bubble = (props: BubbleProps) => {
 
   const [isBotOpened, setIsBotOpened] = createSignal(false);
   const [isBotStarted, setIsBotStarted] = createSignal(false);
+  const [isFullscreen, setIsFullscreen] = createSignal(false);
+  const [isTransitioning, setIsTransitioning] = createSignal(false);
   const [buttonPosition, setButtonPosition] = createSignal({
     bottom: bubbleProps.theme?.button?.bottom ?? 20,
     right: bubbleProps.theme?.button?.right ?? 20,
   });
+
+  const toggleFullscreen = () => {
+    if (!isFullscreen()) {
+      // Переход в полноэкранный режим: сначала исчезаем и уменьшаемся
+      setIsTransitioning(true);
+      // Затем перемещаемся в центр и меняем размеры
+      setTimeout(() => {
+        setIsFullscreen(true);
+        // Затем появляемся и увеличиваемся
+        setTimeout(() => {
+          setIsTransitioning(false);
+        }, 50);
+      }, 200);
+    } else {
+      // Возврат из полноэкранного режима: сначала уменьшаемся и исчезаем
+      setIsTransitioning(true);
+      setTimeout(() => {
+        setIsFullscreen(false);
+        // Затем появляемся в исходном месте
+        setTimeout(() => {
+          setIsTransitioning(false);
+        }, 50);
+      }, 200);
+    }
+  };
 
   const openBot = () => {
     if (!isBotStarted()) setIsBotStarted(true);
@@ -84,60 +111,47 @@ export const Bubble = (props: BubbleProps) => {
       <div
         part="bot"
         style={{
-          height: bubbleProps.theme?.chatWindow?.height ? `${bubbleProps.theme?.chatWindow?.height.toString()}px` : 'calc(100% - 150px)',
-          width: bubbleProps.theme?.chatWindow?.width ? `${bubbleProps.theme?.chatWindow?.width.toString()}px` : undefined,
-          transition: 'transform 200ms cubic-bezier(0, 1.2, 1, 1), opacity 150ms ease-out',
-          'transform-origin': 'bottom right',
-          transform: isBotOpened() ? 'scale3d(1, 1, 1)' : 'scale3d(0, 0, 1)',
+          height: isFullscreen() ? '100vh' : (bubbleProps.theme?.chatWindow?.height ? `${bubbleProps.theme?.chatWindow?.height.toString()}px` : 'calc(100% - 150px)'),
+          width: isFullscreen() ? '100vw' : (bubbleProps.theme?.chatWindow?.width ? `${bubbleProps.theme?.chatWindow?.width.toString()}px` : undefined),
+          transition: isTransitioning()
+            ? 'opacity 200ms ease-out'
+            : (isFullscreen() 
+              ? 'transform 300ms cubic-bezier(0.4, 0, 0.2, 1), width 300ms cubic-bezier(0.4, 0, 0.2, 1), height 300ms cubic-bezier(0.4, 0, 0.2, 1), left 300ms cubic-bezier(0.4, 0, 0.2, 1), top 300ms cubic-bezier(0.4, 0, 0.2, 1), border-radius 300ms ease-out, opacity 200ms ease-out 100ms'
+              : 'transform 200ms cubic-bezier(0, 1.2, 1, 1), opacity 150ms ease-out'),
+          'transform-origin': 'center center',
+          transform: isFullscreen() 
+            ? (isTransitioning() ? 'translate(-50%, -50%) scale(0)' : 'translate(-50%, -50%) scale(1)')
+            : (isBotOpened() ? 'scale3d(1, 1, 1)' : 'scale3d(0, 0, 1)'),
+          opacity: isTransitioning() ? '0' : (isFullscreen() ? '1' : (isBotOpened() ? '1' : '0')),
           'box-shadow': 'rgb(0 0 0 / 16%) 0px 5px 40px',
           'background-color': bubbleProps.theme?.chatWindow?.backgroundColor || '#ffffff',
           'background-image': bubbleProps.theme?.chatWindow?.backgroundImage ? `url(${bubbleProps.theme?.chatWindow?.backgroundImage})` : 'none',
           'background-size': 'cover',
           'background-position': 'center',
           'background-repeat': 'no-repeat',
-          'z-index': 42424242,
-          bottom: `${Math.min(buttonPosition().bottom + buttonSize + 10, window.innerHeight - chatWindowBottom)}px`,
-          right: `${Math.max(0, Math.min(buttonPosition().right, window.innerWidth - (bubbleProps.theme?.chatWindow?.width ?? 410) - 10))}px`,
+          'z-index': isFullscreen() ? 99999999 : 42424242,
+          bottom: isFullscreen() ? undefined : `${Math.min(buttonPosition().bottom + buttonSize + 10, window.innerHeight - chatWindowBottom)}px`,
+          right: isFullscreen() ? undefined : `${Math.max(0, Math.min(buttonPosition().right, window.innerWidth - (bubbleProps.theme?.chatWindow?.width ?? 410) - 10))}px`,
+          left: isFullscreen() ? '50%' : undefined,
+          top: isFullscreen() ? '50%' : undefined,
+          'border-radius': isFullscreen() ? '0' : undefined,
         }}
         class={
-          `fixed sm:right-5 rounded-lg w-full sm:w-[400px] max-h-[704px]` +
-          (isBotOpened() ? ' opacity-1' : ' opacity-0 pointer-events-none') +
-          ` bottom-${chatWindowBottom}px`
+          `fixed ${isFullscreen() ? '' : 'sm:right-5'} ${isFullscreen() ? 'rounded-none' : 'rounded-lg'} ${isFullscreen() ? 'w-screen h-screen' : 'w-full sm:w-[400px] max-h-[704px]'}` +
+          (isFullscreen() ? '' : (isBotOpened() ? ' opacity-1' : ' opacity-0 pointer-events-none'))
         }
       >
         <Show when={isBotStarted()}>
-          <div class="relative h-full">
-            <Show when={isBotOpened()}>
-              {/* Cross button For only mobile screen use this <Show when={isBotOpened() && window.innerWidth <= 640}>  */}
-              <button
-                onClick={closeBot}
-                class="py-2 pr-3 absolute top-0 right-[-8px] m-[6px] bg-transparent text-white rounded-full z-50 disabled:opacity-50 disabled:cursor-not-allowed disabled:brightness-100 transition-all filter hover:brightness-90 active:brightness-75"
-                title="Close Chat"
-              >
-                <svg viewBox="0 0 24 24" width="24" height="24">
-                  <path
-                    fill={bubbleProps.theme?.button?.iconColor ?? defaultIconColor}
-                    d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12 19 6.41z"
-                  />
-                </svg>
-              </button>
-            </Show>
+          <div class={`relative h-full ${isFullscreen() ? 'rounded-none' : 'rounded-2xl'} overflow-hidden`}>
             <Bot
-              backgroundColor={bubbleProps.theme?.chatWindow?.backgroundColor}
-              formBackgroundColor={bubbleProps.theme?.form?.backgroundColor}
-              formTextColor={bubbleProps.theme?.form?.textColor}
-              badgeBackgroundColor={bubbleProps.theme?.chatWindow?.backgroundColor}
-              bubbleBackgroundColor={bubbleProps.theme?.button?.backgroundColor ?? defaultButtonColor}
-              bubbleTextColor={bubbleProps.theme?.button?.iconColor ?? defaultIconColor}
               showTitle={bubbleProps.theme?.chatWindow?.showTitle}
               showAgentMessages={bubbleProps.theme?.chatWindow?.showAgentMessages}
               title={bubbleProps.theme?.chatWindow?.title}
               titleAvatarSrc={bubbleProps.theme?.chatWindow?.titleAvatarSrc}
-              titleTextColor={bubbleProps.theme?.chatWindow?.titleTextColor}
-              titleBackgroundColor={bubbleProps.theme?.chatWindow?.titleBackgroundColor}
-              welcomeMessage={bubbleProps.theme?.chatWindow?.welcomeMessage}
+              welcomeTitle={bubbleProps.theme?.chatWindow?.welcomeTitle}
+              welcomeText={bubbleProps.theme?.chatWindow?.welcomeText}
+              showWelcomeImage={bubbleProps.theme?.chatWindow?.showWelcomeImage}
               errorMessage={bubbleProps.theme?.chatWindow?.errorMessage}
-              poweredByTextColor={bubbleProps.theme?.chatWindow?.poweredByTextColor}
               textInput={bubbleProps.theme?.chatWindow?.textInput}
               botMessage={bubbleProps.theme?.chatWindow?.botMessage}
               userMessage={bubbleProps.theme?.chatWindow?.userMessage}
@@ -146,7 +160,6 @@ export const Bubble = (props: BubbleProps) => {
               footer={bubbleProps.theme?.chatWindow?.footer}
               sourceDocsTitle={bubbleProps.theme?.chatWindow?.sourceDocsTitle}
               starterPrompts={bubbleProps.theme?.chatWindow?.starterPrompts}
-              starterPromptFontSize={bubbleProps.theme?.chatWindow?.starterPromptFontSize}
               chatflowid={props.chatflowid}
               chatflowConfig={props.chatflowConfig}
               apiHost={props.apiHost}
@@ -157,6 +170,9 @@ export const Bubble = (props: BubbleProps) => {
               dateTimeToggle={bubbleProps.theme?.chatWindow?.dateTimeToggle}
               renderHTML={props.theme?.chatWindow?.renderHTML}
               closeBot={closeBot}
+              isFullPage={false}
+              toggleFullscreen={toggleFullscreen}
+              isFullscreen={isFullscreen()}
             />
           </div>
         </Show>

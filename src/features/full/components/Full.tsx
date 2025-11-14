@@ -60,21 +60,14 @@ export const Full = (props: FullProps, { element }: { element: HTMLElement }) =>
           }}
         >
           <Bot
-            backgroundColor={props.theme?.chatWindow?.backgroundColor}
-            formBackgroundColor={props.theme?.form?.backgroundColor}
-            formTextColor={props.theme?.form?.textColor}
-            badgeBackgroundColor={props.theme?.chatWindow?.backgroundColor}
-            bubbleBackgroundColor={props.theme?.button?.backgroundColor ?? defaultButtonColor}
-            bubbleTextColor={props.theme?.button?.iconColor ?? defaultIconColor}
             showTitle={props.theme?.chatWindow?.showTitle}
             showAgentMessages={props.theme?.chatWindow?.showAgentMessages}
             title={props.theme?.chatWindow?.title}
             titleAvatarSrc={props.theme?.chatWindow?.titleAvatarSrc}
-            titleTextColor={props.theme?.chatWindow?.titleTextColor}
-            titleBackgroundColor={props.theme?.chatWindow?.titleBackgroundColor}
-            welcomeMessage={props.theme?.chatWindow?.welcomeMessage}
+            welcomeTitle={props.theme?.chatWindow?.welcomeTitle}
+            welcomeText={props.theme?.chatWindow?.welcomeText}
+            showWelcomeImage={props.theme?.chatWindow?.showWelcomeImage}
             errorMessage={props.theme?.chatWindow?.errorMessage}
-            poweredByTextColor={props.theme?.chatWindow?.poweredByTextColor}
             textInput={props.theme?.chatWindow?.textInput}
             botMessage={props.theme?.chatWindow?.botMessage}
             userMessage={props.theme?.chatWindow?.userMessage}
@@ -88,7 +81,6 @@ export const Full = (props: FullProps, { element }: { element: HTMLElement }) =>
             onRequest={props.onRequest}
             isFullPage={true}
             observersConfig={props.observersConfig}
-            starterPromptFontSize={props.theme?.chatWindow?.starterPromptFontSize}
             clearChatOnReload={props.theme?.chatWindow?.clearChatOnReload}
             disclaimer={props.theme?.disclaimer}
             dateTimeToggle={props.theme?.chatWindow?.dateTimeToggle}

@@ -9,11 +9,11 @@ import {
   FeedbackRatingType,
   createAttachmentWithFormData,
 } from '@/queries/sendMessageQuery';
-import { TextInput } from './inputs/textInput';
+import { SendArea } from './SendArea';
 import { GuestBubble } from './bubbles/GuestBubble';
 import { BotBubble } from './bubbles/BotBubble';
 import { LoadingBubble } from './bubbles/LoadingBubble';
-import { StarterPromptBubble } from './bubbles/StarterPromptBubble';
+import { DateDivider } from './DateDivider';
 import {
   BotMessageTheme,
   FooterTheme,
@@ -26,16 +26,18 @@ import {
 import { Badge } from './Badge';
 import { Popup, DisclaimerPopup } from '@/features/popup';
 import { Avatar } from '@/components/avatars/Avatar';
-import { DeleteButton, SendButton } from '@/components/buttons/SendButton';
+import { SendButton } from '@/components/buttons/SendButton';
+import { DeleteButton } from '@/components/buttons/DeleteButton';
+import { IconButton } from '@/components/buttons/IconButton';
 import { FilePreview } from '@/components/inputs/textInput/components/FilePreview';
-import { CircleDotIcon, SparklesIcon, TrashIcon } from './icons';
-import { CancelButton } from './buttons/CancelButton';
-import { cancelAudioRecording, startAudioRecording, stopAudioRecording } from '@/utils/audioRecording';
+import { SparklesIcon, TrashIcon, XIcon, ResizeIcon } from './icons';
 import { LeadCaptureBubble } from '@/components/bubbles/LeadCaptureBubble';
 import { removeLocalStorageChatHistory, getLocalStorageChatflow, setLocalStorageChatflow, setCookie, getCookie } from '@/utils';
 import { cloneDeep } from 'lodash';
 import { FollowUpPromptBubble } from '@/components/bubbles/FollowUpPromptBubble';
 import { fetchEventSource, EventStreamContentType } from '@microsoft/fetch-event-source';
+import { WelcomeMessage } from '@/components/bubbles/WelcomeMessage';
+import { ServiceErrorScreen } from './ServiceErrorScreen';
 
 export type FileEvent<T = EventTarget> = {
   target: T;
@@ -55,7 +57,6 @@ export type UploadsConfig = {
   imgUploadSizeAndTypes: IUploadConstraits[];
   fileUploadSizeAndTypes: IUploadConstraits[];
   isImageUploadAllowed: boolean;
-  isSpeechToTextEnabled: boolean;
   isRAGFileUploadAllowed: boolean;
 };
 
@@ -110,6 +111,8 @@ export type MessageType = {
   messageId?: string;
   message: string;
   type: messageType;
+  welcomeTitle?: string;
+  welcomeText?: string;
   sourceDocuments?: any;
   fileAnnotations?: any;
   fileUploads?: Partial<FileUpload>[];
@@ -141,37 +144,33 @@ export type BotProps = {
   apiHost?: string;
   onRequest?: (request: RequestInit) => Promise<void>;
   chatflowConfig?: Record<string, unknown>;
-  backgroundColor?: string;
-  welcomeMessage?: string;
+  welcomeTitle?: string;
+  welcomeText?: string;
+  showWelcomeImage?: boolean;
   errorMessage?: string;
   botMessage?: BotMessageTheme;
   userMessage?: UserMessageTheme;
   textInput?: TextInputTheme;
   feedback?: FeedbackTheme;
-  poweredByTextColor?: string;
-  badgeBackgroundColor?: string;
-  bubbleBackgroundColor?: string;
-  bubbleTextColor?: string;
   showTitle?: boolean;
   showAgentMessages?: boolean;
   title?: string;
   titleAvatarSrc?: string;
-  titleTextColor?: string;
-  titleBackgroundColor?: string;
-  formBackgroundColor?: string;
-  formTextColor?: string;
   fontSize?: number;
   isFullPage?: boolean;
   footer?: FooterTheme;
   sourceDocsTitle?: string;
   observersConfig?: observersConfigType;
   starterPrompts?: string[] | Record<string, { prompt: string }>;
-  starterPromptFontSize?: number;
   clearChatOnReload?: boolean;
   disclaimer?: DisclaimerPopUpTheme;
   dateTimeToggle?: DateTimeToggleTheme;
   renderHTML?: boolean;
   closeBot?: () => void;
+  enableCopyMessage?: boolean;
+  showBadge?: boolean;
+  toggleFullscreen?: () => void;
+  isFullscreen?: boolean;
 };
 
 export type LeadsConfig = {
@@ -183,7 +182,6 @@ export type LeadsConfig = {
   successMessage?: string;
 };
 
-const defaultWelcomeMessage = 'Привет! Чем я могу помочь?';
 
 /*const sourceDocuments = [
     {
@@ -262,9 +260,12 @@ const defaultWelcomeMessage = 'Привет! Чем я могу помочь?';
     },
 ]*/
 
-const defaultBackgroundColor = '#ffffff';
-const defaultTextColor = '#303235';
-const defaultTitleBackgroundColor = '#c8f14a';
+const defaultBackgroundColor = 'var(--chatbot-container-bg-color)';
+const defaultTextColor = 'var(--chatbot-text-bg-color)';
+const defaultTitleBackgroundColor = 'var(--chatbot-title-bg-color)';
+
+const defaultWelcomeTitle = 'Я – умный помощник';
+const defaultWelcomeText = 'Задавайте мне вопросы так, будто общаетесь с реальным человеком';
 
 /* FeedbackDialog component - for collecting user feedback */
 const FeedbackDialog = (props: {
@@ -335,20 +336,18 @@ const FormInputView = (props: {
 
   return (
     <div
-      class="w-full h-full flex flex-col items-center justify-center px-4 py-8 rounded-lg"
+      class="w-full h-full flex flex-col items-center justify-center px-4 py-8 rounded-lg font-sans"
       style={{
-        'font-family': 'Poppins, sans-serif',
         'font-size': props.fontSize ? `${props.fontSize}px` : '16px',
         background: props.parentBackgroundColor || defaultBackgroundColor,
         color: props.textColor || defaultTextColor,
       }}
     >
       <div
-        class="w-full max-w-md bg-white shadow-lg rounded-lg overflow-hidden"
+        class="w-full max-w-md bg-white shadow-lg rounded-lg overflow-hidden font-sans"
         style={{
-          'font-family': 'Poppins, sans-serif',
           'font-size': props.fontSize ? `${props.fontSize}px` : '16px',
-          background: props.backgroundColor || defaultBackgroundColor,
+          background: defaultBackgroundColor,
           color: props.textColor || defaultTextColor,
         }}
       >
@@ -464,12 +463,7 @@ export const Bot = (botProps: BotProps & { class?: string }) => {
   const [sourcePopupOpen, setSourcePopupOpen] = createSignal(false);
   const [sourcePopupSrc, setSourcePopupSrc] = createSignal({});
   const [messages, setMessages] = createSignal<MessageType[]>(
-    [
-      {
-        message: props.welcomeMessage ?? defaultWelcomeMessage,
-        type: 'apiMessage',
-      },
-    ],
+    [],
     { equals: false },
   );
 
@@ -484,6 +478,7 @@ export const Bot = (botProps: BotProps & { class?: string }) => {
   const [isLeadSaved, setIsLeadSaved] = createSignal(false);
   const [leadEmail, setLeadEmail] = createSignal('');
   const [disclaimerPopupOpen, setDisclaimerPopupOpen] = createSignal(false);
+  const [hasServiceError, setHasServiceError] = createSignal(false);
 
   const [openFeedbackDialog, setOpenFeedbackDialog] = createSignal(false);
   const [feedback, setFeedback] = createSignal('');
@@ -501,11 +496,6 @@ export const Bot = (botProps: BotProps & { class?: string }) => {
   // TODO: fix this type
   const [previews, setPreviews] = createSignal<FilePreview[]>([]);
 
-  // audio recording
-  const [elapsedTime, setElapsedTime] = createSignal('00:00');
-  const [isRecording, setIsRecording] = createSignal(false);
-  const [recordingNotSupported, setRecordingNotSupported] = createSignal(false);
-  const [isLoadingRecording, setIsLoadingRecording] = createSignal(false);
 
   // follow-up prompts
   const [followUpPromptsStatus, setFollowUpPromptsStatus] = createSignal<boolean>(false);
@@ -571,22 +561,6 @@ export const Bot = (botProps: BotProps & { class?: string }) => {
     setLocalStorageChatflow(props.chatflowid, chatId(), { chatHistory: messages });
   };
 
-  // Define the audioRef
-  let audioRef: HTMLAudioElement | undefined;
-  // CDN link for default receive sound
-  const defaultReceiveSound = 'https://cdn.jsdelivr.net/gh/FlowiseAI/FlowiseChatEmbed@latest/src/assets/receive_message.mp3';
-  const playReceiveSound = () => {
-    if (props.textInput?.receiveMessageSound) {
-      let audioSrc = defaultReceiveSound;
-      if (props.textInput?.receiveSoundLocation) {
-        audioSrc = props.textInput?.receiveSoundLocation;
-      }
-      audioRef = new Audio(audioSrc);
-      audioRef.play();
-    }
-  };
-
-  let hasSoundPlayed = false;
 
   const updateLastMessage = (text: string) => {
     setMessages((prevMessages) => {
@@ -595,10 +569,8 @@ export const Bot = (botProps: BotProps & { class?: string }) => {
       if (!text) return allMessages;
       allMessages[allMessages.length - 1].message += text;
       allMessages[allMessages.length - 1].rating = undefined;
+      if (!allMessages[allMessages.length - 1].dateTime) {
       allMessages[allMessages.length - 1].dateTime = new Date().toISOString();
-      if (!hasSoundPlayed) {
-        playReceiveSound();
-        hasSoundPlayed = true;
       }
       addChatMessage(allMessages);
       return allMessages;
@@ -606,12 +578,16 @@ export const Bot = (botProps: BotProps & { class?: string }) => {
   };
 
   const updateErrorMessage = (errorMessage: string) => {
-    setMessages((prevMessages) => {
-      const allMessages = [...cloneDeep(prevMessages)];
-      allMessages.push({ message: props.errorMessage || errorMessage, type: 'apiMessage' });
-      addChatMessage(allMessages);
-      return allMessages;
+    // Логируем полную информацию об ошибке в консоль
+    console.error('Service Error (EventStream):', {
+      message: errorMessage,
+      timestamp: new Date().toISOString(),
     });
+    
+    // Устанавливаем состояние ошибки сервиса (пользователю всегда показываем один экран)
+    setHasServiceError(true);
+    
+    // Не добавляем сообщение в чат, так как показывается ServiceErrorScreen
   };
 
   const updateLastMessageSourceDocuments = (sourceDocuments: any) => {
@@ -662,7 +638,7 @@ export const Bot = (botProps: BotProps & { class?: string }) => {
 
   const updateAgentFlowEvent = (event: string) => {
     if (event === 'INPROGRESS') {
-      setMessages((prevMessages) => [...prevMessages, { message: '', type: 'apiMessage', agentFlowEventStatus: event }]);
+      setMessages((prevMessages) => [...prevMessages, { message: '', type: 'apiMessage', agentFlowEventStatus: event, dateTime: new Date().toISOString() }]);
     } else {
       setMessages((prevMessages) => {
         const allMessages = [...cloneDeep(prevMessages)];
@@ -713,20 +689,21 @@ export const Bot = (botProps: BotProps & { class?: string }) => {
   };
 
   // Handle errors
-  const handleError = (message = 'Oops! There seems to be an error. Please try again.', preventOverride?: boolean) => {
-    let errMessage = message;
-    if (!preventOverride && props.errorMessage) {
-      errMessage = props.errorMessage;
-    }
-    setMessages((prevMessages) => {
-      const messages: MessageType[] = [...prevMessages, { message: errMessage, type: 'apiMessage' }];
-      addChatMessage(messages);
-      return messages;
+  const handleError = (message = 'Oops! There seems to be an error. Please try again.', preventOverride?: boolean, errorDetails?: any) => {
+    // Логируем полную информацию об ошибке в консоль
+    console.error('Service Error:', {
+      message,
+      errorDetails,
+      timestamp: new Date().toISOString(),
     });
+    
+    // Устанавливаем состояние ошибки сервиса (пользователю всегда показываем один экран)
+    setHasServiceError(true);
+    
+    // Не добавляем сообщение в чат, так как показывается ServiceErrorScreen
     setLoading(false);
     setUserInput('');
     setUploadedFiles([]);
-    scrollToBottom();
   };
 
   const handleDisclaimerAccept = () => {
@@ -754,6 +731,10 @@ export const Bot = (botProps: BotProps & { class?: string }) => {
         const allMessages = [...cloneDeep(prevMessages)];
         if (allMessages[allMessages.length - 1].type === 'apiMessage') {
           allMessages[allMessages.length - 1].messageId = data.chatMessageId;
+          // Use dateTime from server if available
+          if (data.dateTime) {
+            allMessages[allMessages.length - 1].dateTime = data.dateTime;
+          }
         }
         addChatMessage(allMessages);
         return allMessages;
@@ -761,12 +742,15 @@ export const Bot = (botProps: BotProps & { class?: string }) => {
     }
 
     if (input === '' && data.question) {
-      // the response contains the question even if it was in an audio format
       // so if input is empty but the response contains the question, update the user message to show the question
       setMessages((prevMessages) => {
         const allMessages = [...cloneDeep(prevMessages)];
         if (allMessages[allMessages.length - 2].type === 'apiMessage') return allMessages;
         allMessages[allMessages.length - 2].message = data.question;
+        // Use dateTime from server if available for user message
+        if (data.userMessageDateTime) {
+          allMessages[allMessages.length - 2].dateTime = data.userMessageDateTime;
+        }
         addChatMessage(allMessages);
         return allMessages;
       });
@@ -800,25 +784,27 @@ export const Bot = (botProps: BotProps & { class?: string }) => {
           return; // everything's good
         } else if (response.status === 429) {
           const errMessage = (await response.text()) ?? 'Too many requests. Please try again later.';
-          handleError(errMessage, true);
+          handleError(errMessage, true, { status: 429, response });
           throw new Error(errMessage);
         } else if (response.status === 403) {
           const errMessage = (await response.text()) ?? 'Unauthorized';
-          handleError(errMessage);
+          handleError(errMessage, false, { status: 403, response });
           throw new Error(errMessage);
         } else if (response.status === 401) {
           const errMessage = (await response.text()) ?? 'Unauthenticated';
-          handleError(errMessage);
+          handleError(errMessage, false, { status: 401, response });
           throw new Error(errMessage);
         } else {
-          throw new Error();
+          const errMessage = await response.text().catch(() => `HTTP ${response.status}: ${response.statusText}`);
+          handleError(errMessage, false, { status: response.status, statusText: response.statusText, response });
+          throw new Error(errMessage);
         }
       },
       async onmessage(ev) {
         const payload = JSON.parse(ev.data);
         switch (payload.event) {
           case 'start':
-            setMessages((prevMessages) => [...prevMessages, { message: '', type: 'apiMessage' }]);
+            // Сообщение уже создано при начале загрузки, просто обновляем его если нужно
             break;
           case 'token':
             updateLastMessage(payload.data);
@@ -867,7 +853,12 @@ export const Bot = (botProps: BotProps & { class?: string }) => {
         closeResponse();
       },
       onerror(err) {
-        console.error('EventSource Error: ', err);
+        // Логируем полную информацию об ошибке в консоль
+        console.error('EventSource Error:', {
+          error: err,
+          timestamp: new Date().toISOString(),
+        });
+        setHasServiceError(true);
         closeResponse();
         throw err;
       },
@@ -878,7 +869,6 @@ export const Bot = (botProps: BotProps & { class?: string }) => {
     setLoading(false);
     setUserInput('');
     setUploadedFiles([]);
-    hasSoundPlayed = false;
     setTimeout(() => {
       scrollToBottom();
     }, 100);
@@ -977,7 +967,7 @@ export const Bot = (botProps: BotProps & { class?: string }) => {
   // Handle form submission
   const handleSubmit = async (value: string | object, action?: IAction | undefined | null, humanInput?: any) => {
     if (typeof value === 'string' && value.trim() === '') {
-      const containsFile = previews().filter((item) => !item.mime.startsWith('image') && item.type !== 'audio').length > 0;
+      const containsFile = previews().filter((item) => !item.mime.startsWith('image')).length > 0;
       if (!previews().length || (previews().length && containsFile)) {
         return;
       }
@@ -1006,14 +996,14 @@ export const Bot = (botProps: BotProps & { class?: string }) => {
     try {
       uploads = await handleFileUploads(uploads);
     } catch (error) {
-      handleError('Unable to upload documents', true);
+      handleError('Unable to upload documents', true, { error, uploads });
       return;
     }
 
     clearPreviews();
 
     setMessages((prevMessages) => {
-      const messages: MessageType[] = [...prevMessages, { message: value as string, type: 'userMessage', fileUploads: uploads }];
+      const messages: MessageType[] = [...prevMessages, { message: value as string, type: 'userMessage', fileUploads: uploads, dateTime: new Date().toISOString() }];
       addChatMessage(messages);
       return messages;
     });
@@ -1039,8 +1029,13 @@ export const Bot = (botProps: BotProps & { class?: string }) => {
     if (humanInput) body.humanInput = humanInput;
 
     if (isChatFlowAvailableToStream()) {
+      // Создаем пустое сообщение сразу, чтобы показать индикатор загрузки
+      setMessages((prevMessages) => [...prevMessages, { message: '', type: 'apiMessage', dateTime: new Date().toISOString() }]);
       fetchResponseFromEventStream(props.chatflowid, body);
     } else {
+      // Создаем пустое сообщение сразу для не-streaming запросов, чтобы показать индикатор загрузки
+      setMessages((prevMessages) => [...prevMessages, { message: '', type: 'apiMessage', dateTime: new Date().toISOString() }]);
+      
       const result = await sendMessageQuery({
         chatflowid: props.chatflowid,
         apiHost: props.apiHost,
@@ -1058,25 +1053,38 @@ export const Bot = (botProps: BotProps & { class?: string }) => {
 
         if (data?.chatId) setChatId(data.chatId);
 
-        playReceiveSound();
 
         setMessages((prevMessages) => {
           const allMessages = [...cloneDeep(prevMessages)];
-          const newMessage = {
-            message: text,
-            id: data?.chatMessageId,
-            sourceDocuments: data?.sourceDocuments,
-            usedTools: data?.usedTools,
-            fileAnnotations: data?.fileAnnotations,
-            agentReasoning: data?.agentReasoning,
-            agentFlowExecutedData: data?.agentFlowExecutedData,
-            action: data?.action,
-            artifacts: data?.artifacts,
-            type: 'apiMessage' as messageType,
-            feedback: null,
-            dateTime: new Date().toISOString(),
-          };
-          allMessages.push(newMessage);
+          // Обновляем последнее пустое сообщение вместо создания нового
+          const lastMessage = allMessages[allMessages.length - 1];
+          if (lastMessage && lastMessage.type === 'apiMessage' && lastMessage.message === '') {
+            lastMessage.message = text;
+            lastMessage.id = data?.chatMessageId;
+            lastMessage.sourceDocuments = data?.sourceDocuments;
+            lastMessage.usedTools = data?.usedTools;
+            lastMessage.fileAnnotations = data?.fileAnnotations;
+            lastMessage.agentReasoning = data?.agentReasoning;
+            lastMessage.agentFlowExecutedData = data?.agentFlowExecutedData;
+            lastMessage.action = data?.action;
+            lastMessage.artifacts = data?.artifacts;
+            lastMessage.dateTime = data?.dateTime ?? new Date().toISOString();
+          } else {
+            const newMessage = {
+              message: text,
+              id: data?.chatMessageId,
+              sourceDocuments: data?.sourceDocuments,
+              usedTools: data?.usedTools,
+              fileAnnotations: data?.fileAnnotations,
+              agentReasoning: data?.agentReasoning,
+              agentFlowExecutedData: data?.agentFlowExecutedData,
+              action: data?.action,
+              artifacts: data?.artifacts,
+              type: 'apiMessage' as messageType,
+              dateTime: data?.dateTime ?? new Date().toISOString(),
+            };
+            allMessages.push(newMessage);
+          }
           addChatMessage(allMessages);
           return allMessages;
         });
@@ -1090,16 +1098,15 @@ export const Bot = (botProps: BotProps & { class?: string }) => {
       }
       if (result.error) {
         const error = result.error;
-        console.error(error);
         if (typeof error === 'object') {
-          handleError(`Error: ${error?.message.replaceAll('Error:', ' ')}`);
+          handleError(`Error: ${error?.message.replaceAll('Error:', ' ')}`, false, error);
           return;
         }
         if (typeof error === 'string') {
-          handleError(error);
+          handleError(error, false, { errorString: error });
           return;
         }
-        handleError();
+        handleError('Unknown error occurred', false, { error });
         return;
       }
     }
@@ -1183,12 +1190,7 @@ export const Bot = (botProps: BotProps & { class?: string }) => {
         (props.chatflowConfig?.vars as any)?.customerId ? `${(props.chatflowConfig?.vars as any).customerId.toString()}+${uuidv4()}` : uuidv4(),
       );
       setUploadedFiles([]);
-      const messages: MessageType[] = [
-        {
-          message: props.welcomeMessage ?? defaultWelcomeMessage,
-          type: 'apiMessage',
-        },
-      ];
+      const messages: MessageType[] = [];
       if (leadsConfig()?.status && !getLocalStorageChatflow(props.chatflowid)?.lead) {
         messages.push({ message: '', type: 'leadCaptureMessage' });
       }
@@ -1269,7 +1271,7 @@ export const Bot = (botProps: BotProps & { class?: string }) => {
                 message: message.message,
                 type: message.type,
                 rating: message.rating,
-                dateTime: message.dateTime,
+                dateTime: message.dateTime || new Date().toISOString(), // Добавляем dateTime, если его нет
               };
               if (message.sourceDocuments) chatHistory.sourceDocuments = message.sourceDocuments;
               if (message.fileAnnotations) chatHistory.fileAnnotations = message.fileAnnotations;
@@ -1286,7 +1288,7 @@ export const Bot = (botProps: BotProps & { class?: string }) => {
                   typeof message.agentFlowExecutedData === 'string' ? JSON.parse(message.agentFlowExecutedData) : message.agentFlowExecutedData;
               return chatHistory;
             })
-          : [{ message: props.welcomeMessage ?? defaultWelcomeMessage, type: 'apiMessage' }];
+          : [];
 
       const filteredMessages = loadedMessages.filter((message) => message.type !== 'leadCaptureMessage');
       setMessages([...filteredMessages]);
@@ -1408,12 +1410,7 @@ export const Bot = (botProps: BotProps & { class?: string }) => {
       setUserInput('');
       setUploadedFiles([]);
       setLoading(false);
-      setMessages([
-        {
-          message: props.welcomeMessage ?? defaultWelcomeMessage,
-          type: 'apiMessage',
-        },
-      ]);
+      setMessages([]);
     };
   });
 
@@ -1428,30 +1425,6 @@ export const Bot = (botProps: BotProps & { class?: string }) => {
     }
   });
 
-  const addRecordingToPreviews = (blob: Blob) => {
-    let mimeType = '';
-    const pos = blob.type.indexOf(';');
-    if (pos === -1) {
-      mimeType = blob.type;
-    } else {
-      mimeType = blob.type.substring(0, pos);
-    }
-
-    // read blob and add to previews
-    const reader = new FileReader();
-    reader.readAsDataURL(blob);
-    reader.onloadend = () => {
-      const base64data = reader.result as FilePreviewData;
-      const upload: FilePreview = {
-        data: base64data,
-        preview: '../assets/wave-sound.jpg',
-        type: 'audio',
-        name: `audio_${Date.now()}.wav`,
-        mime: mimeType,
-      };
-      setPreviews((prevPreviews) => [...prevPreviews, upload]);
-    };
-  };
 
   const isFileAllowedForUpload = (file: File) => {
     let acceptFile = false;
@@ -1587,9 +1560,7 @@ export const Bot = (botProps: BotProps & { class?: string }) => {
               }
               const { result } = evt.target;
               let previewUrl;
-              if (file.type.startsWith('audio/')) {
-                previewUrl = '../assets/wave-sound.jpg';
-              } else if (file.type.startsWith('image/')) {
+              if (file.type.startsWith('image/')) {
                 previewUrl = URL.createObjectURL(file);
               }
               resolve({
@@ -1651,21 +1622,6 @@ export const Bot = (botProps: BotProps & { class?: string }) => {
     setPreviews(previews().filter((item) => item !== itemToDelete));
   };
 
-  const onMicrophoneClicked = () => {
-    setIsRecording(true);
-    startAudioRecording(setIsRecording, setRecordingNotSupported, setElapsedTime);
-  };
-
-  const onRecordingCancelled = () => {
-    if (!recordingNotSupported) cancelAudioRecording();
-    setIsRecording(false);
-    setRecordingNotSupported(false);
-  };
-
-  const onRecordingStopped = async () => {
-    setIsLoadingRecording(true);
-    stopAudioRecording(addRecordingToPreviews);
-  };
 
   const getInputDisabled = (): boolean => {
     const messagesArray = messages();
@@ -1673,29 +1629,13 @@ export const Bot = (botProps: BotProps & { class?: string }) => {
       loading() ||
       !props.chatflowid ||
       (leadsConfig()?.status && !isLeadSaved()) ||
-      (messagesArray[messagesArray.length - 1].action && Object.keys(messagesArray[messagesArray.length - 1].action as any).length > 0);
+      (messagesArray.length > 0 && messagesArray[messagesArray.length - 1]?.action && Object.keys(messagesArray[messagesArray.length - 1].action as any).length > 0);
     if (disabled) {
       return true;
     }
     return false;
   };
 
-  createEffect(
-    // listen for changes in previews
-    on(previews, (uploads) => {
-      // wait for audio recording to load and then send
-      const containsAudio = uploads.filter((item) => item.type === 'audio').length > 0;
-      if (uploads.length >= 1 && containsAudio) {
-        setIsRecording(false);
-        setRecordingNotSupported(false);
-        promptClick('');
-      }
-
-      return () => {
-        setPreviews([]);
-      };
-    }),
-  );
 
   const previewDisplay = (item: FilePreview) => {
     if (item.mime.startsWith('image/')) {
@@ -1710,20 +1650,6 @@ export const Bot = (botProps: BotProps & { class?: string }) => {
           </span>
         </button>
       );
-    } else if (item.mime.startsWith('audio/')) {
-      return (
-        <div
-          class={`inline-flex basis-auto flex-grow-0 flex-shrink-0 justify-between items-center rounded-xl h-12 p-1 mr-1 bg-gray-500`}
-          style={{
-            width: `${chatContainer ? (botProps.isFullPage ? chatContainer?.offsetWidth / 4 : chatContainer?.offsetWidth / 2) : '200'}px`,
-          }}
-        >
-          <audio class="block bg-cover bg-center w-full h-full rounded-none text-transparent" controls src={item.data as string} />
-          <button class="w-7 h-7 flex items-center justify-center bg-transparent p-1" onClick={() => handleDeletePreview(item)}>
-            <TrashIcon color="white" />
-          </button>
-        </div>
-      );
     } else {
       return <FilePreview disabled={getInputDisabled()} item={item} onDelete={() => handleDeletePreview(item)} />;
     }
@@ -1737,16 +1663,14 @@ export const Bot = (botProps: BotProps & { class?: string }) => {
           description={formDescription()}
           inputParams={formInputParams()}
           onSubmit={(formData) => handleSubmit(formData)}
-          parentBackgroundColor={props?.backgroundColor}
-          backgroundColor={props?.formBackgroundColor}
-          textColor={props?.formTextColor || props.botMessage?.textColor}
+          textColor={props.botMessage?.textColor}
           sendButtonColor={props.textInput?.sendButtonColor}
           fontSize={props.fontSize}
         />
       ) : (
         <div
           ref={botContainer}
-          class={'relative flex w-full h-full text-base overflow-hidden bg-cover bg-center flex-col items-center chatbot-container ' + props.class}
+          class={'relative flex w-full h-full text-base overflow-hidden bg-cover bg-center flex-col items-center chatbot-container font-sans bg-white ' + props.class}
           onDragEnter={handleDrag}
         >
           {isDragActive() && (
@@ -1762,7 +1686,6 @@ export const Bot = (botProps: BotProps & { class?: string }) => {
           {isDragActive() && (uploadsConfig()?.isImageUploadAllowed || isFileUploadAllowed()) && (
             <div
               class="absolute top-0 left-0 bottom-0 right-0 flex flex-col items-center justify-center bg-black/60 backdrop-blur-sm text-white z-40 gap-2 border-2 border-dashed"
-              style={{ 'border-color': props.bubbleBackgroundColor }}
             >
               <h2 class="text-xl font-semibold">Drop here to upload</h2>
               <For each={[...(uploadsConfig()?.imgUploadSizeAndTypes || []), ...(uploadsConfig()?.fileUploadSizeAndTypes || [])]}>
@@ -1778,46 +1701,109 @@ export const Bot = (botProps: BotProps & { class?: string }) => {
             </div>
           )}
 
-          {props.showTitle ? (
-            <div
-              class="flex flex-row items-center w-full h-[50px] absolute top-0 left-0 z-10"
+          {/* Шапка чата */}
+          <div
+              class={`flex flex-row items-center justify-between w-full border-b py-3 ${(props.isFullPage || props.isFullscreen) ? 'px-4 md:px-6 lg:px-8' : 'px-4'} ${props.isFullPage ? 'border-t' : ''}`}
               style={{
-                background: props.titleBackgroundColor || props.bubbleBackgroundColor || defaultTitleBackgroundColor,
-                color: props.titleTextColor || props.bubbleTextColor || defaultBackgroundColor,
-                'border-top-left-radius': props.isFullPage ? '0px' : '6px',
-                'border-top-right-radius': props.isFullPage ? '0px' : '6px',
-              }}
-            >
-              <Show when={props.titleAvatarSrc}>
-                <>
-                  <div style={{ width: '15px' }} />
-                  <Avatar initialAvatarSrc={props.titleAvatarSrc} />
-                </>
-              </Show>
-              <Show when={props.title}>
-                <span class="px-3 whitespace-pre-wrap font-semibold max-w-full">{props.title}</span>
-              </Show>
-              <div style={{ flex: 1 }} />
-              <DeleteButton
-                sendButtonColor={props.bubbleTextColor}
-                type="button"
-                isDisabled={messages().length === 1}
-                class="my-2 ml-2"
-                on:click={clearChat}
-              >
-                <span style={{ 'font-family': 'Poppins, sans-serif' }}>Clear</span>
-              </DeleteButton>
-            </div>
-          ) : null}
-          <div class="flex flex-col w-full h-full justify-start z-0">
+              background: defaultTitleBackgroundColor,
+              color: defaultTextColor,
+            }}
+          >
+            {/* Кнопки слева (только в режиме bubble, не fullPage) */}
+            {!props.isFullPage && (
+              <div class="flex flex-row items-center gap-2">
+                {/* Кнопка закрытия чата */}
+                {props.closeBot && (
+                  <IconButton
+                    type="button"
+                    onClick={props.closeBot}
+                    ariaLabel="Закрыть чат"
+                    icon={<XIcon color={defaultTextColor} />}
+                  />
+                )}
+                {/* Кнопка полноэкранного режима */}
+                {props.toggleFullscreen && (
+                  <IconButton
+                    type="button"
+                    onClick={props.toggleFullscreen}
+                    ariaLabel="Развернуть на весь экран"
+                    icon={<ResizeIcon color={defaultTextColor} />}
+                  />
+                )}
+              </div>
+            )}
+            {/* Кнопка очистки чата справа */}
+            <DeleteButton
+              type="button"
+              class="ml-auto text-gray-880"
+              isDisabled={messages().length < 1}
+              text="Очистить диалог"
+              on:click={clearChat}
+            />
+          </div>
+          <Show
+            when={!hasServiceError()}
+            fallback={
+              <div class={`flex flex-col w-full h-full justify-start z-0 ${!props.isFullPage ? 'bg-white' : 'bg-[var(--chatbot-container-bg-color)]'}`}>
+                <ServiceErrorScreen
+                  onRefresh={() => {
+                    setHasServiceError(false);
+                    window.location.reload();
+                  }}
+                  class="h-full"
+                />
+              </div>
+            }
+          >
             <div
-              ref={chatContainer}
-              class="overflow-y-scroll flex flex-col flex-grow min-w-full w-full px-3 pt-[70px] relative scrollable-container chatbot-chat-view scroll-smooth"
+              class={`flex flex-col w-full h-full justify-start z-0 ${!props.isFullPage ? 'bg-white' : 'bg-[var(--chatbot-container-bg-color)]'}`}
             >
+              <div
+                ref={chatContainer}
+                class="overflow-y-scroll text flex flex-col flex-grow min-w-full w-full px-3 pt-[48px] pb-20 relative scrollable-container chatbot-chat-view scroll-smooth"
+              >
+                {/* Приветственное сообщение в начале чата */}
+                <WelcomeMessage
+                welcomeTitle={props.welcomeTitle ?? defaultWelcomeTitle}
+                welcomeText={props.welcomeText ?? defaultWelcomeText}
+                fontSize={props.fontSize}
+                textColor={props.botMessage?.textColor}
+                showWelcomeImage={typeof props.showWelcomeImage === 'boolean' ? props.showWelcomeImage : true}
+                starterPrompts={starterPrompts()}
+                onPromptClick={promptClick}
+              />
               <For each={[...messages()]}>
                 {(message, index) => {
+                  // Функция для получения даты из ISO строки (только дата, без времени)
+                  const getDateOnly = (dateTime?: string): string | null => {
+                    if (!dateTime) return null;
+                    try {
+                      const date = new Date(dateTime);
+                      if (isNaN(date.getTime())) return null;
+                      return date.toISOString().split('T')[0]; // Возвращаем YYYY-MM-DD
+                    } catch {
+                      return null;
+                    }
+                  };
+
+                  // Проверяем, нужно ли показать разделитель даты
+                  const shouldShowDateDivider = () => {
+                    const currentDate = getDateOnly(message.dateTime);
+                    if (!currentDate) return false;
+
+                    // Для первого сообщения всегда показываем дату
+                    if (index() === 0) return true;
+
+                    // Для остальных - сравниваем с предыдущим сообщением
+                    const prevMessage = messages()[index() - 1];
+                    const prevDate = getDateOnly(prevMessage?.dateTime);
+
+                    return prevDate !== currentDate;
+                  };
+
                   return (
                     <>
+                      {shouldShowDateDivider() && <DateDivider date={message.dateTime} />}
                       {message.type === 'userMessage' && (
                         <GuestBubble
                           message={message}
@@ -1830,6 +1816,11 @@ export const Bot = (botProps: BotProps & { class?: string }) => {
                           avatarSrc={props.userMessage?.avatarSrc}
                           fontSize={props.fontSize}
                           renderHTML={props.renderHTML}
+                          dateTimeToggle={props.dateTimeToggle}
+                          isFullPage={props.isFullPage}
+                          isFullscreen={props.isFullscreen}
+                          isPopup={!props.isFullPage}
+                          enableCopyMessage={props.enableCopyMessage}
                         />
                       )}
                       {message.type === 'apiMessage' && (
@@ -1842,12 +1833,13 @@ export const Bot = (botProps: BotProps & { class?: string }) => {
                           backgroundColor={props.botMessage?.backgroundColor}
                           textColor={props.botMessage?.textColor}
                           feedbackColor={props.feedback?.color}
-                          showAvatar={props.botMessage?.showAvatar}
-                          avatarSrc={props.botMessage?.avatarSrc}
+                          showAvatar={props.botMessage?.showAvatar ?? true}
+                          avatarSrc={props.botMessage?.avatarSrc ?? props.titleAvatarSrc}
                           chatFeedbackStatus={chatFeedbackStatus()}
                           fontSize={props.fontSize}
                           isLoading={loading() && index() === messages().length - 1}
                           showAgentMessages={props.showAgentMessages}
+                          botTitle={props.title}
                           handleActionClick={(elem, action) => handleActionClick(elem, action)}
                           sourceDocsTitle={props.sourceDocsTitle}
                           handleSourceDocumentsClick={(sourceDocuments) => {
@@ -1856,6 +1848,11 @@ export const Bot = (botProps: BotProps & { class?: string }) => {
                           }}
                           dateTimeToggle={props.dateTimeToggle}
                           renderHTML={props.renderHTML}
+                          enableCopyMessage={props.enableCopyMessage}
+                          isFullPage={props.isFullPage}
+                          isFullscreen={props.isFullscreen}
+                          isPopup={!props.isFullPage}
+                          feedbackReasons={props.feedback?.reasons}
                         />
                       )}
                       {message.type === 'leadCaptureMessage' && leadsConfig()?.status && !getLocalStorageChatflow(props.chatflowid)?.lead && (
@@ -1876,28 +1873,11 @@ export const Bot = (botProps: BotProps & { class?: string }) => {
                           setLeadEmail={setLeadEmail}
                         />
                       )}
-                      {message.type === 'userMessage' && loading() && index() === messages().length - 1 && <LoadingBubble />}
-                      {message.type === 'apiMessage' && message.message === '' && loading() && index() === messages().length - 1 && <LoadingBubble />}
                     </>
                   );
                 }}
               </For>
             </div>
-            <Show when={messages().length === 1}>
-              <Show when={starterPrompts().length > 0}>
-                <div class="w-full flex flex-row flex-wrap px-5 py-[10px] gap-2">
-                  <For each={[...starterPrompts()]}>
-                    {(key) => (
-                      <StarterPromptBubble
-                        prompt={key}
-                        onPromptClick={() => promptClick(key)}
-                        starterPromptFontSize={botProps.starterPromptFontSize} // Pass it here as a number
-                      />
-                    )}
-                  </For>
-                </div>
-              </Show>
-            </Show>
             <Show when={messages().length > 2 && followUpPromptsStatus()}>
               <Show when={followUpPrompts().length > 0}>
                 <>
@@ -1911,7 +1891,6 @@ export const Bot = (botProps: BotProps & { class?: string }) => {
                         <FollowUpPromptBubble
                           prompt={prompt}
                           onPromptClick={() => followUpPromptClick(prompt)}
-                          starterPromptFontSize={botProps.starterPromptFontSize} // Pass it here as a number
                         />
                       )}
                     </For>
@@ -1924,90 +1903,36 @@ export const Bot = (botProps: BotProps & { class?: string }) => {
                 <For each={[...previews()]}>{(item) => <>{previewDisplay(item)}</>}</For>
               </div>
             </Show>
-            <div class="w-full px-5 pt-2 pb-1">
-              {isRecording() ? (
-                <>
-                  {recordingNotSupported() ? (
-                    <div class="w-full flex items-center justify-between p-4 border border-[#eeeeee]">
-                      <div class="w-full flex items-center justify-between gap-3">
-                        <span class="text-base">To record audio, use modern browsers like Chrome or Firefox that support audio recording.</span>
-                        <button
-                          class="py-2 px-4 justify-center flex items-center bg-red-500 text-white rounded-md"
-                          type="button"
-                          onClick={() => onRecordingCancelled()}
-                        >
-                          Okay
-                        </button>
-                      </div>
-                    </div>
-                  ) : (
-                    <div
-                      class="h-[58px] flex items-center justify-between chatbot-input border border-[#eeeeee]"
-                      data-testid="input"
-                      style={{
-                        margin: 'auto',
-                        'background-color': props.textInput?.backgroundColor ?? defaultBackgroundColor,
-                        color: props.textInput?.textColor ?? defaultTextColor,
-                      }}
-                    >
-                      <div class="flex items-center gap-3 px-4 py-2">
-                        <span>
-                          <CircleDotIcon color="red" />
-                        </span>
-                        <span>{elapsedTime() || '00:00'}</span>
-                        {isLoadingRecording() && <span class="ml-1.5">Sending...</span>}
-                      </div>
-                      <div class="flex items-center">
-                        <CancelButton buttonColor={props.textInput?.sendButtonColor} type="button" class="m-0" on:click={onRecordingCancelled}>
-                          <span style={{ 'font-family': 'Poppins, sans-serif' }}>Send</span>
-                        </CancelButton>
-                        <SendButton
-                          sendButtonColor={props.textInput?.sendButtonColor}
-                          type="button"
-                          isDisabled={loading()}
-                          class="m-0"
-                          on:click={onRecordingStopped}
-                        >
-                          <span style={{ 'font-family': 'Poppins, sans-serif' }}>Send</span>
-                        </SendButton>
-                      </div>
-                    </div>
-                  )}
-                </>
-              ) : (
-                <TextInput
-                  backgroundColor={props.textInput?.backgroundColor}
-                  textColor={props.textInput?.textColor}
-                  placeholder={props.textInput?.placeholder}
-                  sendButtonColor={props.textInput?.sendButtonColor}
-                  maxChars={props.textInput?.maxChars}
-                  maxCharsWarningMessage={props.textInput?.maxCharsWarningMessage}
-                  autoFocus={props.textInput?.autoFocus}
-                  fontSize={props.fontSize}
-                  disabled={getInputDisabled()}
-                  inputValue={userInput()}
-                  onInputChange={(value) => setUserInput(value)}
-                  onSubmit={handleSubmit}
-                  uploadsConfig={uploadsConfig()}
-                  isFullFileUpload={fullFileUpload()}
-                  fullFileUploadAllowedTypes={fullFileUploadAllowedTypes()}
-                  setPreviews={setPreviews}
-                  onMicrophoneClicked={onMicrophoneClicked}
-                  handleFileChange={handleFileChange}
-                  sendMessageSound={props.textInput?.sendMessageSound}
-                  sendSoundLocation={props.textInput?.sendSoundLocation}
-                  enableInputHistory={true}
-                  maxHistorySize={10}
-                />
-              )}
-            </div>
-            <Badge
-              footer={props.footer}
-              badgeBackgroundColor={props.badgeBackgroundColor}
-              poweredByTextColor={props.poweredByTextColor}
-              botContainer={botContainer}
+            <SendArea
+              backgroundColor={props.textInput?.backgroundColor}
+              textColor={props.textInput?.textColor}
+              placeholder={props.textInput?.placeholder}
+              sendButtonColor={props.textInput?.sendButtonColor}
+              caretColor={props.textInput?.caretColor}
+              maxChars={props.textInput?.maxChars}
+              maxCharsWarningMessage={props.textInput?.maxCharsWarningMessage}
+              autoFocus={props.textInput?.autoFocus}
+              fontSize={props.fontSize}
+              disabled={getInputDisabled()}
+              inputValue={userInput()}
+              onInputChange={(value) => setUserInput(value)}
+              onSubmit={handleSubmit}
+              uploadsConfig={uploadsConfig()}
+              isFullFileUpload={fullFileUpload()}
+              fullFileUploadAllowedTypes={fullFileUploadAllowedTypes()}
+              setPreviews={setPreviews}
+              handleFileChange={handleFileChange}
+              enableInputHistory={true}
+              maxHistorySize={10}
+              isFullscreen={props.isFullscreen}
             />
-          </div>
+              <Badge
+                footer={props.footer}
+                botContainer={botContainer}
+                showBadge={props.showBadge}
+              />
+            </div>
+          </Show>
         </div>
       )}
       {sourcePopupOpen() && <Popup isOpen={sourcePopupOpen()} value={sourcePopupSrc()} onClose={() => setSourcePopupOpen(false)} />}

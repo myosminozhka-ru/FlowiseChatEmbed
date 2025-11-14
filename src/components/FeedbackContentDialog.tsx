@@ -1,97 +1,173 @@
-import { createSignal } from 'solid-js';
+import { createSignal, createMemo, For } from 'solid-js';
+import { IconButton } from './buttons/IconButton';
+import { Button } from './buttons/Button';
+import { XIcon } from './icons';
 
 type FeedbackContentDialogProps = {
   isOpen: boolean;
   onClose: () => void;
-  onSubmit: (text: string) => void;
+  onSubmit: (text: string, reason?: string) => void;
   backgroundColor?: string;
   textColor?: string;
+  reasons?: string[];
 };
 
-const defaultBackgroundColor = '#ffffff';
-const defaultTextColor = '#303235';
+const defaultBackgroundColor = 'var(--chatbot-input-bg-color, #ffffff)';
+
+const OTHER_REASON = 'Другое';
+
+const DEFAULT_REASONS: string[] = [
+  'Ответа на мой вопрос нет',
+  'Ответ неполный',
+  'Текст ответа непонятен',
+  'Не согласен с ответом',
+  'Ссылки не работают',
+];
+
+const MAX_TEXT_LENGTH = 500;
 
 const FeedbackContentDialog = (props: FeedbackContentDialogProps) => {
   const [inputValue, setInputValue] = createSignal('');
-  let inputRef: HTMLInputElement | HTMLTextAreaElement | undefined;
+  const [selectedReason, setSelectedReason] = createSignal<string>('');
+  let inputRef: HTMLTextAreaElement | undefined;
 
-  const handleInput = (value: string) => setInputValue(value);
+  // Объединяем переданные причины с "Другое" (которое всегда в конце)
+  const reasons = () => {
+    const customReasons = props.reasons || DEFAULT_REASONS;
+    return [...customReasons, OTHER_REASON];
+  };
 
-  const checkIfInputIsValid = () => inputValue() !== '' && inputRef?.reportValidity();
+  const handleInput = (value: string) => {
+    if (value.length <= MAX_TEXT_LENGTH) {
+      setInputValue(value);
+    }
+  };
+
+  const handleReasonChange = (reason: string) => {
+    setSelectedReason(reason);
+  };
+
+  // Используем createMemo для реактивности
+  const isSubmitDisabled = createMemo(() => {
+    const reason = selectedReason();
+    // Если нет выбранной причины - disabled
+    if (!reason) return true;
+    // Если выбрана "Другое" и поле пустое - disabled
+    if (reason === OTHER_REASON && !inputValue().trim()) return true;
+    // Во всех остальных случаях - активна
+    return false;
+  });
 
   const submit = () => {
-    if (checkIfInputIsValid()) props.onSubmit(inputValue());
-    setInputValue('');
+    if (!isSubmitDisabled()) {
+      const reason = selectedReason();
+      const text = reason === OTHER_REASON ? inputValue() : '';
+      props.onSubmit(text, reason);
+      setInputValue('');
+      setSelectedReason('');
+    }
   };
 
   const onClose = () => {
+    setInputValue('');
+    setSelectedReason('');
     props.onClose();
   };
 
   return (
     <>
       <div class="flex overflow-x-hidden overflow-y-auto fixed inset-0 z-[1002] outline-none focus:outline-none justify-center items-center">
-        <div class="relative w-full my-6 max-w-3xl mx-4">
+        <div class="relative my-6 w-[380px] mx-4">
           <div
-            class="border-0 rounded-lg shadow-lg relative flex flex-col w-full bg-white outline-none focus:outline-none"
+            class={`border-0 rounded-2xl shadow-lg relative flex flex-col w-full bg-white outline-none focus:outline-none ${props.textColor ? `text-[${props.textColor}]` : 'text-gray-880'}`}
             style={{
               'background-color': props.backgroundColor ?? defaultBackgroundColor,
-              color: props.textColor ?? defaultTextColor,
             }}
           >
-            <div
-              class="flex items-center justify-between p-5 border-b border-solid border-blueGray-200 rounded-t"
-              style={{
-                border: '1px solid #eeeeee',
-              }}
-            >
-              <span class="whitespace-pre-wrap font-semibold max-w-full">Provide additional feedback</span>
-              <button
-                class="p-1 ml-auto bg-transparent border-0 text-black float-right text-xl leading-none font-semibold outline-none focus:outline-none"
-                type="button"
+            {/* Header */}
+            <div class="flex items-center justify-between py-3 pl-5 pr-3 border-b border-solid border-gray-200 rounded-t-2xl">
+              <span class="whitespace-pre-wrap font-semibold text-base text-gray-800">Что именно не понравилось?</span>
+              <IconButton
+                icon={<XIcon />}
                 onClick={onClose}
-              >
-                <span class="bg-transparent block outline-none focus:outline-none">
-                  <svg
-                    xmlns="http://www.w3.org/2000/svg"
-                    class="text-black h-6 w-6"
-                    width="24"
-                    height="24"
-                    viewBox="0 0 24 24"
-                    fill="none"
-                    stroke="currentColor"
-                    stroke-width="2"
-                    stroke-linecap="round"
-                    stroke-linejoin="round"
-                  >
-                    <path d="M18 6 6 18" />
-                    <path d="m6 6 12 12" />
-                  </svg>
-                </span>
-              </button>
-            </div>
-            <div class="relative p-6 flex-auto">
-              <textarea
-                onInput={(e) => handleInput(e.currentTarget.value)}
-                ref={inputRef as HTMLTextAreaElement}
-                rows="4"
-                class="block p-2.5 rounded-lg border focus:ring-blue-500 focus:border-blue-500 bg-transparent flex-1 w-full feedback-input disabled:opacity-50 disabled:cursor-not-allowed disabled:brightness-100 font-normal"
-                style={{
-                  border: '1px solid #eeeeee',
-                  color: props.textColor ?? defaultTextColor,
-                }}
-                placeholder="What do you think of the response?"
-                value={inputValue()}
+                ariaLabel="Закрыть"
+                class="ml-auto"
               />
             </div>
-            <div class="flex items-center justify-end p-4 border-t border-solid border-blueGray-200 rounded-b">
-              <button
-                class="bg-emerald-500 text-white active:bg-emerald-600 font-bold text-sm px-4 py-2 rounded shadow hover:shadow-lg outline-none focus:outline-none mr-1 mb-1 ease-linear transition-all duration-150"
-                type="button"
-                onClick={submit}
-              >
-                Submit Feedback
-              </button>
+
+            {/* Content */}
+            <div class="relative p-6 flex-auto">
+              {/* Radio buttons */}
+              <div class="space-y-3 mb-6">
+                <For each={reasons()}>
+                  {(reason) => (
+                    <label class="flex items-center cursor-pointer">
+                      <input
+                        type="radio"
+                        name="feedback-reason"
+                        value={reason}
+                        checked={selectedReason() === reason}
+                        onChange={(e) => handleReasonChange(e.currentTarget.value)}
+                      />
+                      <span class="ml-3 text-sm text-gray-700">{reason}</span>
+                    </label>
+                  )}
+                </For>
+              </div>
+
+              {/* Text input */}
+              <div class="relative">
+                <textarea
+                  onInput={(e) => handleInput(e.currentTarget.value)}
+                  ref={inputRef}
+                  rows="4"
+                  disabled={selectedReason() !== OTHER_REASON}
+                  class={`block p-3 rounded-lg border border-gray-200 focus:ring-2 focus:ring-gray-400 focus:border-gray-400 flex-1 w-full text-sm font-normal resize-none ${
+                    selectedReason() !== OTHER_REASON 
+                      ? 'bg-blue-50 opacity-50 cursor-not-allowed' 
+                      : 'bg-blue-100'
+                  } ${props.textColor ? `text-[${props.textColor}]` : 'text-gray-800'}`}
+                  placeholder="Напишите свой вариант"
+                  value={inputValue()}
+                />
+                <div class="absolute bottom-2 right-2 text-xs text-gray-400">
+                  {inputValue().length}/{MAX_TEXT_LENGTH}
+                </div>
+              </div>
+            </div>
+
+            {/* Footer */}
+            <div class="flex flex-col p-6 border-t border-solid border-gray-200 rounded-b-2xl space-y-3">
+              {/* Buttons */}
+              <div class="flex items-center justify-end space-x-3">
+                <Button
+                  text="Отмена"
+                  backgroundColor="white"
+                  type="button"
+                  onClick={onClose}
+                  class={'flex-1'}
+                />
+                <Button
+                  text="Отправить"
+                  type="submit"
+                  onClick={submit}
+                  disabled={isSubmitDisabled()}
+                  class={`flex-1 disabled:bg-gray-100 disabled:text-gray-400 bg-[var(--primary-color)]`}
+                />
+              </div>
+
+              {/* Contact operator button */}
+              <div class="flex justify-center">
+                <Button
+                  text="Связаться с оператором"
+                  backgroundColor="white"
+                  type="button"
+                  onClick={() => {
+                    // Пока ничего не делает
+                  }}
+                  class={'flex-1'}
+                />
+              </div>
             </div>
           </div>
         </div>

@@ -1,6 +1,6 @@
-import { Show } from 'solid-js';
 import { JSX } from 'solid-js/jsx-runtime';
-import { DeleteIcon, SendIcon } from '../icons';
+import { SendIcon } from '../icons';
+import { IconButton } from './IconButton';
 
 type SendButtonProps = {
   sendButtonColor?: string;
@@ -11,60 +11,13 @@ type SendButtonProps = {
 
 export const SendButton = (props: SendButtonProps) => {
   return (
-    <button
+    <IconButton
       type="submit"
       disabled={props.isDisabled || props.isLoading}
+      ariaLabel="Отправить сообщение"
       {...props}
-      class={
-        'py-2 px-4 justify-center font-semibold text-white focus:outline-none flex items-center disabled:opacity-50 disabled:cursor-not-allowed disabled:brightness-100 transition-all filter hover:brightness-90 active:brightness-75 chatbot-button ' +
-        props.class
-      }
-      style={{ background: 'transparent', border: 'none' }}
-    >
-      <Show when={!props.isLoading} fallback={<Spinner class="text-white" />}>
-        <SendIcon color={props.sendButtonColor} class={'send-icon flex ' + (props.disableIcon ? 'hidden' : '')} />
-      </Show>
-    </button>
-  );
-};
-export const DeleteButton = (props: SendButtonProps) => {
-  // Check if <start-ai-fullchatbot> is present in the DOM
-  const isFullChatbot = document.querySelector('start-ai-fullchatbot') !== null;
-  const paddingClass = isFullChatbot ? 'px-4' : 'px-12';
-
-  return (
-    <button
-      type="submit"
-      disabled={props.isDisabled || props.isLoading}
-      {...props}
-      class={
-        `py-2 ${paddingClass} justify-center font-semibold text-white focus:outline-none flex items-center disabled:opacity-50 disabled:cursor-not-allowed disabled:brightness-100 transition-all filter hover:brightness-90 active:brightness-75 chatbot-button ` +
-        props.class
-      }
-      style={{ background: 'transparent', border: 'none' }}
-      title="Reset Chat"
-    >
-      <Show when={!props.isLoading} fallback={<Spinner class="text-white" />}>
-        <DeleteIcon color={props.sendButtonColor} class={'send-icon flex ' + (props.disableIcon ? 'hidden' : '')} />
-      </Show>
-    </button>
-  );
-};
-
-export const Spinner = (props: JSX.SvgSVGAttributes<SVGSVGElement>) => (
-  <svg
-    {...props}
-    class={'animate-spin -ml-1 mr-3 h-5 w-5 ' + props.class}
-    xmlns="http://www.w3.org/2000/svg"
-    fill="none"
-    viewBox="0 0 24 24"
-    data-testid="loading-spinner"
-  >
-    <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4" />
-    <path
-      class="opacity-75"
-      fill="currentColor"
-      d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+      class={props.class}
+      icon={<SendIcon color={props.sendButtonColor} class={props.disableIcon ? 'hidden' : ''} />}
     />
-  </svg>
-);
+  );
+};

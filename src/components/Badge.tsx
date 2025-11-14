@@ -6,9 +6,10 @@ type Props = {
   botContainer: HTMLDivElement | undefined;
   poweredByTextColor?: string;
   badgeBackgroundColor?: string;
+  showBadge?: boolean;
 };
 
-const defaultTextColor = '#303235';
+const defaultTextColor = 'var(--chatbot-header-color, #303235)';
 
 export const Badge = (props: Props) => {
   let liteBadge: HTMLAnchorElement | undefined;
@@ -39,7 +40,7 @@ export const Badge = (props: Props) => {
   });
 
   return (
-    <>
+    <Show when={props.showBadge === true}>
       <Show when={props.footer?.showFooter === undefined || props.footer?.showFooter === null || props.footer?.showFooter === true}>
         <span
           class="w-full text-center px-[10px] pt-[6px] pb-[10px] m-auto text-[13px]"
@@ -71,6 +72,6 @@ export const Badge = (props: Props) => {
           }}
         />
       </Show>
-    </>
+    </Show>
   );
 };

@@ -23,9 +23,8 @@ type Props = {
   setLeadEmail: (value: string) => void;
 };
 
-const defaultBackgroundColor = '#f7f8ff';
-const defaultTextColor = '#303235';
-const defaultFontSize = 16;
+const defaultBackgroundColor = 'var(--chatbot-host-bubble-bg-color, #f7f8ff)';
+const defaultFontSize = 'var(--chatbot-font-size, 16px)';
 const phoneRegex = new RegExp(/^([+]?[\s0-9]+)?(\d{3}|[(]?[0-9]+[)])?([-]?[\s]?[0-9])+$/);
 
 const LeadCaptureSchema = z.object({
@@ -87,12 +86,11 @@ export const LeadCaptureBubble = (props: Props) => {
         <Avatar initialAvatarSrc={props.avatarSrc} />
       </Show>
       <div
-        class="px-4 py-2 ml-2 max-w-full chatbot-host-bubble prose rounded-lg"
+        class={`px-4 py-2 ml-2 max-w-full chatbot-host-bubble prose rounded-lg ${props.textColor ? `text-[${props.textColor}]` : 'text-gray-880'}`}
         data-testid="host-bubble"
         style={{
           'background-color': props.backgroundColor ?? defaultBackgroundColor,
-          color: props.textColor ?? defaultTextColor,
-          'font-size': props.fontSize ? `${props.fontSize}px` : `${defaultFontSize}px`,
+          'font-size': props.fontSize ? `${props.fontSize}px` : defaultFontSize,
         }}
       >
         {props.isLeadSaved || getLocalStorageChatflow(props.chatflowid)?.lead ? (
@@ -109,7 +107,7 @@ export const LeadCaptureBubble = (props: Props) => {
                 <div class="w-full flex flex-col items-start justify-start gap-1">
                   <div class={'w-full flex items-center justify-between chatbot-input border border-[#eeeeee]'}>
                     <input
-                      class="focus:outline-none bg-transparent px-4 py-4 flex-1 w-full h-full min-h-[56px] max-h-[128px] text-input disabled:opacity-50 disabled:cursor-not-allowed disabled:brightness-100 "
+                      class="focus:outline-none bg-transparent px-4 py-4 flex-1 w-full h-full min-h-[56px] max-h-[128px] text-input placeholder:text-gray-400 disabled:opacity-50 disabled:cursor-not-allowed disabled:brightness-100 "
                       placeholder="Name"
                       name="name"
                       style={{ width: '100%' }}
@@ -124,7 +122,7 @@ export const LeadCaptureBubble = (props: Props) => {
                 <div class="w-full flex flex-col items-start justify-start gap-1">
                   <div class={'w-full flex items-center justify-between chatbot-input border border-[#eeeeee]'}>
                     <input
-                      class="focus:outline-none bg-transparent px-4 py-4 flex-1 w-full h-full min-h-[56px] max-h-[128px] text-input disabled:opacity-50 disabled:cursor-not-allowed disabled:brightness-100 "
+                      class="focus:outline-none bg-transparent px-4 py-4 flex-1 w-full h-full min-h-[56px] max-h-[128px] text-input placeholder:text-gray-400 disabled:opacity-50 disabled:cursor-not-allowed disabled:brightness-100 "
                       type="email"
                       placeholder="Email Address"
                       name="email"
@@ -140,7 +138,7 @@ export const LeadCaptureBubble = (props: Props) => {
                 <div class="w-full flex flex-col items-start justify-start gap-1">
                   <div class={'w-full flex items-center justify-between chatbot-input border border-[#eeeeee]'}>
                     <input
-                      class="focus:outline-none bg-transparent px-4 py-4 flex-1 w-full h-full min-h-[56px] max-h-[128px] text-input disabled:opacity-50 disabled:cursor-not-allowed disabled:brightness-100 "
+                      class="focus:outline-none bg-transparent px-4 py-4 flex-1 w-full h-full min-h-[56px] max-h-[128px] text-input placeholder:text-gray-400 disabled:opacity-50 disabled:cursor-not-allowed disabled:brightness-100 "
                       type="number"
                       placeholder="Phone Number"
                       name="phone"

@@ -1,5 +1,4 @@
-import { JSX, Show } from 'solid-js';
-import { Spinner } from './SendButton';
+import { JSX } from 'solid-js/jsx-runtime';
 import { ClipboardIcon, ThumbsDownIcon, ThumbsUpIcon } from '../icons';
 
 type RatingButtonProps = {
@@ -10,7 +9,7 @@ type RatingButtonProps = {
   rating?: string;
 } & JSX.ButtonHTMLAttributes<HTMLButtonElement>;
 
-const defaultFeedbackColor = '#3B81F6';
+const defaultFeedbackColor = 'rgba(11, 17, 19, 0.5)'; // gray-500
 
 export const CopyToClipboardButton = (props: RatingButtonProps) => {
   return (
@@ -24,9 +23,7 @@ export const CopyToClipboardButton = (props: RatingButtonProps) => {
       style={{ background: 'transparent', border: 'none' }}
       title="Copy to clipboard"
     >
-      <Show when={!props.isLoading} fallback={<Spinner class="text-white" />}>
-        <ClipboardIcon color={props.feedbackColor ?? defaultFeedbackColor} class={'send-icon flex ' + (props.disableIcon ? 'hidden' : '')} />
-      </Show>
+      <ClipboardIcon color={props.feedbackColor ?? defaultFeedbackColor} class={'send-icon flex ' + (props.disableIcon ? 'hidden' : '')} />
     </button>
   );
 };
@@ -38,15 +35,13 @@ export const ThumbsUpButton = (props: RatingButtonProps) => {
       disabled={props.isDisabled || props.isLoading}
       {...props}
       class={
-        'p-2 justify-center font-semibold text-white focus:outline-none flex items-center disabled:opacity-50 disabled:cursor-not-allowed disabled:brightness-100 transition-all filter hover:brightness-90 active:brightness-75 chatbot-button ' +
+        '' +
         props.class
       }
       style={{ background: 'transparent', border: 'none' }}
-      title="Thumbs Up"
+      title="Понравилось"
     >
-      <Show when={!props.isLoading} fallback={<Spinner class="text-white" />}>
-        <ThumbsUpIcon color={props.feedbackColor ?? defaultFeedbackColor} class={'send-icon flex ' + (props.disableIcon ? 'hidden' : '')} />
-      </Show>
+      <ThumbsUpIcon color={props.feedbackColor ?? defaultFeedbackColor} class={'send-icon flex ' + (props.disableIcon ? 'hidden' : '')} />
     </button>
   );
 };
@@ -58,15 +53,13 @@ export const ThumbsDownButton = (props: RatingButtonProps) => {
       disabled={props.isDisabled || props.isLoading}
       {...props}
       class={
-        'p-2 justify-center font-semibold text-white focus:outline-none flex items-center disabled:opacity-50 disabled:cursor-not-allowed disabled:brightness-100 transition-all filter hover:brightness-90 active:brightness-75 chatbot-button ' +
+        '' +
         props.class
       }
       style={{ background: 'transparent', border: 'none' }}
-      title="Thumbs Down"
+      title="Не понравилось"
     >
-      <Show when={!props.isLoading} fallback={<Spinner class="text-white" />}>
-        <ThumbsDownIcon color={props.feedbackColor ?? defaultFeedbackColor} class={'send-icon flex ' + (props.disableIcon ? 'hidden' : '')} />
-      </Show>
+      <ThumbsDownIcon color={props.feedbackColor ?? defaultFeedbackColor} class={'send-icon flex ' + (props.disableIcon ? 'hidden' : '')} />
     </button>
   );
 };
