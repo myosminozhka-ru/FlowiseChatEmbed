@@ -2,10 +2,10 @@ import { JSX } from 'solid-js/jsx-runtime';
 import { AttachmentIcon } from '../icons';
 
 type FileUploadButtonProps = {
-  buttonColor?: string;
   isDisabled?: boolean;
   isLoading?: boolean;
   disableIcon?: boolean;
+  // Цвета настраиваются через Tailwind классы
 } & JSX.ButtonHTMLAttributes<HTMLButtonElement>;
 
 export const AttachmentUploadButton = (props: FileUploadButtonProps) => {
@@ -20,10 +20,7 @@ export const AttachmentUploadButton = (props: FileUploadButtonProps) => {
       }
       style={{ background: 'transparent', border: 'none' }}
     >
-      <AttachmentIcon 
-        color={props.buttonColor} 
-        class="transition-colors group-hover:stroke-[var(--chatbot-button-bg-color)]" 
-      />
+      <AttachmentIcon class="transition-colors group-hover:stroke-[var(--chatbot-button-bg-color)]" />
     </button>
   );
 };

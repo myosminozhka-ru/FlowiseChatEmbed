@@ -7,9 +7,8 @@ type FeedbackContentDialogProps = {
   isOpen: boolean;
   onClose: () => void;
   onSubmit: (text: string, reason?: string) => void;
-  backgroundColor?: string;
-  textColor?: string;
   reasons?: string[];
+  // Цвета настраиваются через Tailwind классы
 };
 
 const defaultBackgroundColor = 'var(--chatbot-input-bg-color, #ffffff)';
@@ -79,20 +78,15 @@ const FeedbackContentDialog = (props: FeedbackContentDialogProps) => {
       <div class="flex overflow-x-hidden overflow-y-auto fixed inset-0 z-[1002] outline-none focus:outline-none justify-center items-center">
         <div class="relative my-6 w-[380px] mx-4">
           <div
-            class={`border-0 rounded-2xl shadow-lg relative flex flex-col w-full bg-white outline-none focus:outline-none ${props.textColor ? `text-[${props.textColor}]` : 'text-gray-880'}`}
+            class="border-0 rounded-2xl shadow-lg relative flex flex-col w-full bg-white outline-none focus:outline-none text-gray-880"
             style={{
-              'background-color': props.backgroundColor ?? defaultBackgroundColor,
+              'background-color': defaultBackgroundColor,
             }}
           >
             {/* Header */}
             <div class="flex items-center justify-between py-3 pl-5 pr-3 border-b border-solid border-gray-200 rounded-t-2xl">
               <span class="whitespace-pre-wrap font-semibold text-base text-gray-800">Что именно не понравилось?</span>
-              <IconButton
-                icon={<XIcon />}
-                onClick={onClose}
-                ariaLabel="Закрыть"
-                class="ml-auto"
-              />
+              <IconButton icon={<XIcon />} onClick={onClose} ariaLabel="Закрыть" class="ml-auto" />
             </div>
 
             {/* Content */}
@@ -123,10 +117,8 @@ const FeedbackContentDialog = (props: FeedbackContentDialogProps) => {
                   rows="4"
                   disabled={selectedReason() !== OTHER_REASON}
                   class={`block p-3 rounded-lg border border-gray-200 focus:ring-2 focus:ring-gray-400 focus:border-gray-400 flex-1 w-full text-sm font-normal resize-none ${
-                    selectedReason() !== OTHER_REASON 
-                      ? 'bg-blue-50 opacity-50 cursor-not-allowed' 
-                      : 'bg-blue-100'
-                  } ${props.textColor ? `text-[${props.textColor}]` : 'text-gray-800'}`}
+                    selectedReason() !== OTHER_REASON ? 'bg-blue-50 opacity-50 cursor-not-allowed' : 'bg-blue-100'
+                  } text-gray-800`}
                   placeholder="Напишите свой вариант"
                   value={inputValue()}
                 />
@@ -140,13 +132,7 @@ const FeedbackContentDialog = (props: FeedbackContentDialogProps) => {
             <div class="flex flex-col p-6 border-t border-solid border-gray-200 rounded-b-2xl space-y-3">
               {/* Buttons */}
               <div class="flex items-center justify-end space-x-3">
-                <Button
-                  text="Отмена"
-                  backgroundColor="white"
-                  type="button"
-                  onClick={onClose}
-                  class={'flex-1'}
-                />
+                <Button text="Отмена" type="button" onClick={onClose} class={'flex-1 bg-white'} />
                 <Button
                   text="Отправить"
                   type="submit"
@@ -160,7 +146,6 @@ const FeedbackContentDialog = (props: FeedbackContentDialogProps) => {
               <div class="flex justify-center">
                 <Button
                   text="Связаться с оператором"
-                  backgroundColor="white"
                   type="button"
                   onClick={() => {
                     // Пока ничего не делает

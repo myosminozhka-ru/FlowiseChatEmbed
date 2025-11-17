@@ -2,13 +2,13 @@ import { JSX } from 'solid-js/jsx-runtime';
 
 type ButtonProps = {
   text: string;
-  backgroundColor?: string;
   class?: string;
   ariaLabel?: string;
+  // Цвета настраиваются через Tailwind классы в class prop
 } & JSX.ButtonHTMLAttributes<HTMLButtonElement>;
 
 export const Button = (props: ButtonProps) => {
-  const { text, backgroundColor, class: className, ariaLabel, style, type, onClick, ...restProps } = props;
+  const { text, class: className, ariaLabel, style, type, onClick, ...restProps } = props;
   return (
     <button
       type={type || 'button'}
@@ -23,17 +23,11 @@ export const Button = (props: ButtonProps) => {
         active:scale-95 active:bg-gray-200 
         focus:outline-none focus:ring-2 focus:ring-gray-500 focus:ring-offset-1
         shadow-xs 
-        disabled:cursor-not-allowed hover:shadow-none ` +
-        (className || '')
+        disabled:cursor-not-allowed hover:shadow-none ` + (className || '')
       }
-      style={{
-        ...(backgroundColor && !className?.includes('bg-') ? { 'background-color': backgroundColor } : {}),
-        ...(style && typeof style === 'object' ? style : {}),
-      }}
+      style={style && typeof style === 'object' ? style : {}}
     >
       {text}
     </button>
-
   );
 };
-

@@ -21,4 +21,3 @@ export const FaceIcon = (props: JSX.SvgSVGAttributes<SVGSVGElement>) => (
     />
   </svg>
 );
-

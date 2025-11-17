@@ -12,46 +12,40 @@ export type BubbleTheme = {
 };
 
 export type FormTheme = {
-  backgroundColor?: string;
-  textColor?: string;
+  // Цвета настраиваются через Tailwind классы в customCSS
 };
 
 export type TextInputTheme = {
-  backgroundColor?: string;
-  textColor?: string;
   placeholder?: string;
-  sendButtonColor?: string;
-  caretColor?: string;
   maxChars?: number;
   maxCharsWarningMessage?: string;
   autoFocus?: boolean;
+  // Цвета настраиваются через Tailwind классы в customCSS
 };
 
 export type UserMessageTheme = {
-  backgroundColor?: string;
-  textColor?: string;
   showAvatar?: boolean;
   avatarSrc?: string;
+  // Цвета настраиваются через Tailwind классы в customCSS
 };
 
 export type BotMessageTheme = {
-  backgroundColor?: string;
-  textColor?: string;
   showAvatar?: boolean;
   avatarSrc?: string;
+  // Цвета настраиваются через Tailwind классы в customCSS
 };
 
 export type FooterTheme = {
   showFooter?: boolean;
-  textColor?: string;
   text?: string;
   company?: string;
   companyLink?: string;
+  // Цвета настраиваются через Tailwind классы в customCSS
 };
 
 export type FeedbackTheme = {
-  color?: string;
   reasons?: string[];
+  // Цвета настраиваются через Tailwind классы в customCSS
 };
 
 export type ChatWindowTheme = {
@@ -59,13 +53,10 @@ export type ChatWindowTheme = {
   showAgentMessages?: boolean; // parameter to show agent reasonings when using agentflows
   title?: string;
   titleAvatarSrc?: string;
-  titleTextColor?: string;
-  titleBackgroundColor?: string;
   welcomeTitle?: string;
   welcomeText?: string;
   showWelcomeImage?: boolean;
   errorMessage?: string;
-  backgroundColor?: string;
   backgroundImage?: string;
   height?: number;
   width?: number;
@@ -76,30 +67,28 @@ export type ChatWindowTheme = {
   feedback?: FeedbackTheme;
   footer?: FooterTheme;
   sourceDocsTitle?: string;
-  poweredByTextColor?: string;
   starterPrompts?: string[];
   clearChatOnReload?: boolean;
   dateTimeToggle?: DateTimeToggleTheme;
   renderHTML?: boolean;
+  // Цвета настраиваются через Tailwind классы в customCSS
 };
 
 export type ButtonTheme = {
   size?: 'small' | 'medium' | 'large' | number; // custom size of chatbot in pixels
-  backgroundColor?: string;
-  iconColor?: string;
   customIconSrc?: string;
   bottom?: number;
   right?: number;
   dragAndDrop?: boolean; // parameter to enable drag and drop(true or false)
   autoWindowOpen?: autoWindowOpenTheme;
+  // Цвета настраиваются через Tailwind классы в customCSS
 };
 
 export type ToolTipTheme = {
   showTooltip?: boolean; // parameter to enable tooltip(true or false)
   tooltipMessage?: string;
-  tooltipBackgroundColor?: string;
-  tooltipTextColor?: string;
   tooltipFontSize?: number;
+  // Цвета настраиваются через Tailwind классы в customCSS
 };
 
 export type autoWindowOpenTheme = {
@@ -111,14 +100,9 @@ export type autoWindowOpenTheme = {
 export type DisclaimerPopUpTheme = {
   title?: string;
   message?: string;
-  textColor?: string;
-  buttonColor?: string;
-  buttonTextColor?: string;
   buttonText?: string;
-  blurredBackgroundColor?: string;
-  backgroundColor?: string;
-  denyButtonBgColor?: string;
   denyButtonText?: string;
+  // Цвета настраиваются через Tailwind классы в customCSS
 };
 
 export type DateTimeToggleTheme = {

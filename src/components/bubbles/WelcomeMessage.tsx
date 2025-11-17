@@ -6,11 +6,10 @@ type WelcomeMessageProps = {
   welcomeTitle?: string;
   welcomeText?: string;
   fontSize?: number;
-  textColor?: string;
   showWelcomeImage?: boolean;
   starterPrompts?: string[];
   onPromptClick?: (prompt: string) => void;
-  starterPromptBackgroundColor?: string;
+  // Цвета настраиваются через Tailwind классы
 };
 
 const defaultFontSize = 'var(--chatbot-font-size, 16px)';
@@ -21,7 +20,7 @@ export const WelcomeMessage = (props: WelcomeMessageProps) => {
       {props.showWelcomeImage !== false && <WelcomeImage />}
       <Show when={props.welcomeTitle}>
         <h3
-          class={`text-lg font-bold m-0 ${props.textColor ? `text-[${props.textColor}]` : 'text-gray-880'}`}
+          class="text-lg font-bold m-0 text-gray-880"
           style={{
             'font-size': props.fontSize ? `${props.fontSize + 4}px` : '20px',
           }}
@@ -31,7 +30,7 @@ export const WelcomeMessage = (props: WelcomeMessageProps) => {
       </Show>
       <Show when={props.welcomeText}>
         <span
-          class={props.textColor ? `text-[${props.textColor}]` : 'text-gray-880'}
+          class="text-gray-880"
           style={{
             'font-size': props.fontSize ? `${props.fontSize}px` : defaultFontSize,
           }}
@@ -46,7 +45,6 @@ export const WelcomeMessage = (props: WelcomeMessageProps) => {
               <StarterPromptBubble
                 prompt={key}
                 onPromptClick={() => props.onPromptClick?.(key)}
-                backgroundColor={props.starterPromptBackgroundColor}
               />
             )}
           </For>
@@ -55,4 +53,3 @@ export const WelcomeMessage = (props: WelcomeMessageProps) => {
     </div>
   );
 };
-

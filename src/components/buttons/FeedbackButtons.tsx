@@ -34,10 +34,7 @@ export const ThumbsUpButton = (props: RatingButtonProps) => {
       type="submit"
       disabled={props.isDisabled || props.isLoading}
       {...props}
-      class={
-        '' +
-        props.class
-      }
+      class={'' + props.class}
       style={{ background: 'transparent', border: 'none' }}
       title="Понравилось"
     >
@@ -52,10 +49,7 @@ export const ThumbsDownButton = (props: RatingButtonProps) => {
       type="submit"
       disabled={props.isDisabled || props.isLoading}
       {...props}
-      class={
-        '' +
-        props.class
-      }
+      class={'' + props.class}
       style={{ background: 'transparent', border: 'none' }}
       title="Не понравилось"
     >

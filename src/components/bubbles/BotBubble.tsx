@@ -414,11 +414,14 @@ export const BotBubble = (props: Props) => {
     <div>
       <div class={getContainerClasses()}>
         {/* Основной контейнер с контентом */}
-        <div class={`flex flex-col justify-start px-4 py-3 rounded-lg rounded-bl-none chatbot-host-bubble min-h-[52px] ${props.isLoading && !props.message.message ? 'w-[72px]' : 'w-full'} ${props.textColor ? `text-[${props.textColor}]` : 'text-gray-880'}`}
-             style={{
-               'background-color': props.backgroundColor ?? defaultBackgroundColor,
-               'font-size': props.fontSize ? `${props.fontSize}px` : defaultFontSize,
-             }}
+        <div
+          class={`flex flex-col justify-start px-4 py-3 rounded-lg rounded-bl-none chatbot-host-bubble min-h-[52px] ${
+            props.isLoading && !props.message.message ? 'w-[72px]' : 'w-full'
+          } ${props.textColor ? `text-[${props.textColor}]` : 'text-gray-880'}`}
+          style={{
+            'background-color': props.backgroundColor ?? defaultBackgroundColor,
+            'font-size': props.fontSize ? `${props.fontSize}px` : defaultFontSize,
+          }}
         >
           {/* Верхняя строка: Аватар, название бота и Feedback кнопки - показываем только когда есть текст сообщения */}
           <Show when={props.message.message}>
@@ -427,9 +430,7 @@ export const BotBubble = (props: Props) => {
                 <Show when={props.showAvatar}>
                   <Avatar initialAvatarSrc={props.avatarSrc} />
                 </Show>
-                <span class="font-semibold text-gray-880">
-                  {props.botTitle || 'Умный помощник'}
-                </span>
+                <span class="font-semibold text-gray-880">{props.botTitle || 'Умный помощник'}</span>
               </div>
               {/* Feedback кнопки справа */}
               <Show when={props.chatFeedbackStatus && props.message.messageId}>
@@ -443,7 +444,12 @@ export const BotBubble = (props: Props) => {
                     </Show>
                   </Show>
                   {rating() === '' || rating() === 'THUMBS_UP' ? (
-                    <ThumbsUpButton feedbackColor={thumbsUpColor()} isDisabled={rating() === 'THUMBS_UP'} rating={rating()} onClick={onThumbsUpClick} />
+                    <ThumbsUpButton
+                      feedbackColor={thumbsUpColor()}
+                      isDisabled={rating() === 'THUMBS_UP'}
+                      rating={rating()}
+                      onClick={onThumbsUpClick}
+                    />
                   ) : null}
                   {rating() === '' || rating() === 'THUMBS_DOWN' ? (
                     <ThumbsDownButton
@@ -483,8 +489,6 @@ export const BotBubble = (props: Props) => {
                       agentName={agent.agentName ?? ''}
                       agentMessage={msgContent}
                       agentArtifacts={agent.artifacts}
-                      backgroundColor={props.backgroundColor}
-                      textColor={props.textColor}
                       fontSize={props.fontSize}
                       apiHost={props.apiHost}
                       chatflowid={props.chatflowid}
@@ -601,8 +605,6 @@ export const BotBubble = (props: Props) => {
           isOpen={showFeedbackContentDialog()}
           onClose={() => setShowFeedbackContentModal(false)}
           onSubmit={submitFeedbackContent}
-          backgroundColor={props.backgroundColor}
-          textColor={props.textColor}
           reasons={props.feedbackReasons}
         />
       </Show>

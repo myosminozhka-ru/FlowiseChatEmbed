@@ -7,11 +7,8 @@ import { ChatInputHistory } from '@/utils/chatInputHistory';
 
 type SendAreaProps = {
   placeholder?: string;
-  backgroundColor?: string;
-  textColor?: string;
-  sendButtonColor?: string;
-  caretColor?: string;
   inputValue: string;
+  // Цвета настраиваются через Tailwind классы
   fontSize?: number;
   disabled?: boolean;
   onSubmit: (value: string) => void;
@@ -142,10 +139,12 @@ export const SendArea = (props: SendAreaProps) => {
 
   return (
     <div
-      class={`sticky bottom-0 w-full h-auto max-h-[192px] min-h-[72px] flex flex-col items-end justify-between chatbot-input border-t pb-4 z-10 ${props.textColor ? `text-[${props.textColor}]` : 'text-gray-880'} ${props.isFullscreen ? 'px-4 md:px-6 lg:px-8' : 'px-6'}`}
+      class={`sticky bottom-0 w-full h-auto max-h-[192px] min-h-[72px] flex flex-col items-end justify-between chatbot-input border-t pb-4 z-10 text-gray-880 ${
+        props.isFullscreen ? 'px-4 md:px-6 lg:px-8' : 'px-6'
+      }`}
       data-testid="input"
       style={{
-        'background-color': props.backgroundColor ?? defaultBackgroundColor,
+        'background-color': defaultBackgroundColor,
       }}
     >
       <Show when={warningMessage() !== ''}>
@@ -157,7 +156,6 @@ export const SendArea = (props: SendAreaProps) => {
         {props.uploadsConfig?.isImageUploadAllowed ? (
           <>
             <ImageUploadButton
-              buttonColor={props.sendButtonColor}
               type="button"
               class="m-0 h-14 flex items-center justify-center"
               isDisabled={props.disabled || isSendButtonDisabled()}
@@ -182,7 +180,6 @@ export const SendArea = (props: SendAreaProps) => {
         {props.uploadsConfig?.isRAGFileUploadAllowed || props.isFullFileUpload ? (
           <>
             <AttachmentUploadButton
-              buttonColor={props.sendButtonColor}
               type="button"
               class="m-0 h-14 flex items-center justify-center"
               isDisabled={props.disabled || isSendButtonDisabled()}
@@ -205,7 +202,9 @@ export const SendArea = (props: SendAreaProps) => {
           value={props.inputValue}
           placeholder={props.placeholder ?? 'Введите свой вопрос'}
           disabled={props.disabled}
-          class={`focus:outline-none bg-transparent px-0 pt-[25px] pb-0 flex-1 w-full h-full min-h-[56px] max-h-[128px] text-input placeholder:text-gray-400 disabled:opacity-50 disabled:cursor-not-allowed disabled:brightness-100 ${props.caretColor ? `caret-[${props.caretColor}]` : 'caret-[var(--chatbot-input-caret-color)]'}`}
+          class={`focus:outline-none bg-transparent px-0 pt-[25px] pb-0 flex-1 w-full h-full min-h-[56px] max-h-[128px] text-input placeholder:text-gray-400 disabled:opacity-50 disabled:cursor-not-allowed disabled:brightness-100 ${
+            'caret-[var(--chatbot-input-caret-color)]'
+          }`}
           style={{
             'font-size': props.fontSize ? `${props.fontSize}px` : '16px',
             resize: 'none',
@@ -215,7 +214,6 @@ export const SendArea = (props: SendAreaProps) => {
           onKeyDown={handleKeyDown}
         />
         <SendButton
-          sendButtonColor={props.sendButtonColor}
           type="button"
           isDisabled={props.disabled || isSendButtonDisabled() || !props.inputValue || props.inputValue.trim() === ''}
           class="m-0 mt-4 h-14 flex items-center justify-center"
@@ -225,4 +223,3 @@ export const SendArea = (props: SendAreaProps) => {
     </div>
   );
 };
-

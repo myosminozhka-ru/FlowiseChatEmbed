@@ -35,10 +35,16 @@
     <script type="module">
         (async () => {
             try {
-                // Загружаем модуль чатбота
+                // Загружаем конфигурацию с сервера
                 const baseUrl = window.location.origin;
-                let module;
+                const configResponse = await fetch(`${baseUrl}/api/config`);
+                if (!configResponse.ok) {
+                    throw new Error('Не удалось загрузить конфигурацию');
+                }
+                const config = await configResponse.json();
 
+                // Загружаем модуль чатбота
+                let module;
                 try {
                     module = await import(`${baseUrl}/web.js`);
                 } catch (e1) {
@@ -59,10 +65,11 @@
                     throw new Error('Chatbot.initFull не доступен');
                 }
 
-                // Инициализируем полноэкранный чат
+                // Инициализируем полноэкранный чат с конфигурацией из .env
                 Chatbot.initFull({
-                    chatflowid: '416feeac-4a95-4f6e-a81d-73f8f48bc54f',
-                    apiHost: 'https://app.osmi-it.ru',
+                    chatflowid: config.chatflowid,
+                    apiHost: config.apiHost,
+                    autofaqConfig: config.autofaqConfig,
                     chatflowConfig: {
                         chatFeedback: {
                             status: true
@@ -71,7 +78,7 @@
                     theme: {
                         chatWindow: {
                             showTitle: true,
-                            title: 'Умный помщник',
+                            title: 'Умный помощник',
                             // Не указываем height и width для полноэкранного режима
                             botMessage: {
                                 showAvatar: true,

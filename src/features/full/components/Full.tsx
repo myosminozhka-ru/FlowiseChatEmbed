@@ -52,7 +52,7 @@ export const Full = (props: FullProps, { element }: { element: HTMLElement }) =>
       <Show when={isBotDisplayed()}>
         <div
           style={{
-            'background-color': props.theme?.chatWindow?.backgroundColor || '#ffffff',
+            'background-color': 'var(--chatbot-container-bg-color, #ffffff)',
             height: props.theme?.chatWindow?.height ? `${props.theme?.chatWindow?.height.toString()}px` : '100dvh',
             width: props.theme?.chatWindow?.width ? `${props.theme?.chatWindow?.width.toString()}px` : '100%',
             margin: '0px',
@@ -85,6 +85,7 @@ export const Full = (props: FullProps, { element }: { element: HTMLElement }) =>
             disclaimer={props.theme?.disclaimer}
             dateTimeToggle={props.theme?.chatWindow?.dateTimeToggle}
             renderHTML={props.theme?.chatWindow?.renderHTML}
+            autofaqConfig={props.autofaqConfig}
           />
         </div>
       </Show>

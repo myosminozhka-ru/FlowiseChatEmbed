@@ -5,7 +5,8 @@
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
   "scripts": {
-    "dev": "cross-env NODE_ENV=development rollup --watch --config rollup.config.js",
+    "dev": "cross-env NODE_ENV=development node server.js",
+    "dev:build": "cross-env NODE_ENV=development rollup --watch --config rollup.config.js",
     "build": "cross-env NODE_ENV=production rollup --config rollup.config.js",
     "lint": "eslint \"src/**/*.ts*\"",
     "lint-fix": "eslint --fix \"src/**/*.ts*\"",

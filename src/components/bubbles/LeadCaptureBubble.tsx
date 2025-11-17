@@ -14,9 +14,7 @@ type Props = {
   apiHost?: string;
   showAvatar?: boolean;
   avatarSrc?: string;
-  backgroundColor?: string;
-  textColor?: string;
-  sendButtonColor?: string;
+  // Цвета настраиваются через Tailwind классы
   fontSize?: number;
   isLeadSaved: boolean;
   setIsLeadSaved: (value: boolean) => void;
@@ -86,10 +84,10 @@ export const LeadCaptureBubble = (props: Props) => {
         <Avatar initialAvatarSrc={props.avatarSrc} />
       </Show>
       <div
-        class={`px-4 py-2 ml-2 max-w-full chatbot-host-bubble prose rounded-lg ${props.textColor ? `text-[${props.textColor}]` : 'text-gray-880'}`}
+        class="px-4 py-2 ml-2 max-w-full chatbot-host-bubble prose rounded-lg text-gray-880"
         data-testid="host-bubble"
         style={{
-          'background-color': props.backgroundColor ?? defaultBackgroundColor,
+          'background-color': defaultBackgroundColor,
           'font-size': props.fontSize ? `${props.fontSize}px` : defaultFontSize,
         }}
       >
@@ -151,7 +149,7 @@ export const LeadCaptureBubble = (props: Props) => {
                 </div>
               )}
               <div class="flex items-center justify-end gap-1">
-                <SaveLeadButton buttonColor={props.sendButtonColor} isLoading={isLeadSaving()} />
+                <SaveLeadButton isLoading={isLeadSaving()} />
               </div>
             </div>
           </form>

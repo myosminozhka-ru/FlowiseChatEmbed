@@ -9,6 +9,17 @@ type BotProps = {
   chatflowConfig?: Record<string, unknown>;
   observersConfig?: observersConfigType;
   theme?: BubbleTheme;
+  // Конфигурация AutoFAQ
+  autofaqConfig?: {
+    enabled?: boolean;
+    apiBaseUrl?: string;
+    serviceId?: string;
+    channelId?: string;
+    apiToken?: string;
+    webhookUrl?: string;
+    getClientId?: (chatflowid: string, chatId: string) => string;
+    getMetadata?: (chatflowid: string, chatId: string, chatHistory: any[]) => Record<string, unknown>;
+  };
 };
 
 let elementUsed: Element | undefined;

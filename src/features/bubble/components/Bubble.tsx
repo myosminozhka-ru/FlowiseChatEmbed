@@ -94,8 +94,6 @@ export const Bubble = (props: BubbleProps) => {
         position={buttonPosition()}
         buttonSize={buttonSize}
         tooltipMessage={bubbleProps.theme?.tooltip?.tooltipMessage}
-        tooltipBackgroundColor={bubbleProps.theme?.tooltip?.tooltipBackgroundColor}
-        tooltipTextColor={bubbleProps.theme?.tooltip?.tooltipTextColor}
         tooltipFontSize={bubbleProps.theme?.tooltip?.tooltipFontSize} // Set the tooltip font size
       />
       <BubbleButton
@@ -111,34 +109,45 @@ export const Bubble = (props: BubbleProps) => {
       <div
         part="bot"
         style={{
-          height: isFullscreen() ? '100vh' : (bubbleProps.theme?.chatWindow?.height ? `${bubbleProps.theme?.chatWindow?.height.toString()}px` : 'calc(100% - 150px)'),
-          width: isFullscreen() ? '100vw' : (bubbleProps.theme?.chatWindow?.width ? `${bubbleProps.theme?.chatWindow?.width.toString()}px` : undefined),
+          height: isFullscreen()
+            ? '100vh'
+            : bubbleProps.theme?.chatWindow?.height
+              ? `${bubbleProps.theme?.chatWindow?.height.toString()}px`
+              : 'calc(100% - 150px)',
+          width: isFullscreen() ? '100vw' : bubbleProps.theme?.chatWindow?.width ? `${bubbleProps.theme?.chatWindow?.width.toString()}px` : undefined,
           transition: isTransitioning()
             ? 'opacity 200ms ease-out'
-            : (isFullscreen() 
+            : isFullscreen()
               ? 'transform 300ms cubic-bezier(0.4, 0, 0.2, 1), width 300ms cubic-bezier(0.4, 0, 0.2, 1), height 300ms cubic-bezier(0.4, 0, 0.2, 1), left 300ms cubic-bezier(0.4, 0, 0.2, 1), top 300ms cubic-bezier(0.4, 0, 0.2, 1), border-radius 300ms ease-out, opacity 200ms ease-out 100ms'
-              : 'transform 200ms cubic-bezier(0, 1.2, 1, 1), opacity 150ms ease-out'),
+              : 'transform 200ms cubic-bezier(0, 1.2, 1, 1), opacity 150ms ease-out',
           'transform-origin': 'center center',
-          transform: isFullscreen() 
-            ? (isTransitioning() ? 'translate(-50%, -50%) scale(0)' : 'translate(-50%, -50%) scale(1)')
-            : (isBotOpened() ? 'scale3d(1, 1, 1)' : 'scale3d(0, 0, 1)'),
-          opacity: isTransitioning() ? '0' : (isFullscreen() ? '1' : (isBotOpened() ? '1' : '0')),
+          transform: isFullscreen()
+            ? isTransitioning()
+              ? 'translate(-50%, -50%) scale(0)'
+              : 'translate(-50%, -50%) scale(1)'
+            : isBotOpened()
+              ? 'scale3d(1, 1, 1)'
+              : 'scale3d(0, 0, 1)',
+          opacity: isTransitioning() ? '0' : isFullscreen() ? '1' : isBotOpened() ? '1' : '0',
           'box-shadow': 'rgb(0 0 0 / 16%) 0px 5px 40px',
-          'background-color': bubbleProps.theme?.chatWindow?.backgroundColor || '#ffffff',
+          'background-color': 'var(--chatbot-container-bg-color, #ffffff)',
           'background-image': bubbleProps.theme?.chatWindow?.backgroundImage ? `url(${bubbleProps.theme?.chatWindow?.backgroundImage})` : 'none',
           'background-size': 'cover',
           'background-position': 'center',
           'background-repeat': 'no-repeat',
           'z-index': isFullscreen() ? 99999999 : 42424242,
           bottom: isFullscreen() ? undefined : `${Math.min(buttonPosition().bottom + buttonSize + 10, window.innerHeight - chatWindowBottom)}px`,
-          right: isFullscreen() ? undefined : `${Math.max(0, Math.min(buttonPosition().right, window.innerWidth - (bubbleProps.theme?.chatWindow?.width ?? 410) - 10))}px`,
+          right: isFullscreen()
+            ? undefined
+            : `${Math.max(0, Math.min(buttonPosition().right, window.innerWidth - (bubbleProps.theme?.chatWindow?.width ?? 410) - 10))}px`,
           left: isFullscreen() ? '50%' : undefined,
           top: isFullscreen() ? '50%' : undefined,
           'border-radius': isFullscreen() ? '0' : undefined,
         }}
         class={
-          `fixed ${isFullscreen() ? '' : 'sm:right-5'} ${isFullscreen() ? 'rounded-none' : 'rounded-lg'} ${isFullscreen() ? 'w-screen h-screen' : 'w-full sm:w-[400px] max-h-[704px]'}` +
-          (isFullscreen() ? '' : (isBotOpened() ? ' opacity-1' : ' opacity-0 pointer-events-none'))
+          `fixed ${isFullscreen() ? '' : 'sm:right-5'} ${isFullscreen() ? 'rounded-none' : 'rounded-lg'} ${
+            isFullscreen() ? 'w-screen h-screen' : 'w-full sm:w-[400px] max-h-[704px]'
+          }` + (isFullscreen() ? '' : isBotOpened() ? ' opacity-1' : ' opacity-0 pointer-events-none')
         }
       >
         <Show when={isBotStarted()}>
@@ -173,6 +182,7 @@ export const Bubble = (props: BubbleProps) => {
               isFullPage={false}
               toggleFullscreen={toggleFullscreen}
               isFullscreen={isFullscreen()}
+              autofaqConfig={props.autofaqConfig}
             />
           </div>
         </Show>

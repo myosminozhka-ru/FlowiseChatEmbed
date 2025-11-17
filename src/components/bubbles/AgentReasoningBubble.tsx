@@ -10,8 +10,7 @@ type Props = {
   agentName: string;
   agentMessage: string;
   agentArtifacts?: FileUpload[];
-  backgroundColor?: string;
-  textColor?: string;
+  // Цвета настраиваются через Tailwind классы
   fontSize?: number;
   renderHTML?: boolean;
 };
@@ -67,9 +66,9 @@ export const AgentReasoningBubble = (props: Props) => {
       return (
         <span
           innerHTML={Marked.parse(src)}
-          class={`prose rounded-lg ${props.textColor ? `text-[${props.textColor}]` : 'text-gray-880'}`}
+          class="prose rounded-lg text-gray-880"
           style={{
-            'background-color': props.backgroundColor ?? defaultBackgroundColor,
+            'background-color': defaultBackgroundColor,
             'font-size': props.fontSize ? `${props.fontSize}px` : defaultFontSize,
           }}
         />
@@ -91,9 +90,9 @@ export const AgentReasoningBubble = (props: Props) => {
       {props.agentMessage && (
         <span
           ref={botMessageEl}
-          class={`prose ${props.textColor ? `text-[${props.textColor}]` : 'text-gray-880'}`}
+          class="prose text-gray-880"
           style={{
-            'background-color': props.backgroundColor ?? defaultBackgroundColor,
+            'background-color': defaultBackgroundColor,
             'font-size': props.fontSize ? `${props.fontSize}px` : defaultFontSize,
           }}
         />

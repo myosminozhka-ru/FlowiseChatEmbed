@@ -89,7 +89,7 @@ export const BubbleButton = (props: Props) => {
         onMouseDown={onMouseDown}
         class={`fixed shadow-md rounded-full hover:scale-110 active:scale-95 transition-transform duration-200 flex justify-center items-center animate-fade-in`}
         style={{
-          'background-color': props.backgroundColor || 'var(--primary-color, #A4EB04)',
+          'background-color': 'var(--primary-color, #A4EB04)',
           'z-index': 42424242,
           right: `${position().right}px`,
           bottom: `${position().bottom}px`,
@@ -102,7 +102,7 @@ export const BubbleButton = (props: Props) => {
           <svg
             viewBox="0 0 24 24"
             style={{
-              stroke: props.iconColor || 'white',
+              stroke: 'white',
             }}
             class={
               `stroke-2 fill-transparent absolute duration-200 transition ` + (props.isBotOpened ? 'scale-0 opacity-0' : 'scale-100 opacity-100')
@@ -127,7 +127,7 @@ export const BubbleButton = (props: Props) => {
 
         <svg
           viewBox="0 0 24 24"
-          style={{ fill: props.iconColor ?? 'white' }}
+          style={{ fill: 'white' }}
           class={`absolute duration-200 transition ` + (props.isBotOpened ? 'scale-100 rotate-0 opacity-100' : 'scale-0 -rotate-180 opacity-0')}
           width={buttonSize * 0.6}
           height={buttonSize * 0.6}

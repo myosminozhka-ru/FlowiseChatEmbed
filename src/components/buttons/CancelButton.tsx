@@ -2,11 +2,11 @@ import { JSX } from 'solid-js/jsx-runtime';
 import { XIcon } from '../icons';
 
 type CancelButtonProps = {
-  buttonColor?: string;
   isDisabled?: boolean;
   isLoading?: boolean;
   disableIcon?: boolean;
   text?: string;
+  // Цвета настраиваются через Tailwind классы
 } & JSX.ButtonHTMLAttributes<HTMLButtonElement>;
 
 export const CancelButton = (props: CancelButtonProps) => {
@@ -21,7 +21,7 @@ export const CancelButton = (props: CancelButtonProps) => {
       }
       style={{ background: 'transparent', border: 'none' }}
     >
-      <XIcon color={props.buttonColor} />
+      <XIcon />
       {props.text && <span class="ml-2">{props.text}</span>}
     </button>
   );

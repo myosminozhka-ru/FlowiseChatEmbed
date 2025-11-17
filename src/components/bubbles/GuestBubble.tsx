@@ -95,12 +95,12 @@ export const GuestBubble = (props: Props) => {
         (element as HTMLElement).style.color = '#4CAF50'; // Green color
       });
 
-            // Set target="_blank" for links
-            userMessageEl.querySelectorAll('a').forEach((link) => {
-              link.target = '_blank';
-            });
-          }
-        });
+      // Set target="_blank" for links
+      userMessageEl.querySelectorAll('a').forEach((link) => {
+        link.target = '_blank';
+      });
+    }
+  });
 
   const copyMessageToClipboard = async () => {
     try {
@@ -114,7 +114,6 @@ export const GuestBubble = (props: Props) => {
       console.error('Error copying to clipboard:', error);
     }
   };
-
 
   const renderFileUploads = (item: Partial<FileUpload>) => {
     if (item?.mime?.startsWith('image/')) {
@@ -157,13 +156,15 @@ export const GuestBubble = (props: Props) => {
 
   return (
     <div class={getContainerClasses()}>
-            <div
-              class={`max-w-full flex flex-col justify-center items-start chatbot-guest-bubble min-h-[52px] px-4 py-2 gap-2 mr-2 rounded-lg rounded-br-none ${props.textColor ? `text-[${props.textColor}]` : 'text-black'}`}
-              data-testid="guest-bubble"
-              style={{
-                'background-color': props.backgroundColor ?? defaultBackgroundColor,
-              }}
-            >
+      <div
+        class={`max-w-full flex flex-col justify-center items-start chatbot-guest-bubble min-h-[52px] px-4 py-2 gap-2 mr-2 rounded-lg rounded-br-none ${
+          props.textColor ? `text-[${props.textColor}]` : 'text-black'
+        }`}
+        data-testid="guest-bubble"
+        style={{
+          'background-color': props.backgroundColor ?? defaultBackgroundColor,
+        }}
+      >
         {props.message.fileUploads && props.message.fileUploads.length > 0 && (
           <div class="flex flex-col items-start flex-wrap w-full gap-2">
             <For each={props.message.fileUploads}>
@@ -185,9 +186,7 @@ export const GuestBubble = (props: Props) => {
           <div class="flex items-center gap-2 mt-2">
             <CopyToClipboardButton feedbackColor="rgba(11, 17, 19, 0.5)" onClick={() => copyMessageToClipboard()} />
             <Show when={copiedMessage()}>
-              <div class="copied-message text-xs text-gray-500">
-                Скопировано
-              </div>
+              <div class="copied-message text-xs text-gray-500">Скопировано</div>
             </Show>
           </div>
         </Show>

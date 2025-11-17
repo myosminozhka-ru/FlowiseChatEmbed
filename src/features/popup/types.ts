@@ -2,6 +2,6 @@ export type PopupParams = {
   autoShowDelay?: number;
   theme?: {
     width?: string;
-    backgroundColor?: string;
+    // Цвета настраиваются через Tailwind классы
   };
 };

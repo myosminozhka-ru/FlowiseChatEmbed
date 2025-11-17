@@ -4,8 +4,7 @@ import { Show, onCleanup, onMount } from 'solid-js';
 type Props = {
   footer?: FooterTheme;
   botContainer: HTMLDivElement | undefined;
-  poweredByTextColor?: string;
-  badgeBackgroundColor?: string;
+  // Цвета настраиваются через Tailwind классы
   showBadge?: boolean;
 };
 
@@ -45,8 +44,8 @@ export const Badge = (props: Props) => {
         <span
           class="w-full text-center px-[10px] pt-[6px] pb-[10px] m-auto text-[13px]"
           style={{
-            color: props.footer?.textColor ?? props.poweredByTextColor ?? defaultTextColor,
-            'background-color': props.badgeBackgroundColor ?? '#ffffff',
+            color: defaultTextColor,
+            'background-color': '#ffffff',
           }}
         >
           {/* {props.footer?.text ?? 'Разработано на'}
@@ -57,7 +56,7 @@ export const Badge = (props: Props) => {
             rel="noopener noreferrer"
             class="lite-badge"
             id="lite-badge"
-            style={{ 'font-weight': 'bold', color: props.footer?.textColor ?? props.poweredByTextColor ?? defaultTextColor }}
+            style={{ 'font-weight': 'bold', color: defaultTextColor }}
           >
             <span>&nbsp;{props.footer?.company ?? 'Osmi AI'}</span>
           </a> */}
@@ -67,8 +66,8 @@ export const Badge = (props: Props) => {
         <span
           class="w-full text-center px-[10px] pt-[6px] pb-[10px] m-auto text-[13px]"
           style={{
-            color: props.footer?.textColor ?? props.poweredByTextColor ?? defaultTextColor,
-            'background-color': props.badgeBackgroundColor ?? '#ffffff',
+            color: defaultTextColor,
+            'background-color': '#ffffff',
           }}
         />
       </Show>

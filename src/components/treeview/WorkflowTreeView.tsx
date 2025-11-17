@@ -17,8 +17,7 @@ type WorkflowTreeViewProps = {
   indentationLevel?: number;
   initiallyExpanded?: boolean;
   title?: string;
-  backgroundColor?: string;
-  textColor?: string;
+  // Цвета настраиваются через Tailwind классы
   fontSize?: number;
 };
 
@@ -675,9 +674,11 @@ export const WorkflowTreeView = (props: WorkflowTreeViewProps) => {
 
   return (
     <div
-      class={`mb-2 ml-2 border rounded-lg shadow-sm overflow-hidden ${props.textColor ? `text-[${props.textColor}]` : 'text-gray-880'} ${props.class || ''}`}
+      class={`mb-2 ml-2 border rounded-lg shadow-sm overflow-hidden text-gray-880 ${
+        props.class || ''
+      }`}
       style={{
-        'background-color': props.backgroundColor ?? defaultBackgroundColor,
+        'background-color': defaultBackgroundColor,
         'font-size': props.fontSize ? `${props.fontSize}px` : defaultFontSize,
       }}
     >

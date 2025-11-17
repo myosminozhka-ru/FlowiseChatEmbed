@@ -2,10 +2,10 @@ import { JSX } from 'solid-js/jsx-runtime';
 import { AddImageIcon } from '../icons';
 
 type ImageUploadButtonProps = {
-  buttonColor?: string;
   isDisabled?: boolean;
   isLoading?: boolean;
   disableIcon?: boolean;
+  // Цвета настраиваются через Tailwind классы
 } & JSX.ButtonHTMLAttributes<HTMLButtonElement>;
 
 export const ImageUploadButton = (props: ImageUploadButtonProps) => {
@@ -20,10 +20,7 @@ export const ImageUploadButton = (props: ImageUploadButtonProps) => {
       }
       style={{ background: 'transparent', border: 'none' }}
     >
-      <AddImageIcon 
-        color={props.buttonColor} 
-        class="transition-colors group-hover:stroke-[var(--chatbot-button-bg-color)]" 
-      />
+      <AddImageIcon class="transition-colors group-hover:stroke-[var(--chatbot-button-bg-color)]" />
     </button>
   );
 };

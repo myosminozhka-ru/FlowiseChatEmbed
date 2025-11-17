@@ -2,7 +2,7 @@ import { Show } from 'solid-js';
 
 type Props = {
   date?: string;
-  backgroundColor?: string;
+  // Цвета настраиваются через Tailwind классы
 };
 
 const formatDate = (dateString?: string): string => {
@@ -17,10 +17,7 @@ const formatDate = (dateString?: string): string => {
   }
 
   const today = new Date();
-  const isToday =
-    date.getDate() === today.getDate() &&
-    date.getMonth() === today.getMonth() &&
-    date.getFullYear() === today.getFullYear();
+  const isToday = date.getDate() === today.getDate() && date.getMonth() === today.getMonth() && date.getFullYear() === today.getFullYear();
 
   if (isToday) {
     return 'Сегодня';
@@ -42,16 +39,15 @@ export const DateDivider = (props: Props) => {
   return (
     <Show when={formattedDate}>
       <div class="flex items-center justify-center my-5">
-          <div
-            class="rounded-3xl text-gray-600 px-5 py-2 font-bold text-xs"
-            style={{
-              'background-color': props.backgroundColor ?? 'var(--chatbot-date-divider-bg-color)'
-            }}
-          >
-            {formattedDate}
-          </div>
+        <div
+          class="rounded-3xl text-gray-600 px-5 py-2 font-bold text-xs"
+          style={{
+            'background-color': 'var(--chatbot-date-divider-bg-color)',
+          }}
+        >
+          {formattedDate}
+        </div>
       </div>
     </Show>
   );
 };
-

@@ -1,7 +1,7 @@
 type Props = {
   prompt: string;
   onPromptClick?: () => void;
-  backgroundColor?: string;
+  // Цвета настраиваются через Tailwind классы
 };
 
 export const StarterPromptBubble = (props: Props) => (
@@ -17,7 +17,7 @@ export const StarterPromptBubble = (props: Props) => (
         data-testid="host-bubble"
         style={{
           width: 'max-content',
-          background: props.backgroundColor || 'var(--gradient, linear-gradient(135deg, #B4FF0A 0%, #A4EB04 100%))',
+          background: 'var(--gradient, linear-gradient(135deg, #B4FF0A 0%, #A4EB04 100%))',
         }}
       >
         {props.prompt}

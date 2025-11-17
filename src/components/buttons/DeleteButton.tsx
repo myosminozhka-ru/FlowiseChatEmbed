@@ -2,11 +2,11 @@ import { JSX } from 'solid-js/jsx-runtime';
 import { DeleteIcon } from '../icons';
 
 type DeleteButtonProps = {
-  sendButtonColor?: string;
   isDisabled?: boolean;
   isLoading?: boolean;
   disableIcon?: boolean;
   text?: string;
+  // Цвета настраиваются через Tailwind классы
 } & JSX.ButtonHTMLAttributes<HTMLButtonElement>;
 
 export const DeleteButton = (props: DeleteButtonProps) => {
@@ -21,9 +21,8 @@ export const DeleteButton = (props: DeleteButtonProps) => {
       }
       title="Reset Chat"
     >
-      <DeleteIcon color={props.sendButtonColor} class={props.disableIcon ? 'hidden' : ''} />
+      <DeleteIcon class={props.disableIcon ? 'hidden' : ''} />
       {props.text && <span class="ml-2">{props.text}</span>}
     </button>
   );
 };
-

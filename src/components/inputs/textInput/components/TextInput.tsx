@@ -8,11 +8,8 @@ import { ChatInputHistory } from '@/utils/chatInputHistory';
 
 type TextInputProps = {
   placeholder?: string;
-  backgroundColor?: string;
-  textColor?: string;
-  sendButtonColor?: string;
-  caretColor?: string;
   inputValue: string;
+  // Цвета настраиваются через Tailwind классы
   fontSize?: number;
   disabled?: boolean;
   onSubmit: (value: string) => void;
@@ -121,10 +118,10 @@ export const TextInput = (props: TextInputProps) => {
 
   return (
     <div
-      class={`w-full h-auto max-h-[192px] min-h-[72px] flex flex-col items-end justify-between chatbot-input border-t py-4 px-6 lg:px-8 ${props.textColor ? `text-[${props.textColor}]` : 'text-gray-880'}`}
+      class="w-full h-auto max-h-[192px] min-h-[72px] flex flex-col items-end justify-between chatbot-input border-t py-4 px-6 lg:px-8 text-gray-880"
       data-testid="input"
       style={{
-        'background-color': props.backgroundColor ?? defaultBackgroundColor,
+        'background-color': defaultBackgroundColor,
       }}
       onKeyDown={handleKeyDown}
     >
@@ -137,7 +134,6 @@ export const TextInput = (props: TextInputProps) => {
         {props.uploadsConfig?.isImageUploadAllowed ? (
           <>
             <ImageUploadButton
-              buttonColor={props.sendButtonColor}
               type="button"
               class="m-0 h-14 flex items-center justify-center"
               isDisabled={props.disabled || isSendButtonDisabled()}
@@ -162,7 +158,6 @@ export const TextInput = (props: TextInputProps) => {
         {props.uploadsConfig?.isRAGFileUploadAllowed || props.isFullFileUpload ? (
           <>
             <AttachmentUploadButton
-              buttonColor={props.sendButtonColor}
               type="button"
               class="m-0 h-14 flex items-center justify-center"
               isDisabled={props.disabled || isSendButtonDisabled()}
@@ -187,12 +182,10 @@ export const TextInput = (props: TextInputProps) => {
           fontSize={props.fontSize}
           disabled={props.disabled}
           placeholder={props.placeholder ?? 'Введите свой вопрос'}
-          caretColor={props.caretColor}
           paddingX="px-0"
           paddingY="py-0"
         />
         <SendButton
-          sendButtonColor={props.sendButtonColor}
           type="button"
           isDisabled={props.disabled || isSendButtonDisabled()}
           class="m-0 h-14 flex items-center justify-center"

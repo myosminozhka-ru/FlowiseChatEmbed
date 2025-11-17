@@ -3,10 +3,10 @@ import { SendIcon } from '../icons';
 import { IconButton } from './IconButton';
 
 type SendButtonProps = {
-  sendButtonColor?: string;
   isDisabled?: boolean;
   isLoading?: boolean;
   disableIcon?: boolean;
+  // Цвета настраиваются через Tailwind классы
 } & JSX.ButtonHTMLAttributes<HTMLButtonElement>;
 
 export const SendButton = (props: SendButtonProps) => {
@@ -17,7 +17,7 @@ export const SendButton = (props: SendButtonProps) => {
       ariaLabel="Отправить сообщение"
       {...props}
       class={props.class}
-      icon={<SendIcon color={props.sendButtonColor} class={props.disableIcon ? 'hidden' : ''} />}
+      icon={<SendIcon class={props.disableIcon ? 'hidden' : ''} />}
     />
   );
 };

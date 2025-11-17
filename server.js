@@ -5,6 +5,7 @@ import cors from 'cors';
 import fetch from 'node-fetch';
 import path from 'path';
 import { fileURLToPath } from 'url';
+import { existsSync } from 'fs';
 import dotenv from 'dotenv';
 import axios from 'axios';
 import multer from 'multer';
@@ -25,8 +26,7 @@ if (!API_HOST) {
 }
 
 if (!API_KEY) {
-  console.error('API_KEY is not set in environment variables');
-  process.exit(1);
+  console.warn('API_KEY is not set. Proxy will forward requests without Authorization header.');
 }
 
 const parseChatflows = () => {
@@ -34,8 +34,10 @@ const parseChatflows = () => {
     const chatflows = new Map();
 
     // Get all environment variables that don't start with special prefixes
+    // И фильтруем только те, которые выглядят как chatflow конфигурации (начинаются с chatflow_)
     const chatflowVars = Object.entries(process.env).filter(([key]) => {
       return (
+        key.startsWith('chatflow_') && // Только переменные, начинающиеся с chatflow_
         !key.startsWith('_') &&
         !key.startsWith('npm_') &&
         !key.startsWith('yarn_') &&
@@ -45,7 +47,8 @@ const parseChatflows = () => {
         key !== 'PORT' &&
         key !== 'HOST' &&
         key !== 'BASE_URL' &&
-        key !== 'NODE_ENV'
+        key !== 'NODE_ENV' &&
+        !key.startsWith('AUTOFAQ_') // Исключаем AutoFAQ переменные
       );
     });
 
@@ -54,7 +57,10 @@ const parseChatflows = () => {
       process.exit(1);
     }
 
-    const defaultDomains = process.env.NODE_ENV === 'production' ? [] : ['http://localhost:5678'];
+    // В dev-режиме разрешаем localhost на порту 3001
+    const defaultDomains = process.env.NODE_ENV === 'production' 
+      ? [] 
+      : ['http://localhost:3001'];
 
     for (const [identifier, value] of chatflowVars) {
       const parts = value.split(',').map((s) => s.trim());
@@ -128,6 +134,10 @@ chatflows.forEach((config, identifier) => {
 });
 
 const isValidDomain = (origin, domains) => {
+  // В dev-режиме разрешаем localhost на любом порту
+  if (process.env.NODE_ENV === 'development' && origin && origin.includes('localhost')) {
+    return true;
+  }
   if (!origin) return true;
   return domains.includes(origin);
 };
@@ -145,11 +155,65 @@ app.use(
   }),
 );
 
+// Endpoint для получения публичной конфигурации (без секретов)
+app.get('/api/config', (_, res) => {
+  try {
+    // Используем текущий порт сервера для baseUrl
+    const port = process.env.PORT || 3001;
+    const baseUrl =
+      process.env.BASE_URL || process.env.NODE_ENV === 'production'
+        ? `https://${process.env.HOST || 'localhost'}`
+        : `http://localhost:${port}`;
+
+    // Получаем первый chatflow identifier
+    const firstChatflow = Array.from(chatflows.keys())[0];
+    
+    if (!firstChatflow) {
+      return res.status(500).json({ error: 'No chatflows configured' });
+    }
+
+    // Публичная конфигурация AutoFAQ (без токена!)
+    // Токен будет добавляться на сервере через прокси-эндпоинты
+    const autofaqConfig = process.env.AUTOFAQ_API_BASE_URL && 
+                          process.env.AUTOFAQ_SERVICE_ID
+      ? {
+          enabled: true,
+          apiBaseUrl: process.env.AUTOFAQ_API_BASE_URL,
+          serviceId: process.env.AUTOFAQ_SERVICE_ID,
+          channelId: process.env.AUTOFAQ_CHANNEL_ID || 'web',
+          webhookUrl: process.env.AUTOFAQ_WEBHOOK_URL,
+          // apiToken НЕ передаем на клиент! Будет добавляться на сервере
+        }
+      : undefined;
+
+    res.json({
+      apiHost: baseUrl,
+      chatflowid: firstChatflow,
+      autofaqConfig,
+    });
+  } catch (error) {
+    console.error('Error in /api/config:', error);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
+// Раздача статических файлов (для dev и production)
+app.use(express.static(path.join(__dirname, 'public')));
+app.use('/dist', express.static(path.join(__dirname, 'dist')));
+
 app.get('/', (_, res) => {
   res.sendFile(path.join(__dirname, 'public', 'index.html'));
 });
 
 app.get('/web.js', (req, res) => {
+  const webJsPath = path.join(__dirname, 'dist', 'web.js');
+  
+  // Проверяем существование файла
+  if (!existsSync(webJsPath)) {
+    console.error('⚠️  dist/web.js не найден! Сначала выполните: npm run build');
+    return res.status(500).send('File not found. Please run: npm run build');
+  }
+
   const origin = req.headers.origin;
 
   const allAllowedDomains = Array.from(chatflows.values()).flatMap((config) => config.domains);
@@ -164,11 +228,11 @@ app.get('/web.js', (req, res) => {
     Pragma: 'no-cache',
     Expires: '0',
   });
-  res.sendFile(path.join(__dirname, 'dist', 'web.js'));
+  res.sendFile(webJsPath);
 });
 
 const validateApiKey = (req, res, next) => {
-  if (req.path === '/web.js' || req.path === '/' || req.method === 'OPTIONS') {
+  if (req.path === '/web.js' || req.path === '/' || req.path === '/api/config' || req.method === 'OPTIONS') {
     return next();
   }
 
@@ -217,9 +281,11 @@ const validateApiKey = (req, res, next) => {
     }
   }
 
-  const authHeader = req.headers.authorization;
-  if (authHeader && authHeader.startsWith('Bearer ') && authHeader.split(' ')[1] === API_KEY) {
-    return next();
+  if (API_KEY) {
+    const authHeader = req.headers.authorization;
+    if (authHeader && authHeader.startsWith('Bearer ') && authHeader.split(' ')[1] === API_KEY) {
+      return next();
+    }
   }
 
   return res.status(401).json({ error: 'Unauthorized' });
@@ -268,9 +334,11 @@ const handleProxy = async (req, res, targetPath) => {
 
       const response = await fetch(url, {
         method: req.method,
-        headers: {
-          Authorization: `Bearer ${API_KEY}`,
-        },
+        headers: API_KEY
+          ? {
+              Authorization: `Bearer ${API_KEY}`,
+            }
+          : undefined,
       });
 
       if (!response.ok) {
@@ -291,10 +359,10 @@ const handleProxy = async (req, res, targetPath) => {
 
     const response = await fetch(url, {
       method: req.method,
-      headers: {
-        ...(req.method !== 'GET' && { 'Content-Type': 'application/json' }),
-        Authorization: `Bearer ${API_KEY}`,
-      },
+        headers: {
+          ...(req.method !== 'GET' && { 'Content-Type': 'application/json' }),
+          ...(API_KEY ? { Authorization: `Bearer ${API_KEY}` } : {}),
+        },
       body: req.method !== 'GET' ? JSON.stringify(req.body) : undefined,
     });
 
@@ -320,6 +388,13 @@ const handleProxy = async (req, res, targetPath) => {
     if (contentType?.includes('application/json')) {
       const data = await response.json();
       return res.json(data);
+    }
+
+    if (contentType?.includes('text/html')) {
+      const htmlText = await response.text();
+      res.setHeader('Content-Type', 'text/html');
+      res.status(response.status);
+      return res.send(htmlText);
     }
 
     return response.body.pipe(res);
@@ -363,7 +438,7 @@ app.post('/api/v1/attachments/:identifier/:chatId', upload.array('files'), async
     const response = await axios.post(targetUrl, form, {
       headers: {
         ...form.getHeaders(),
-        Authorization: `Bearer ${API_KEY}`,
+        ...(API_KEY ? { Authorization: `Bearer ${API_KEY}` } : {}),
       },
     });
 

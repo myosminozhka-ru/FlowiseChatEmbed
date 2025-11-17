@@ -8,8 +8,7 @@ import tailwindcss from 'tailwindcss';
 import typescript from '@rollup/plugin-typescript';
 import { typescriptPaths } from 'rollup-plugin-typescript-paths';
 import commonjs from '@rollup/plugin-commonjs';
-import serve from 'rollup-plugin-serve';
-import livereload from 'rollup-plugin-livereload';
+
 
 const isDev = process.env.NODE_ENV === 'development';
 
@@ -38,18 +37,8 @@ const indexConfig = {
     typescript(),
     typescriptPaths({ preserveExtensions: true }),
     terser({ output: { comments: false } }),
-    ...(isDev
-      ? [
-          serve({
-            open: true,
-            verbose: true,
-            contentBase: ['dist', 'public'],
-            host: 'localhost',
-            port: 5678,
-          }),
-          livereload({ watch: 'dist' }),
-        ]
-      : []), // Add serve/livereload only in development
+    // В dev-режиме используем Express сервер вместо rollup-plugin-serve
+    // Express сервер раздает статику и обрабатывает API запросы
   ],
 };
 

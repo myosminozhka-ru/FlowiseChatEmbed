@@ -32,4 +32,3 @@ export const WaveIcon = (props: JSX.SvgSVGAttributes<SVGSVGElement>) => (
     />
   </svg>
 );
-

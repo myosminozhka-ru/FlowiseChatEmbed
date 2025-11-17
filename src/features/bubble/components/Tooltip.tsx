@@ -10,15 +10,14 @@ type TooltipProps = {
   position: { bottom: number; right: number };
   buttonSize: number;
   tooltipMessage?: string;
-  tooltipBackgroundColor?: string;
-  tooltipTextColor?: string;
   tooltipFontSize?: number; // Add tooltipFontSize to props
+  // Цвета настраиваются через Tailwind классы
 };
 
 const Tooltip = (props: TooltipProps) => {
   const tooltipMessage = props.tooltipMessage ?? defaultTooltipMessage;
-  const backgroundColor = props.tooltipBackgroundColor ?? defaultTooltipBackgroundColor;
-  const textColor = props.tooltipTextColor ?? defaultTooltipTextColor;
+  const backgroundColor = defaultTooltipBackgroundColor;
+  const textColor = defaultTooltipTextColor;
   const fontSize = `${props.tooltipFontSize ?? defaultTooltipFontSize}px`; // Use tooltipFontSize if provided, otherwise default to 16px
 
   // Generate tooltip text with line breaks if needed

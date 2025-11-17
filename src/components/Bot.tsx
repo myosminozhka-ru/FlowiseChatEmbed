@@ -171,6 +171,19 @@ export type BotProps = {
   showBadge?: boolean;
   toggleFullscreen?: () => void;
   isFullscreen?: boolean;
+  // Конфигурация AutoFAQ
+  autofaqConfig?: {
+    enabled?: boolean; // Включить/выключить интеграцию
+    apiBaseUrl?: string;
+    serviceId?: string;
+    channelId?: string;
+    apiToken?: string;
+    webhookUrl?: string;
+    // Функция для получения clientId (опционально)
+    getClientId?: (chatflowid: string, chatId: string) => string;
+    // Функция для получения метаданных (опционально)
+    getMetadata?: (chatflowid: string, chatId: string, chatHistory: MessageType[]) => Record<string, unknown>;
+  };
 };
 
 export type LeadsConfig = {
@@ -181,7 +194,6 @@ export type LeadsConfig = {
   phone?: boolean;
   successMessage?: string;
 };
-
 
 /*const sourceDocuments = [
     {
@@ -317,10 +329,6 @@ const FormInputView = (props: {
   description: string;
   inputParams: any[];
   onSubmit: (formData: object) => void;
-  parentBackgroundColor?: string;
-  backgroundColor?: string;
-  textColor?: string;
-  sendButtonColor?: string;
   fontSize?: number;
 }) => {
   const [formData, setFormData] = createSignal<Record<string, any>>({});
@@ -339,8 +347,6 @@ const FormInputView = (props: {
       class="w-full h-full flex flex-col items-center justify-center px-4 py-8 rounded-lg font-sans"
       style={{
         'font-size': props.fontSize ? `${props.fontSize}px` : '16px',
-        background: props.parentBackgroundColor || defaultBackgroundColor,
-        color: props.textColor || defaultTextColor,
       }}
     >
       <div
@@ -348,13 +354,12 @@ const FormInputView = (props: {
         style={{
           'font-size': props.fontSize ? `${props.fontSize}px` : '16px',
           background: defaultBackgroundColor,
-          color: props.textColor || defaultTextColor,
         }}
       >
         <div class="p-6">
           <h2 class="text-xl font-bold mb-2">{props.title}</h2>
           {props.description && (
-            <p class="text-gray-600 mb-6" style={{ color: props.textColor || defaultTextColor }}>
+            <p class="text-gray-600 mb-6">
               {props.description}
             </p>
           )}
@@ -436,10 +441,7 @@ const FormInputView = (props: {
             <div class="pt-4">
               <button
                 type="submit"
-                class="w-full py-2 px-4 text-white font-semibold rounded-md focus:outline-none transition duration-300 ease-in-out"
-                style={{
-                  'background-color': props.sendButtonColor || '#3B81F6',
-                }}
+                class="w-full py-2 px-4 text-white font-semibold rounded-md focus:outline-none transition duration-300 ease-in-out bg-blue-500 hover:bg-blue-600"
               >
                 Submit
               </button>
@@ -452,8 +454,8 @@ const FormInputView = (props: {
 };
 
 export const Bot = (botProps: BotProps & { class?: string }) => {
-  // set a default value for showTitle if not set and merge with other props
-  const props = mergeProps({ showTitle: true }, botProps);
+  // set default values for props that should be enabled unless explicitly disabled
+  const props = mergeProps({ showTitle: true, renderHTML: true }, botProps);
   let chatContainer: HTMLDivElement | undefined;
   let bottomSpacer: HTMLDivElement | undefined;
   let botContainer: HTMLDivElement | undefined;
@@ -462,10 +464,7 @@ export const Bot = (botProps: BotProps & { class?: string }) => {
   const [loading, setLoading] = createSignal(false);
   const [sourcePopupOpen, setSourcePopupOpen] = createSignal(false);
   const [sourcePopupSrc, setSourcePopupSrc] = createSignal({});
-  const [messages, setMessages] = createSignal<MessageType[]>(
-    [],
-    { equals: false },
-  );
+  const [messages, setMessages] = createSignal<MessageType[]>([], { equals: false });
 
   const [isChatFlowAvailableToStream, setIsChatFlowAvailableToStream] = createSignal(false);
   const [chatId, setChatId] = createSignal('');
@@ -495,7 +494,6 @@ export const Bot = (botProps: BotProps & { class?: string }) => {
   // drag & drop file input
   // TODO: fix this type
   const [previews, setPreviews] = createSignal<FilePreview[]>([]);
-
 
   // follow-up prompts
   const [followUpPromptsStatus, setFollowUpPromptsStatus] = createSignal<boolean>(false);
@@ -561,7 +559,6 @@ export const Bot = (botProps: BotProps & { class?: string }) => {
     setLocalStorageChatflow(props.chatflowid, chatId(), { chatHistory: messages });
   };
 
-
   const updateLastMessage = (text: string) => {
     setMessages((prevMessages) => {
       const allMessages = [...cloneDeep(prevMessages)];
@@ -570,7 +567,7 @@ export const Bot = (botProps: BotProps & { class?: string }) => {
       allMessages[allMessages.length - 1].message += text;
       allMessages[allMessages.length - 1].rating = undefined;
       if (!allMessages[allMessages.length - 1].dateTime) {
-      allMessages[allMessages.length - 1].dateTime = new Date().toISOString();
+        allMessages[allMessages.length - 1].dateTime = new Date().toISOString();
       }
       addChatMessage(allMessages);
       return allMessages;
@@ -583,10 +580,10 @@ export const Bot = (botProps: BotProps & { class?: string }) => {
       message: errorMessage,
       timestamp: new Date().toISOString(),
     });
-    
+
     // Устанавливаем состояние ошибки сервиса (пользователю всегда показываем один экран)
     setHasServiceError(true);
-    
+
     // Не добавляем сообщение в чат, так как показывается ServiceErrorScreen
   };
 
@@ -638,7 +635,10 @@ export const Bot = (botProps: BotProps & { class?: string }) => {
 
   const updateAgentFlowEvent = (event: string) => {
     if (event === 'INPROGRESS') {
-      setMessages((prevMessages) => [...prevMessages, { message: '', type: 'apiMessage', agentFlowEventStatus: event, dateTime: new Date().toISOString() }]);
+      setMessages((prevMessages) => [
+        ...prevMessages,
+        { message: '', type: 'apiMessage', agentFlowEventStatus: event, dateTime: new Date().toISOString() },
+      ]);
     } else {
       setMessages((prevMessages) => {
         const allMessages = [...cloneDeep(prevMessages)];
@@ -696,10 +696,10 @@ export const Bot = (botProps: BotProps & { class?: string }) => {
       errorDetails,
       timestamp: new Date().toISOString(),
     });
-    
+
     // Устанавливаем состояние ошибки сервиса (пользователю всегда показываем один экран)
     setHasServiceError(true);
-    
+
     // Не добавляем сообщение в чат, так как показывается ServiceErrorScreen
     setLoading(false);
     setUserInput('');
@@ -1003,7 +1003,10 @@ export const Bot = (botProps: BotProps & { class?: string }) => {
     clearPreviews();
 
     setMessages((prevMessages) => {
-      const messages: MessageType[] = [...prevMessages, { message: value as string, type: 'userMessage', fileUploads: uploads, dateTime: new Date().toISOString() }];
+      const messages: MessageType[] = [
+        ...prevMessages,
+        { message: value as string, type: 'userMessage', fileUploads: uploads, dateTime: new Date().toISOString() },
+      ];
       addChatMessage(messages);
       return messages;
     });
@@ -1035,7 +1038,7 @@ export const Bot = (botProps: BotProps & { class?: string }) => {
     } else {
       // Создаем пустое сообщение сразу для не-streaming запросов, чтобы показать индикатор загрузки
       setMessages((prevMessages) => [...prevMessages, { message: '', type: 'apiMessage', dateTime: new Date().toISOString() }]);
-      
+
       const result = await sendMessageQuery({
         chatflowid: props.chatflowid,
         apiHost: props.apiHost,
@@ -1052,7 +1055,6 @@ export const Bot = (botProps: BotProps & { class?: string }) => {
         else text = JSON.stringify(data, null, 2);
 
         if (data?.chatId) setChatId(data.chatId);
-
 
         setMessages((prevMessages) => {
           const allMessages = [...cloneDeep(prevMessages)];
@@ -1425,7 +1427,6 @@ export const Bot = (botProps: BotProps & { class?: string }) => {
     }
   });
 
-
   const isFileAllowedForUpload = (file: File) => {
     let acceptFile = false;
     if (uploadsConfig() && uploadsConfig()?.isImageUploadAllowed && uploadsConfig()?.imgUploadSizeAndTypes) {
@@ -1622,20 +1623,20 @@ export const Bot = (botProps: BotProps & { class?: string }) => {
     setPreviews(previews().filter((item) => item !== itemToDelete));
   };
 
-
   const getInputDisabled = (): boolean => {
     const messagesArray = messages();
     const disabled =
       loading() ||
       !props.chatflowid ||
       (leadsConfig()?.status && !isLeadSaved()) ||
-      (messagesArray.length > 0 && messagesArray[messagesArray.length - 1]?.action && Object.keys(messagesArray[messagesArray.length - 1].action as any).length > 0);
+      (messagesArray.length > 0 &&
+        messagesArray[messagesArray.length - 1]?.action &&
+        Object.keys(messagesArray[messagesArray.length - 1].action as any).length > 0);
     if (disabled) {
       return true;
     }
     return false;
   };
-
 
   const previewDisplay = (item: FilePreview) => {
     if (item.mime.startsWith('image/')) {
@@ -1663,14 +1664,15 @@ export const Bot = (botProps: BotProps & { class?: string }) => {
           description={formDescription()}
           inputParams={formInputParams()}
           onSubmit={(formData) => handleSubmit(formData)}
-          textColor={props.botMessage?.textColor}
-          sendButtonColor={props.textInput?.sendButtonColor}
           fontSize={props.fontSize}
         />
       ) : (
         <div
           ref={botContainer}
-          class={'relative flex w-full h-full text-base overflow-hidden bg-cover bg-center flex-col items-center chatbot-container font-sans bg-white ' + props.class}
+          class={
+            'relative flex w-full h-full text-base overflow-hidden bg-cover bg-center flex-col items-center chatbot-container font-sans bg-white ' +
+            props.class
+          }
           onDragEnter={handleDrag}
         >
           {isDragActive() && (
@@ -1684,9 +1686,7 @@ export const Bot = (botProps: BotProps & { class?: string }) => {
             />
           )}
           {isDragActive() && (uploadsConfig()?.isImageUploadAllowed || isFileUploadAllowed()) && (
-            <div
-              class="absolute top-0 left-0 bottom-0 right-0 flex flex-col items-center justify-center bg-black/60 backdrop-blur-sm text-white z-40 gap-2 border-2 border-dashed"
-            >
+            <div class="absolute top-0 left-0 bottom-0 right-0 flex flex-col items-center justify-center bg-black/60 backdrop-blur-sm text-white z-40 gap-2 border-2 border-dashed">
               <h2 class="text-xl font-semibold">Drop here to upload</h2>
               <For each={[...(uploadsConfig()?.imgUploadSizeAndTypes || []), ...(uploadsConfig()?.fileUploadSizeAndTypes || [])]}>
                 {(allowed) => {
@@ -1703,8 +1703,10 @@ export const Bot = (botProps: BotProps & { class?: string }) => {
 
           {/* Шапка чата */}
           <div
-              class={`flex flex-row items-center justify-between w-full border-b py-3 ${(props.isFullPage || props.isFullscreen) ? 'px-4 md:px-6 lg:px-8' : 'px-4'} ${props.isFullPage ? 'border-t' : ''}`}
-              style={{
+            class={`flex flex-row items-center justify-between w-full border-b py-3 ${
+              props.isFullPage || props.isFullscreen ? 'px-4 md:px-6 lg:px-8' : 'px-4'
+            } ${props.isFullPage ? 'border-t' : ''}`}
+            style={{
               background: defaultTitleBackgroundColor,
               color: defaultTextColor,
             }}
@@ -1714,12 +1716,7 @@ export const Bot = (botProps: BotProps & { class?: string }) => {
               <div class="flex flex-row items-center gap-2">
                 {/* Кнопка закрытия чата */}
                 {props.closeBot && (
-                  <IconButton
-                    type="button"
-                    onClick={props.closeBot}
-                    ariaLabel="Закрыть чат"
-                    icon={<XIcon color={defaultTextColor} />}
-                  />
+                  <IconButton type="button" onClick={props.closeBot} ariaLabel="Закрыть чат" icon={<XIcon color={defaultTextColor} />} />
                 )}
                 {/* Кнопка полноэкранного режима */}
                 {props.toggleFullscreen && (
@@ -1744,7 +1741,9 @@ export const Bot = (botProps: BotProps & { class?: string }) => {
           <Show
             when={!hasServiceError()}
             fallback={
-              <div class={`flex flex-col w-full h-full justify-start z-0 ${!props.isFullPage ? 'bg-white' : 'bg-[var(--chatbot-container-bg-color)]'}`}>
+              <div
+                class={`flex flex-col w-full h-full justify-start z-0 ${!props.isFullPage ? 'bg-white' : 'bg-[var(--chatbot-container-bg-color)]'}`}
+              >
                 <ServiceErrorScreen
                   onRefresh={() => {
                     setHasServiceError(false);
@@ -1755,182 +1754,158 @@ export const Bot = (botProps: BotProps & { class?: string }) => {
               </div>
             }
           >
-            <div
-              class={`flex flex-col w-full h-full justify-start z-0 ${!props.isFullPage ? 'bg-white' : 'bg-[var(--chatbot-container-bg-color)]'}`}
-            >
+            <div class={`flex flex-col w-full h-full justify-start z-0 ${!props.isFullPage ? 'bg-white' : 'bg-[var(--chatbot-container-bg-color)]'}`}>
               <div
                 ref={chatContainer}
                 class="overflow-y-scroll text flex flex-col flex-grow min-w-full w-full px-3 pt-[48px] pb-20 relative scrollable-container chatbot-chat-view scroll-smooth"
               >
                 {/* Приветственное сообщение в начале чата */}
                 <WelcomeMessage
-                welcomeTitle={props.welcomeTitle ?? defaultWelcomeTitle}
-                welcomeText={props.welcomeText ?? defaultWelcomeText}
-                fontSize={props.fontSize}
-                textColor={props.botMessage?.textColor}
-                showWelcomeImage={typeof props.showWelcomeImage === 'boolean' ? props.showWelcomeImage : true}
-                starterPrompts={starterPrompts()}
-                onPromptClick={promptClick}
-              />
-              <For each={[...messages()]}>
-                {(message, index) => {
-                  // Функция для получения даты из ISO строки (только дата, без времени)
-                  const getDateOnly = (dateTime?: string): string | null => {
-                    if (!dateTime) return null;
-                    try {
-                      const date = new Date(dateTime);
-                      if (isNaN(date.getTime())) return null;
-                      return date.toISOString().split('T')[0]; // Возвращаем YYYY-MM-DD
-                    } catch {
-                      return null;
-                    }
-                  };
+                  welcomeTitle={props.welcomeTitle ?? defaultWelcomeTitle}
+                  welcomeText={props.welcomeText ?? defaultWelcomeText}
+                  fontSize={props.fontSize}
+                  showWelcomeImage={typeof props.showWelcomeImage === 'boolean' ? props.showWelcomeImage : true}
+                  starterPrompts={starterPrompts()}
+                  onPromptClick={promptClick}
+                />
+                <For each={[...messages()]}>
+                  {(message, index) => {
+                    // Функция для получения даты из ISO строки (только дата, без времени)
+                    const getDateOnly = (dateTime?: string): string | null => {
+                      if (!dateTime) return null;
+                      try {
+                        const date = new Date(dateTime);
+                        if (isNaN(date.getTime())) return null;
+                        return date.toISOString().split('T')[0]; // Возвращаем YYYY-MM-DD
+                      } catch {
+                        return null;
+                      }
+                    };
 
-                  // Проверяем, нужно ли показать разделитель даты
-                  const shouldShowDateDivider = () => {
-                    const currentDate = getDateOnly(message.dateTime);
-                    if (!currentDate) return false;
+                    // Проверяем, нужно ли показать разделитель даты
+                    const shouldShowDateDivider = () => {
+                      const currentDate = getDateOnly(message.dateTime);
+                      if (!currentDate) return false;
 
-                    // Для первого сообщения всегда показываем дату
-                    if (index() === 0) return true;
+                      // Для первого сообщения всегда показываем дату
+                      if (index() === 0) return true;
 
-                    // Для остальных - сравниваем с предыдущим сообщением
-                    const prevMessage = messages()[index() - 1];
-                    const prevDate = getDateOnly(prevMessage?.dateTime);
+                      // Для остальных - сравниваем с предыдущим сообщением
+                      const prevMessage = messages()[index() - 1];
+                      const prevDate = getDateOnly(prevMessage?.dateTime);
 
-                    return prevDate !== currentDate;
-                  };
+                      return prevDate !== currentDate;
+                    };
 
-                  return (
-                    <>
-                      {shouldShowDateDivider() && <DateDivider date={message.dateTime} />}
-                      {message.type === 'userMessage' && (
-                        <GuestBubble
-                          message={message}
-                          apiHost={props.apiHost}
-                          chatflowid={props.chatflowid}
-                          chatId={chatId()}
-                          backgroundColor={props.userMessage?.backgroundColor}
-                          textColor={props.userMessage?.textColor}
-                          showAvatar={props.userMessage?.showAvatar}
-                          avatarSrc={props.userMessage?.avatarSrc}
-                          fontSize={props.fontSize}
-                          renderHTML={props.renderHTML}
-                          dateTimeToggle={props.dateTimeToggle}
-                          isFullPage={props.isFullPage}
-                          isFullscreen={props.isFullscreen}
-                          isPopup={!props.isFullPage}
-                          enableCopyMessage={props.enableCopyMessage}
-                        />
-                      )}
-                      {message.type === 'apiMessage' && (
-                        <BotBubble
-                          message={message}
-                          fileAnnotations={message.fileAnnotations}
-                          chatflowid={props.chatflowid}
-                          chatId={chatId()}
-                          apiHost={props.apiHost}
-                          backgroundColor={props.botMessage?.backgroundColor}
-                          textColor={props.botMessage?.textColor}
-                          feedbackColor={props.feedback?.color}
-                          showAvatar={props.botMessage?.showAvatar ?? true}
-                          avatarSrc={props.botMessage?.avatarSrc ?? props.titleAvatarSrc}
-                          chatFeedbackStatus={chatFeedbackStatus()}
-                          fontSize={props.fontSize}
-                          isLoading={loading() && index() === messages().length - 1}
-                          showAgentMessages={props.showAgentMessages}
-                          botTitle={props.title}
-                          handleActionClick={(elem, action) => handleActionClick(elem, action)}
-                          sourceDocsTitle={props.sourceDocsTitle}
-                          handleSourceDocumentsClick={(sourceDocuments) => {
-                            setSourcePopupSrc(sourceDocuments);
-                            setSourcePopupOpen(true);
-                          }}
-                          dateTimeToggle={props.dateTimeToggle}
-                          renderHTML={props.renderHTML}
-                          enableCopyMessage={props.enableCopyMessage}
-                          isFullPage={props.isFullPage}
-                          isFullscreen={props.isFullscreen}
-                          isPopup={!props.isFullPage}
-                          feedbackReasons={props.feedback?.reasons}
-                        />
-                      )}
-                      {message.type === 'leadCaptureMessage' && leadsConfig()?.status && !getLocalStorageChatflow(props.chatflowid)?.lead && (
-                        <LeadCaptureBubble
-                          message={message}
-                          chatflowid={props.chatflowid}
-                          chatId={chatId()}
-                          apiHost={props.apiHost}
-                          backgroundColor={props.botMessage?.backgroundColor}
-                          textColor={props.botMessage?.textColor}
-                          fontSize={props.fontSize}
-                          showAvatar={props.botMessage?.showAvatar}
-                          avatarSrc={props.botMessage?.avatarSrc}
-                          leadsConfig={leadsConfig()}
-                          sendButtonColor={props.textInput?.sendButtonColor}
-                          isLeadSaved={isLeadSaved()}
-                          setIsLeadSaved={setIsLeadSaved}
-                          setLeadEmail={setLeadEmail}
-                        />
-                      )}
-                    </>
-                  );
-                }}
-              </For>
-            </div>
-            <Show when={messages().length > 2 && followUpPromptsStatus()}>
-              <Show when={followUpPrompts().length > 0}>
-                <>
-                  <div class="flex items-center gap-1 px-5">
-                    <SparklesIcon class="w-4 h-4" />
-                    <span class="text-sm text-gray-700">Try these prompts</span>
-                  </div>
-                  <div class="w-full flex flex-row flex-wrap px-5 py-[10px] gap-2">
-                    <For each={[...followUpPrompts()]}>
-                      {(prompt, index) => (
-                        <FollowUpPromptBubble
-                          prompt={prompt}
-                          onPromptClick={() => followUpPromptClick(prompt)}
-                        />
-                      )}
-                    </For>
-                  </div>
-                </>
-              </Show>
-            </Show>
-            <Show when={previews().length > 0}>
-              <div class="w-full flex items-center justify-start gap-2 px-5 pt-2 border-t border-[#eeeeee]">
-                <For each={[...previews()]}>{(item) => <>{previewDisplay(item)}</>}</For>
+                    return (
+                      <>
+                        {shouldShowDateDivider() && <DateDivider date={message.dateTime} />}
+                        {message.type === 'userMessage' && (
+                          <GuestBubble
+                            message={message}
+                            apiHost={props.apiHost}
+                            chatflowid={props.chatflowid}
+                            chatId={chatId()}
+                            showAvatar={props.userMessage?.showAvatar}
+                            avatarSrc={props.userMessage?.avatarSrc}
+                            fontSize={props.fontSize}
+                            renderHTML={props.renderHTML}
+                            dateTimeToggle={props.dateTimeToggle}
+                            isFullPage={props.isFullPage}
+                            isFullscreen={props.isFullscreen}
+                            isPopup={!props.isFullPage}
+                            enableCopyMessage={props.enableCopyMessage}
+                          />
+                        )}
+                        {message.type === 'apiMessage' && (
+                          <BotBubble
+                            message={message}
+                            fileAnnotations={message.fileAnnotations}
+                            chatflowid={props.chatflowid}
+                            chatId={chatId()}
+                            apiHost={props.apiHost}
+                            showAvatar={props.botMessage?.showAvatar ?? true}
+                            avatarSrc={props.botMessage?.avatarSrc ?? props.titleAvatarSrc}
+                            chatFeedbackStatus={chatFeedbackStatus()}
+                            fontSize={props.fontSize}
+                            isLoading={loading() && index() === messages().length - 1}
+                            showAgentMessages={props.showAgentMessages}
+                            botTitle={props.title}
+                            handleActionClick={(elem, action) => handleActionClick(elem, action)}
+                            sourceDocsTitle={props.sourceDocsTitle}
+                            handleSourceDocumentsClick={(sourceDocuments) => {
+                              setSourcePopupSrc(sourceDocuments);
+                              setSourcePopupOpen(true);
+                            }}
+                            dateTimeToggle={props.dateTimeToggle}
+                            renderHTML={props.renderHTML}
+                            enableCopyMessage={props.enableCopyMessage}
+                            isFullPage={props.isFullPage}
+                            isFullscreen={props.isFullscreen}
+                            isPopup={!props.isFullPage}
+                            feedbackReasons={props.feedback?.reasons}
+                          />
+                        )}
+                        {message.type === 'leadCaptureMessage' && leadsConfig()?.status && !getLocalStorageChatflow(props.chatflowid)?.lead && (
+                          <LeadCaptureBubble
+                            message={message}
+                            chatflowid={props.chatflowid}
+                            chatId={chatId()}
+                            apiHost={props.apiHost}
+                            fontSize={props.fontSize}
+                            showAvatar={props.botMessage?.showAvatar}
+                            avatarSrc={props.botMessage?.avatarSrc}
+                            leadsConfig={leadsConfig()}
+                            isLeadSaved={isLeadSaved()}
+                            setIsLeadSaved={setIsLeadSaved}
+                            setLeadEmail={setLeadEmail}
+                          />
+                        )}
+                      </>
+                    );
+                  }}
+                </For>
               </div>
-            </Show>
-            <SendArea
-              backgroundColor={props.textInput?.backgroundColor}
-              textColor={props.textInput?.textColor}
-              placeholder={props.textInput?.placeholder}
-              sendButtonColor={props.textInput?.sendButtonColor}
-              caretColor={props.textInput?.caretColor}
-              maxChars={props.textInput?.maxChars}
-              maxCharsWarningMessage={props.textInput?.maxCharsWarningMessage}
-              autoFocus={props.textInput?.autoFocus}
-              fontSize={props.fontSize}
-              disabled={getInputDisabled()}
-              inputValue={userInput()}
-              onInputChange={(value) => setUserInput(value)}
-              onSubmit={handleSubmit}
-              uploadsConfig={uploadsConfig()}
-              isFullFileUpload={fullFileUpload()}
-              fullFileUploadAllowedTypes={fullFileUploadAllowedTypes()}
-              setPreviews={setPreviews}
-              handleFileChange={handleFileChange}
-              enableInputHistory={true}
-              maxHistorySize={10}
-              isFullscreen={props.isFullscreen}
-            />
-              <Badge
-                footer={props.footer}
-                botContainer={botContainer}
-                showBadge={props.showBadge}
+              <Show when={messages().length > 2 && followUpPromptsStatus()}>
+                <Show when={followUpPrompts().length > 0}>
+                  <>
+                    <div class="flex items-center gap-1 px-5">
+                      <SparklesIcon class="w-4 h-4" />
+                      <span class="text-sm text-gray-700">Try these prompts</span>
+                    </div>
+                    <div class="w-full flex flex-row flex-wrap px-5 py-[10px] gap-2">
+                      <For each={[...followUpPrompts()]}>
+                        {(prompt, index) => <FollowUpPromptBubble prompt={prompt} onPromptClick={() => followUpPromptClick(prompt)} />}
+                      </For>
+                    </div>
+                  </>
+                </Show>
+              </Show>
+              <Show when={previews().length > 0}>
+                <div class="w-full flex items-center justify-start gap-2 px-5 pt-2 border-t border-[#eeeeee]">
+                  <For each={[...previews()]}>{(item) => <>{previewDisplay(item)}</>}</For>
+                </div>
+              </Show>
+              <SendArea
+                placeholder={props.textInput?.placeholder}
+                maxChars={props.textInput?.maxChars}
+                maxCharsWarningMessage={props.textInput?.maxCharsWarningMessage}
+                autoFocus={props.textInput?.autoFocus}
+                fontSize={props.fontSize}
+                disabled={getInputDisabled()}
+                inputValue={userInput()}
+                onInputChange={(value) => setUserInput(value)}
+                onSubmit={handleSubmit}
+                uploadsConfig={uploadsConfig()}
+                isFullFileUpload={fullFileUpload()}
+                fullFileUploadAllowedTypes={fullFileUploadAllowedTypes()}
+                setPreviews={setPreviews}
+                handleFileChange={handleFileChange}
+                enableInputHistory={true}
+                maxHistorySize={10}
+                isFullscreen={props.isFullscreen}
               />
+              <Badge footer={props.footer} botContainer={botContainer} showBadge={props.showBadge} />
             </div>
           </Show>
         </div>
@@ -1943,13 +1918,7 @@ export const Bot = (botProps: BotProps & { class?: string }) => {
           onAccept={handleDisclaimerAccept}
           title={props.disclaimer?.title}
           message={props.disclaimer?.message}
-          textColor={props.disclaimer?.textColor}
-          buttonColor={props.disclaimer?.buttonColor}
           buttonText={props.disclaimer?.buttonText}
-          buttonTextColor={props.disclaimer?.buttonTextColor}
-          blurredBackgroundColor={props.disclaimer?.blurredBackgroundColor}
-          backgroundColor={props.disclaimer?.backgroundColor}
-          denyButtonBgColor={props.disclaimer?.denyButtonBgColor}
           denyButtonText={props.disclaimer?.denyButtonText}
           onDeny={props.closeBot}
           isFullPage={props.isFullPage}
