@@ -6,20 +6,26 @@ import postcss from 'rollup-plugin-postcss';
 import autoprefixer from 'autoprefixer';
 import tailwindcss from 'tailwindcss';
 import typescript from '@rollup/plugin-typescript';
-import { typescriptPaths } from 'rollup-plugin-typescript-paths';
+import alias from '@rollup/plugin-alias';
 import commonjs from '@rollup/plugin-commonjs';
 import serve from 'rollup-plugin-serve';
 import livereload from 'rollup-plugin-livereload';
+import path from 'path';
+import { fileURLToPath } from 'url';
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
 const isDev = process.env.NODE_ENV === 'development';
 
 const extensions = ['.ts', '.tsx'];
 
 const plugins = [
-  // typescriptPaths должен быть ПЕРВЫМ, чтобы разрешать пути до компиляции
-  typescriptPaths({
-    preserveExtensions: false,
-    tsConfigPath: './tsconfig.json',
+  // alias должен быть ПЕРВЫМ для разрешения путей @/
+  alias({
+    entries: [
+      { find: '@', replacement: path.resolve(__dirname, 'src') }
+    ]
   }),
   resolve({ extensions, browser: true }),
   commonjs(),

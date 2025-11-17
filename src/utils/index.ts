@@ -21,13 +21,13 @@ export const sendRequest = async <ResponseData>(
 ): Promise<{ data?: ResponseData; error?: Error }> => {
   try {
     const url = typeof params === 'string' ? params : params.url;
-    
+
     // Формируем заголовки: всегда используем переданные заголовки, добавляем Content-Type для JSON
     const headers: Record<string, string> = {};
     if (typeof params !== 'string' && params.headers) {
       Object.assign(headers, params.headers);
     }
-    
+
     // Добавляем Content-Type для JSON body, если его нет
     let body: string | FormData | undefined = undefined;
     if (typeof params !== 'string') {

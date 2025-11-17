@@ -169,7 +169,7 @@ app.get('/', (_, res) => {
 app.get(/^\/[^/]+\.html$/, (req, res, next) => {
   const fileName = req.path.substring(1); // Убираем ведущий слэш
   const filePath = path.join(__dirname, 'public', fileName);
-  
+
   // Проверяем, существует ли файл в public
   fs.access(filePath, fs.constants.F_OK, (err) => {
     if (err) {
