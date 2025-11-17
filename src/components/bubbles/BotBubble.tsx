@@ -291,7 +291,7 @@ export const BotBubble = (props: Props) => {
   const handleTransferToOperator = async () => {
     console.log('🔵 [AutoFAQ] handleTransferToOperator вызвана');
     console.log('🔵 [AutoFAQ] autofaqConfig:', props.autofaqConfig);
-    
+
     // Проверяем, включена ли интеграция AutoFAQ
     if (!props.autofaqConfig?.enabled) {
       console.warn('⚠️ [AutoFAQ] Интеграция не включена');
@@ -393,7 +393,7 @@ export const BotBubble = (props: Props) => {
         // Сохраняем dialogId в localStorage для дальнейшей работы
         const dialogId = (result.data as any)?.dialogId;
         console.log('✅ [AutoFAQ] Успешно переключено на оператора. DialogId:', dialogId);
-        
+
         if (dialogId) {
           setLocalStorageChatflow(props.chatflowid, props.chatId, {
             autofaqDialogId: dialogId,
@@ -413,7 +413,7 @@ export const BotBubble = (props: Props) => {
           errorString: String(result.error),
           errorType: typeof result.error,
         });
-        
+
         // Проверяем, может быть это ошибка авторизации
         const errorMessage = result.error?.message || String(result.error);
         if (errorMessage.includes('401') || errorMessage.includes('Unauthorized') || errorMessage.includes('авторизац')) {
@@ -755,15 +755,15 @@ export const BotBubble = (props: Props) => {
       </div>
       {/* Feedback Dialog */}
       <Show when={showFeedbackContentDialog()}>
-            <FeedbackContentDialog
-              isOpen={showFeedbackContentDialog()}
-              onClose={() => setShowFeedbackContentModal(false)}
-              onSubmit={submitFeedbackContent}
-              reasons={props.feedbackReasons}
-              // Добавьте новые props для AutoFAQ интеграции:
-              onTransferToOperator={handleTransferToOperator}
-          showTransferButton={props.autofaqConfig?.enabled && rating() === 'THUMBS_DOWN'}
-            />
+        <FeedbackContentDialog
+          isOpen={showFeedbackContentDialog()}
+          onClose={() => setShowFeedbackContentModal(false)}
+          onSubmit={submitFeedbackContent}
+          reasons={props.feedbackReasons}
+          // Добавьте новые props для AutoFAQ интеграции:
+          onTransferToOperator={handleTransferToOperator}
+          showTransferButton={props.autofaqConfig?.enabled}
+        />
       </Show>
     </div>
   );

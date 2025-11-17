@@ -149,7 +149,7 @@ const FeedbackContentDialog = (props: FeedbackContentDialogProps) => {
               <Show when={props.showTransferButton !== false}>
                 <div class="flex justify-center">
                   <Button
-                    text="Связаться с оператором2"
+                    text="Связаться с оператором"
                     type="button"
                     onClick={() => {
                       console.log('🔵 [FeedbackDialog] Кнопка "Связаться с оператором" нажата');

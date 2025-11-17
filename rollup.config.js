@@ -53,7 +53,7 @@ if (isDev) {
     }),
     livereload({
       watch: ['dist', 'public'],
-    })
+    }),
   );
 }
 

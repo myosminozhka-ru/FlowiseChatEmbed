@@ -769,12 +769,12 @@ export const Bot = (botProps: BotProps & { class?: string }) => {
     const chatId = params.chatId;
     const input = params.question;
     params.streaming = true;
-    
+
     // Подготавливаем headers и применяем onRequest если есть
     const headers: Record<string, string> = {
       'Content-Type': 'application/json',
     };
-    
+
     if (props.onRequest) {
       const requestInit: RequestInit = {
         method: 'POST',
@@ -787,7 +787,7 @@ export const Bot = (botProps: BotProps & { class?: string }) => {
         Object.assign(headers, requestInit.headers as Record<string, string>);
       }
     }
-    
+
     fetchEventSource(`${props.apiHost}/api/v1/prediction/${chatflowid}`, {
       openWhenHidden: true,
       method: 'POST',

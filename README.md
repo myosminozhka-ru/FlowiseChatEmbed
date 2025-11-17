@@ -39,6 +39,7 @@ yarn build
 ```
 
 После сборки файлы будут в папке `dist/`:
+
 - `dist/web.js` - ES модуль
 - `dist/web.umd.js` - UMD модуль
 
@@ -71,7 +72,7 @@ npm run build
 ```html
 <script type="module">
   import Chatbot from 'https://your-cdn.com/web.js';
-  
+
   Chatbot.init({
     chatflowid: 'your-chatflow-id',
     apiHost: 'https://your-api-host.com',
@@ -87,7 +88,7 @@ npm run build
 
 <script type="module">
   import Chatbot from 'https://your-cdn.com/web.js';
-  
+
   Chatbot.initFull({
     chatflowid: 'your-chatflow-id',
     apiHost: 'https://your-api-host.com',
@@ -102,15 +103,15 @@ npm run build
 
 ### Основные параметры
 
-| Параметр          | Тип                                       | Описание                                                                                               |
-| ----------------- | ----------------------------------------- | ------------------------------------------------------------------------------------------------------ |
-| `chatflowid`      | `string`                                  | UUID вашего chatflow из AI платформы (обязательно)                                                      |
-| `apiHost`         | `string`                                  | URL вашего AI инстанса (обязательно)                                                                   |
-| `apiKey`          | `string`                                  | API ключ для авторизации (опционально, добавляется как Bearer token)                                   |
-| `onRequest`       | `(request: RequestInit) => Promise<void>` | Callback для модификации запросов перед отправкой (опционально)                                        |
-| `chatflowConfig`  | `Record<string, unknown>`                 | Дополнительная конфигурация chatflow (опционально)                                                     |
-| `observersConfig` | `observersConfigType`                     | Конфигурация наблюдателей (callbacks для событий) (опционально)                                        |
-| `theme`           | `BubbleTheme`                             | Настройки темы (опционально)                                                                           |
+| Параметр          | Тип                                       | Описание                                                             |
+| ----------------- | ----------------------------------------- | -------------------------------------------------------------------- |
+| `chatflowid`      | `string`                                  | UUID вашего chatflow из AI платформы (обязательно)                   |
+| `apiHost`         | `string`                                  | URL вашего AI инстанса (обязательно)                                 |
+| `apiKey`          | `string`                                  | API ключ для авторизации (опционально, добавляется как Bearer token) |
+| `onRequest`       | `(request: RequestInit) => Promise<void>` | Callback для модификации запросов перед отправкой (опционально)      |
+| `chatflowConfig`  | `Record<string, unknown>`                 | Дополнительная конфигурация chatflow (опционально)                   |
+| `observersConfig` | `observersConfigType`                     | Конфигурация наблюдателей (callbacks для событий) (опционально)      |
+| `theme`           | `BubbleTheme`                             | Настройки темы (опционально)                                         |
 
 ### Параметры темы (через объект `theme`)
 
@@ -226,16 +227,16 @@ npm run build
 
 ### Конфигурация AutoFAQ
 
-| Параметр      | Тип       | Описание                                                      |
-| ------------- | --------- | ------------------------------------------------------------- |
-| `enabled`     | `boolean` | Включить/выключить интеграцию AutoFAQ                         |
-| `apiBaseUrl`  | `string`  | Базовый URL API AutoFAQ                                        |
-| `serviceId`   | `string`  | ID сервиса в AutoFAQ                                           |
-| `channelId`   | `string`  | ID канала (по умолчанию: 'web')                               |
-| `apiToken`    | `string`  | API токен для авторизации в AutoFAQ                            |
-| `webhookUrl`  | `string`  | URL для webhook (опционально)                                 |
-| `getClientId` | `function`| Функция для получения clientId (опционально)                   |
-| `getMetadata` | `function`| Функция для получения метаданных (опционально)               |
+| Параметр      | Тип        | Описание                                       |
+| ------------- | ---------- | ---------------------------------------------- |
+| `enabled`     | `boolean`  | Включить/выключить интеграцию AutoFAQ          |
+| `apiBaseUrl`  | `string`   | Базовый URL API AutoFAQ                        |
+| `serviceId`   | `string`   | ID сервиса в AutoFAQ                           |
+| `channelId`   | `string`   | ID канала (по умолчанию: 'web')                |
+| `apiToken`    | `string`   | API токен для авторизации в AutoFAQ            |
+| `webhookUrl`  | `string`   | URL для webhook (опционально)                  |
+| `getClientId` | `function` | Функция для получения clientId (опционально)   |
+| `getMetadata` | `function` | Функция для получения метаданных (опционально) |
 
 ---
 
@@ -353,7 +354,7 @@ Chatbot.init({
       request.headers = {};
     }
     request.headers['X-Custom-Header'] = 'value';
-    
+
     // Или используем apiKey напрямую
     request.headers['Authorization'] = `Bearer your-api-key`;
   },
@@ -367,12 +368,14 @@ Chatbot.init({
 ### Быстрый старт
 
 1. Клонируйте репозиторий:
+
 ```bash
 git clone <repository-url>
 cd FlowiseChatEmbed
 ```
 
 2. Соберите и запустите Docker контейнер:
+
 ```bash
 docker-compose up -d --build
 ```
@@ -393,7 +396,7 @@ docker-compose up -d --build
 ```html
 <script type="module">
   import Chatbot from 'https://your-server.com/web.js';
-  
+
   Chatbot.init({
     chatflowid: 'your-chatflow-id',
     apiHost: 'https://your-api-host.com',
@@ -406,15 +409,15 @@ docker-compose up -d --build
 
 По умолчанию контейнер использует порт 5678. Чтобы изменить порт, установите переменную окружения:
 
-  ```bash
+```bash
 PORT=8080 docker-compose up -d
-  ```
+```
 
 Или отредактируйте `docker-compose.yml`:
 
 ```yaml
 ports:
-  - "8080:80"
+  - '8080:80'
 ```
 
 ### Обновление приложения
