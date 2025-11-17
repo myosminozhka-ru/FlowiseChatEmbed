@@ -2,7 +2,6 @@ Error.stackTraceLimit = 0;
 
 import express from 'express';
 import cors from 'cors';
-import fetch from 'node-fetch';
 import path from 'path';
 import { fileURLToPath } from 'url';
 import { existsSync } from 'fs';
@@ -58,9 +57,7 @@ const parseChatflows = () => {
     }
 
     // В dev-режиме разрешаем localhost на порту 3001
-    const defaultDomains = process.env.NODE_ENV === 'production' 
-      ? [] 
-      : ['http://localhost:3001'];
+    const defaultDomains = process.env.NODE_ENV === 'production' ? [] : ['http://localhost:3001'];
 
     for (const [identifier, value] of chatflowVars) {
       const parts = value.split(',').map((s) => s.trim());
@@ -161,30 +158,28 @@ app.get('/api/config', (_, res) => {
     // Используем текущий порт сервера для baseUrl
     const port = process.env.PORT || 3001;
     const baseUrl =
-      process.env.BASE_URL || process.env.NODE_ENV === 'production'
-        ? `https://${process.env.HOST || 'localhost'}`
-        : `http://localhost:${port}`;
+      process.env.BASE_URL || process.env.NODE_ENV === 'production' ? `https://${process.env.HOST || 'localhost'}` : `http://localhost:${port}`;
 
     // Получаем первый chatflow identifier
     const firstChatflow = Array.from(chatflows.keys())[0];
-    
+
     if (!firstChatflow) {
       return res.status(500).json({ error: 'No chatflows configured' });
     }
 
     // Публичная конфигурация AutoFAQ (без токена!)
     // Токен будет добавляться на сервере через прокси-эндпоинты
-    const autofaqConfig = process.env.AUTOFAQ_API_BASE_URL && 
-                          process.env.AUTOFAQ_SERVICE_ID
-      ? {
-          enabled: true,
-          apiBaseUrl: process.env.AUTOFAQ_API_BASE_URL,
-          serviceId: process.env.AUTOFAQ_SERVICE_ID,
-          channelId: process.env.AUTOFAQ_CHANNEL_ID || 'web',
-          webhookUrl: process.env.AUTOFAQ_WEBHOOK_URL,
-          // apiToken НЕ передаем на клиент! Будет добавляться на сервере
-        }
-      : undefined;
+    const autofaqConfig =
+      process.env.AUTOFAQ_API_BASE_URL && process.env.AUTOFAQ_SERVICE_ID
+        ? {
+            enabled: true,
+            apiBaseUrl: process.env.AUTOFAQ_API_BASE_URL,
+            serviceId: process.env.AUTOFAQ_SERVICE_ID,
+            channelId: process.env.AUTOFAQ_CHANNEL_ID || 'web',
+            webhookUrl: process.env.AUTOFAQ_WEBHOOK_URL,
+            // apiToken НЕ передаем на клиент! Будет добавляться на сервере
+          }
+        : undefined;
 
     res.json({
       apiHost: baseUrl,
@@ -207,7 +202,7 @@ app.get('/', (_, res) => {
 
 app.get('/web.js', (req, res) => {
   const webJsPath = path.join(__dirname, 'dist', 'web.js');
-  
+
   // Проверяем существование файла
   if (!existsSync(webJsPath)) {
     console.error('⚠️  dist/web.js не найден! Сначала выполните: npm run build');
@@ -359,10 +354,10 @@ const handleProxy = async (req, res, targetPath) => {
 
     const response = await fetch(url, {
       method: req.method,
-        headers: {
-          ...(req.method !== 'GET' && { 'Content-Type': 'application/json' }),
-          ...(API_KEY ? { Authorization: `Bearer ${API_KEY}` } : {}),
-        },
+      headers: {
+        ...(req.method !== 'GET' && { 'Content-Type': 'application/json' }),
+        ...(API_KEY ? { Authorization: `Bearer ${API_KEY}` } : {}),
+      },
       body: req.method !== 'GET' ? JSON.stringify(req.body) : undefined,
     });
 

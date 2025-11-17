@@ -106,7 +106,7 @@ chatflow_[identifier]=[chatflowId]
 
 Где:
 
-- **chatflow_[identifier]** - имя переменной с префиксом `chatflow_` (например: `chatflow_1`, `chatflow_support`, `chatflow_sales`)
+- **chatflow\_[identifier]** - имя переменной с префиксом `chatflow_` (например: `chatflow_1`, `chatflow_support`, `chatflow_sales`)
 - **chatflowId** - UUID вашего chatflow из AI платформы (только UUID, без доменов и других параметров)
 
 #### Примеры конфигурации
@@ -125,7 +125,8 @@ chatflow_2=xyz789-uvw456-rst123-abc123-def456
 chatflow_support=ghi123-jkl456-mno789-pqr123-stu456
 ```
 
-**Важно:** 
+**Важно:**
+
 - Значение должно содержать **только UUID**, без запятых и доменов
 - При использовании в коде используйте полный identifier с префиксом `chatflow_`. Например, для переменной `chatflow_1` используйте `chatflowid: 'chatflow_1'`
 
@@ -183,7 +184,7 @@ NODE_ENV=production
 ### Dockerfile
 
 ```dockerfile
-FROM node:18-alpine
+FROM node:20-alpine
 
 WORKDIR /app
 
@@ -405,20 +406,22 @@ sudo systemctl reload nginx
 ### Методы инициализации
 
 #### `Chatbot.init(props)` - Popup чат
+
 Инициализирует всплывающий чат-бот (bubble).
 
 #### `Chatbot.initFull(props)` - Полноэкранный чат
+
 Инициализирует полноэкранный чат-бот.
 
 ### Основные параметры
 
-| Параметр | Тип | Описание |
-|----------|-----|----------|
-| `chatflowid` | `string` | Идентификатор chatflow. Если не указан, используется первый из `.env`. Можно получить из `/api/config` |
-| `apiHost` | `string` | URL прокси-сервера. Если не указан, берется из `.env` (BASE_URL). Можно получить из `/api/config` |
-| `onRequest` | `(request: RequestInit) => Promise<void>` | Callback для модификации запросов перед отправкой |
-| `chatflowConfig` | `Record<string, unknown>` | Дополнительная конфигурация chatflow |
-| `observersConfig` | `observersConfigType` | Конфигурация наблюдателей (callbacks для событий) |
+| Параметр          | Тип                                       | Описание                                                                                               |
+| ----------------- | ----------------------------------------- | ------------------------------------------------------------------------------------------------------ |
+| `chatflowid`      | `string`                                  | Идентификатор chatflow. Если не указан, используется первый из `.env`. Можно получить из `/api/config` |
+| `apiHost`         | `string`                                  | URL прокси-сервера. Если не указан, берется из `.env` (BASE_URL). Можно получить из `/api/config`      |
+| `onRequest`       | `(request: RequestInit) => Promise<void>` | Callback для модификации запросов перед отправкой                                                      |
+| `chatflowConfig`  | `Record<string, unknown>`                 | Дополнительная конфигурация chatflow                                                                   |
+| `observersConfig` | `observersConfigType`                     | Конфигурация наблюдателей (callbacks для событий)                                                      |
 
 **Примечание:** `chatflowid` и `apiHost` можно не указывать, если они есть в `.env` и вы используете `/api/config` для загрузки конфигурации.
 
@@ -428,110 +431,110 @@ sudo systemctl reload nginx
 
 #### `theme.chatWindow` - Окно чата
 
-| Параметр | Тип | Описание |
-|----------|-----|----------|
-| `showTitle` | `boolean` | Показывать заголовок чата |
-| `showAgentMessages` | `boolean` | Показывать сообщения агента (для agentflows) |
-| `title` | `string` | Текст заголовка |
-| `titleAvatarSrc` | `string` | URL аватара в заголовке |
-| `welcomeTitle` | `string` | Заголовок приветственного сообщения |
-| `welcomeText` | `string` | Текст приветственного сообщения |
-| `showWelcomeImage` | `boolean` | Показывать изображение приветствия |
-| `errorMessage` | `string` | Сообщение об ошибке |
-| `backgroundImage` | `string` | URL фонового изображения |
-| `height` | `number` | Высота окна в пикселях |
-| `width` | `number` | Ширина окна в пикселях |
-| `fontSize` | `number` | Размер шрифта |
-| `sourceDocsTitle` | `string` | Заголовок для документов-источников |
-| `starterPrompts` | `string[]` | Массив стартовых подсказок |
-| `clearChatOnReload` | `boolean` | Очищать чат при перезагрузке страницы |
-| `renderHTML` | `boolean` | Рендерить HTML в сообщениях |
+| Параметр            | Тип        | Описание                                     |
+| ------------------- | ---------- | -------------------------------------------- |
+| `showTitle`         | `boolean`  | Показывать заголовок чата                    |
+| `showAgentMessages` | `boolean`  | Показывать сообщения агента (для agentflows) |
+| `title`             | `string`   | Текст заголовка                              |
+| `titleAvatarSrc`    | `string`   | URL аватара в заголовке                      |
+| `welcomeTitle`      | `string`   | Заголовок приветственного сообщения          |
+| `welcomeText`       | `string`   | Текст приветственного сообщения              |
+| `showWelcomeImage`  | `boolean`  | Показывать изображение приветствия           |
+| `errorMessage`      | `string`   | Сообщение об ошибке                          |
+| `backgroundImage`   | `string`   | URL фонового изображения                     |
+| `height`            | `number`   | Высота окна в пикселях                       |
+| `width`             | `number`   | Ширина окна в пикселях                       |
+| `fontSize`          | `number`   | Размер шрифта                                |
+| `sourceDocsTitle`   | `string`   | Заголовок для документов-источников          |
+| `starterPrompts`    | `string[]` | Массив стартовых подсказок                   |
+| `clearChatOnReload` | `boolean`  | Очищать чат при перезагрузке страницы        |
+| `renderHTML`        | `boolean`  | Рендерить HTML в сообщениях                  |
 
 #### `theme.chatWindow.userMessage` - Сообщения пользователя
 
-| Параметр | Тип | Описание |
-|----------|-----|----------|
+| Параметр     | Тип       | Описание          |
+| ------------ | --------- | ----------------- |
 | `showAvatar` | `boolean` | Показывать аватар |
-| `avatarSrc` | `string` | URL аватара |
+| `avatarSrc`  | `string`  | URL аватара       |
 
 #### `theme.chatWindow.botMessage` - Сообщения бота
 
-| Параметр | Тип | Описание |
-|----------|-----|----------|
+| Параметр     | Тип       | Описание          |
+| ------------ | --------- | ----------------- |
 | `showAvatar` | `boolean` | Показывать аватар |
-| `avatarSrc` | `string` | URL аватара |
+| `avatarSrc`  | `string`  | URL аватара       |
 
 #### `theme.chatWindow.textInput` - Поле ввода
 
-| Параметр | Тип | Описание |
-|----------|-----|----------|
-| `placeholder` | `string` | Текст placeholder |
-| `maxChars` | `number` | Максимальное количество символов |
-| `maxCharsWarningMessage` | `string` | Сообщение при превышении лимита |
-| `autoFocus` | `boolean` | Автофокус на поле ввода |
+| Параметр                 | Тип       | Описание                         |
+| ------------------------ | --------- | -------------------------------- |
+| `placeholder`            | `string`  | Текст placeholder                |
+| `maxChars`               | `number`  | Максимальное количество символов |
+| `maxCharsWarningMessage` | `string`  | Сообщение при превышении лимита  |
+| `autoFocus`              | `boolean` | Автофокус на поле ввода          |
 
 #### `theme.chatWindow.feedback` - Обратная связь
 
-| Параметр | Тип | Описание |
-|----------|-----|----------|
+| Параметр  | Тип        | Описание                                       |
+| --------- | ---------- | ---------------------------------------------- |
 | `reasons` | `string[]` | Массив причин для отрицательной обратной связи |
 
 #### `theme.chatWindow.footer` - Футер
 
-| Параметр | Тип | Описание |
-|----------|-----|----------|
-| `showFooter` | `boolean` | Показывать футер |
-| `text` | `string` | Текст футера |
-| `company` | `string` | Название компании |
-| `companyLink` | `string` | Ссылка на сайт компании |
+| Параметр      | Тип       | Описание                |
+| ------------- | --------- | ----------------------- |
+| `showFooter`  | `boolean` | Показывать футер        |
+| `text`        | `string`  | Текст футера            |
+| `company`     | `string`  | Название компании       |
+| `companyLink` | `string`  | Ссылка на сайт компании |
 
 #### `theme.chatWindow.dateTimeToggle` - Дата и время
 
-| Параметр | Тип | Описание |
-|----------|-----|----------|
-| `date` | `boolean` | Показывать дату |
-| `time` | `boolean` | Показывать время |
+| Параметр | Тип       | Описание         |
+| -------- | --------- | ---------------- |
+| `date`   | `boolean` | Показывать дату  |
+| `time`   | `boolean` | Показывать время |
 
 #### `theme.button` - Кнопка чата (только для popup)
 
-| Параметр | Тип | Описание |
-|----------|-----|----------|
-| `size` | `'small' \| 'medium' \| 'large' \| number` | Размер кнопки (или число в пикселях) |
-| `customIconSrc` | `string` | URL кастомной иконки |
-| `bottom` | `number` | Отступ снизу в пикселях |
-| `right` | `number` | Отступ справа в пикселях |
-| `dragAndDrop` | `boolean` | Включить перетаскивание кнопки |
-| `autoWindowOpen` | `autoWindowOpenTheme` | Настройки автоматического открытия |
+| Параметр         | Тип                                        | Описание                             |
+| ---------------- | ------------------------------------------ | ------------------------------------ |
+| `size`           | `'small' \| 'medium' \| 'large' \| number` | Размер кнопки (или число в пикселях) |
+| `customIconSrc`  | `string`                                   | URL кастомной иконки                 |
+| `bottom`         | `number`                                   | Отступ снизу в пикселях              |
+| `right`          | `number`                                   | Отступ справа в пикселях             |
+| `dragAndDrop`    | `boolean`                                  | Включить перетаскивание кнопки       |
+| `autoWindowOpen` | `autoWindowOpenTheme`                      | Настройки автоматического открытия   |
 
 ##### `theme.button.autoWindowOpen`
 
-| Параметр | Тип | Описание |
-|----------|-----|----------|
-| `autoOpen` | `boolean` | Автоматически открывать окно |
-| `openDelay` | `number` | Задержка открытия в секундах |
+| Параметр           | Тип       | Описание                             |
+| ------------------ | --------- | ------------------------------------ |
+| `autoOpen`         | `boolean` | Автоматически открывать окно         |
+| `openDelay`        | `number`  | Задержка открытия в секундах         |
 | `autoOpenOnMobile` | `boolean` | Автоматически открывать на мобильных |
 
 #### `theme.tooltip` - Подсказка (только для popup)
 
-| Параметр | Тип | Описание |
-|----------|-----|----------|
-| `showTooltip` | `boolean` | Показывать подсказку |
-| `tooltipMessage` | `string` | Текст подсказки |
-| `tooltipFontSize` | `number` | Размер шрифта подсказки |
+| Параметр          | Тип       | Описание                |
+| ----------------- | --------- | ----------------------- |
+| `showTooltip`     | `boolean` | Показывать подсказку    |
+| `tooltipMessage`  | `string`  | Текст подсказки         |
+| `tooltipFontSize` | `number`  | Размер шрифта подсказки |
 
 #### `theme.disclaimer` - Окно отказа от ответственности
 
-| Параметр | Тип | Описание |
-|----------|-----|----------|
-| `title` | `string` | Заголовок окна |
-| `message` | `string` | Текст сообщения (поддерживает HTML) |
-| `buttonText` | `string` | Текст кнопки принятия |
-| `denyButtonText` | `string` | Текст кнопки отмены |
+| Параметр         | Тип      | Описание                            |
+| ---------------- | -------- | ----------------------------------- |
+| `title`          | `string` | Заголовок окна                      |
+| `message`        | `string` | Текст сообщения (поддерживает HTML) |
+| `buttonText`     | `string` | Текст кнопки принятия               |
+| `denyButtonText` | `string` | Текст кнопки отмены                 |
 
 #### `theme.customCSS` - Кастомный CSS
 
-| Параметр | Тип | Описание |
-|----------|-----|----------|
+| Параметр    | Тип      | Описание            |
+| ----------- | -------- | ------------------- |
 | `customCSS` | `string` | Кастомные CSS стили |
 
 **Примечание:** Все цвета настраиваются через Tailwind классы в `customCSS` или через CSS переменные. Параметры цветов (`backgroundColor`, `textColor`, `iconColor` и т.д.) **не поддерживаются** в публичном API.
@@ -542,7 +545,7 @@ sudo systemctl reload nginx
 
 ```javascript
 // Вариант 1: Загрузка конфигурации с сервера (рекомендуется)
-const config = await fetch('/api/config').then(r => r.json());
+const config = await fetch('/api/config').then((r) => r.json());
 Chatbot.init({
   chatflowid: config.chatflowid,
   apiHost: config.apiHost,
@@ -602,7 +605,7 @@ Chatbot.initFull({
   apiHost: 'https://your-server.com',
   theme: {
     chatWindow: {
-  showTitle: true,
+      showTitle: true,
       title: 'Умный помощник',
       botMessage: {
         showAvatar: true,
@@ -620,7 +623,7 @@ Chatbot.initFull({
 
 ```javascript
 // Загружаем конфигурацию из .env
-const config = await fetch('/api/config').then(r => r.json());
+const config = await fetch('/api/config').then((r) => r.json());
 
 Chatbot.init({
   chatflowid: config.chatflowid,

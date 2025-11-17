@@ -9,7 +9,6 @@ import typescript from '@rollup/plugin-typescript';
 import { typescriptPaths } from 'rollup-plugin-typescript-paths';
 import commonjs from '@rollup/plugin-commonjs';
 
-
 const isDev = process.env.NODE_ENV === 'development';
 
 const extensions = ['.ts', '.tsx'];
