@@ -32,12 +32,7 @@ const SaveLeadFallback = () => {
 
 export const SaveLeadButton = (props: LeadCaptureButtonProps) => {
   return (
-    <SendButton
-      type="submit"
-      isDisabled={props.isDisabled || props.isLoading}
-      class="m-0 h-14 flex items-center justify-center"
-      {...props}
-    >
+    <SendButton type="submit" isDisabled={props.isDisabled || props.isLoading} class="m-0 h-14 flex items-center justify-center" {...props}>
       <Show when={!props.isLoading} fallback={<SaveLeadFallback />}>
         <span class="font-sans">Submit</span>
       </Show>

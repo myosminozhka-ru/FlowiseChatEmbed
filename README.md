@@ -1,35 +1,15 @@
-# Руководство по развертыванию Osmi AI Chat Embed на сервере
+# Osmi AI Chat Embed
 
-Это руководство предназначено для администраторов, которые разворачивают Osmi AI Chat Embed на сервере с помощью Docker.
+Библиотека для встраивания чат-бота на веб-сайты. Все настройки передаются через параметры инициализации.
 
 ## 📋 Содержание
 
-- [Требования](#требования)
 - [Быстрый старт](#быстрый-старт)
-- [Настройка переменных окружения](#настройка-переменных-окружения)
+- [Установка и сборка](#установка-и-сборка)
 - [Развертывание с Docker](#развертывание-с-docker)
-- [Безопасность](#безопасность)
-- [Использование после развертывания](#использование-после-развертывания)
-- [Устранение неполадок](#устранение-неполадок)
-
----
-
-## Требования
-
-### Системные требования
-
-- **Docker**: версия 20.10 или выше
-- **Docker Compose**: версия 2.0 или выше
-- **Доступ к AI платформе**: работающий экземпляр AI платформы с доступом к API
-
-### Необходимые данные
-
-Перед началом развертывания вам понадобятся:
-
-1. **URL вашего AI инстанса** (например: `https://ai-platform.example.com`)
-2. **API ключ** (Bearer token для аутентификации)
-3. **Chatflow ID** - UUID ваших чат-ботов из AI платформы
-4. **Домены**, на которых будет использоваться чат-бот
+- [Использование](#использование)
+- [Параметры инициализации](#параметры-инициализации)
+- [Примеры](#примеры)
 
 ---
 
@@ -39,395 +19,100 @@
 
 ```bash
 git clone <repository-url>
-cd OsmiChatEmbed
+cd FlowiseChatEmbed
 ```
 
-### 2. Настройка переменных окружения
-
-Скопируйте файл `.env.example` в `.env` и заполните необходимые значения:
-
-**Linux/Mac:**
+### 2. Установка зависимостей
 
 ```bash
-cp .env.example .env
+npm install
+# или
+yarn install
 ```
 
-**Windows:**
+### 3. Сборка проекта
 
 ```bash
-copy .env.example .env
+npm run build
+# или
+yarn build
 ```
 
-Затем отредактируйте `.env` файл и укажите ваши настройки. Подробное описание всех переменных смотрите в разделе [Настройка переменных окружения](#настройка-переменных-окружения).
-
-### 3. Запуск с Docker Compose
-
-```bash
-docker-compose up -d
-```
-
-Сервер будет доступен по адресу: `http://localhost:3001`
+После сборки файлы будут в папке `dist/`:
+- `dist/web.js` - ES модуль
+- `dist/web.umd.js` - UMD модуль
 
 ---
 
-## Настройка переменных окружения
+## Установка и сборка
 
-### Обязательные переменные
+### Разработка
 
-#### `API_HOST`
-
-URL вашего AI инстанса.
+Для разработки с автоматической пересборкой при изменениях:
 
 ```bash
-API_HOST=https://ai-platform.example.com
+npm run dev:build
 ```
 
-**Важно:** Не добавляйте слэш в конце URL.
+Это запустит Rollup в watch-режиме и будет автоматически пересобирать проект при изменении файлов.
 
-#### `API_KEY` (опционально)
-
-API ключ (Bearer token) для аутентификации в AI платформе. Если не указан, запросы будут проксироваться без заголовка Authorization.
+### Продакшн сборка
 
 ```bash
-API_KEY=sk-xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
-```
-
-**Примечание:** Если ваш AI инстанс не требует авторизации или использует другой механизм аутентификации, эту переменную можно не указывать.
-
-### Настройка Chatflows
-
-Каждый chatflow настраивается через отдельную переменную окружения. **Важно:** имя переменной должно начинаться с префикса `chatflow_`, а значение должно содержать **только UUID chatflow** без дополнительных параметров.
-
-Формат:
-
-```
-chatflow_[identifier]=[chatflowId]
-```
-
-Где:
-
-- **chatflow\_[identifier]** - имя переменной с префиксом `chatflow_` (например: `chatflow_1`, `chatflow_support`, `chatflow_sales`)
-- **chatflowId** - UUID вашего chatflow из AI платформы (только UUID, без доменов и других параметров)
-
-#### Примеры конфигурации
-
-**Один chatflow:**
-
-```bash
-chatflow_1=91e9c803-5169-4db9-8207-3c0915d71c5f
-```
-
-**Несколько chatflows:**
-
-```bash
-chatflow_1=91e9c803-5169-4db9-8207-3c0915d71c5f
-chatflow_2=xyz789-uvw456-rst123-abc123-def456
-chatflow_support=ghi123-jkl456-mno789-pqr123-stu456
-```
-
-**Важно:**
-
-- Значение должно содержать **только UUID**, без запятых и доменов
-- При использовании в коде используйте полный identifier с префиксом `chatflow_`. Например, для переменной `chatflow_1` используйте `chatflowid: 'chatflow_1'`
-
-### Опциональные переменные
-
-#### `PORT`
-
-Порт, на котором будет работать сервер (по умолчанию: `3001`).
-
-```bash
-PORT=8080
-```
-
-#### `HOST`
-
-Хост для привязки сервера (по умолчанию: `0.0.0.0`).
-
-```bash
-HOST=0.0.0.0
-```
-
-#### `BASE_URL`
-
-Базовый URL вашего сервера (используется для генерации embed скрипта).
-
-```bash
-BASE_URL=https://chat.example.com
-```
-
-#### `NODE_ENV`
-
-Режим работы: `development` или `production` (по умолчанию: `development`).
-
-```bash
-NODE_ENV=production
-```
-
-### Пример `.env` файла
-
-Для быстрого старта используйте файл `.env.example` как шаблон. Он содержит все необходимые переменные с примерами значений.
-
-**Важно:** Файл `.env` не должен попадать в систему контроля версий. Убедитесь, что он добавлен в `.gitignore`.
-
----
-
-## Развертывание с Docker
-
-### Структура Docker файлов
-
-Проект включает следующие файлы для Docker развертывания:
-
-- `Dockerfile` - образ для сборки и запуска приложения
-- `docker-compose.yml` - конфигурация для запуска с Docker Compose
-
-### Dockerfile
-
-```dockerfile
-FROM node:20-alpine
-
-WORKDIR /app
-
-# Копируем файлы зависимостей
-COPY package*.json ./
-COPY yarn.lock ./
-RUN yarn install --frozen-lockfile
-
-# Копируем исходный код
-COPY . .
-
-# Собираем проект
-RUN yarn build
-
-# Открываем порт
-EXPOSE 3001
-
-# Запускаем сервер
-CMD ["node", "server.js"]
-```
-
-### Docker Compose
-
-Создайте или используйте существующий `docker-compose.yml`:
-
-```yaml
-version: '3.8'
-
-services:
-  osmi-chat-embed:
-    build: .
-    ports:
-      - '${PORT:-3001}:3001'
-    env_file:
-      - .env
-    restart: unless-stopped
-    healthcheck:
-      test: ['CMD', 'wget', '--quiet', '--tries=1', '--spider', 'http://localhost:3001/']
-      interval: 30s
-      timeout: 10s
-      retries: 3
-      start_period: 40s
-```
-
-### Команды Docker Compose
-
-**Запуск в фоновом режиме:**
-
-```bash
-docker-compose up -d
-```
-
-**Просмотр логов:**
-
-```bash
-docker-compose logs -f
-```
-
-**Остановка:**
-
-```bash
-docker-compose down
-```
-
-**Перезапуск:**
-
-```bash
-docker-compose restart
-```
-
-**Пересборка образа (после изменений в коде):**
-
-```bash
-docker-compose up -d --build
-```
-
-**Просмотр статуса:**
-
-```bash
-docker-compose ps
-```
-
-### Обновление приложения
-
-Для обновления приложения до последней версии:
-
-```bash
-# Получите последние изменения из репозитория
-git pull origin main
-
-# Пересоберите и перезапустите контейнер
-docker-compose up -d --build
-```
-
-### Работа с переменными окружения
-
-Все переменные окружения читаются из файла `.env`. При изменении переменных:
-
-1. Отредактируйте файл `.env`
-2. Перезапустите контейнер:
-   ```bash
-   docker-compose restart
-   ```
-
-**Важно:** При изменении переменных, связанных с chatflows, может потребоваться полный перезапуск:
-
-```bash
-docker-compose down
-docker-compose up -d
+npm run build
 ```
 
 ---
 
-## Безопасность
+## Использование
 
-### Рекомендации по безопасности
-
-1. **Никогда не коммитьте `.env` файл в Git**
-
-   - Добавьте `.env` в `.gitignore`
-   - Используйте переменные окружения в Docker
-
-2. **Используйте HTTPS в продакшн**
-
-   - Настройте reverse proxy (Nginx, Caddy) перед Docker контейнером
-   - Используйте SSL сертификаты (Let's Encrypt)
-
-3. **Ограничьте доступ к API ключу**
-
-   - Храните ключ только в `.env` файле
-   - Не передавайте ключ в клиентский код
-
-4. **Настройте домены правильно**
-
-   - Указывайте только те домены, где действительно нужен чат-бот
-   - Не используйте wildcard (`*`) для безопасности
-
-5. **Используйте firewall**
-   - Откройте только необходимые порты
-   - Ограничьте доступ к серверу
-
-### Настройка Nginx как Reverse Proxy
-
-Пример конфигурации `/etc/nginx/sites-available/osmi-chat-embed`:
-
-```nginx
-server {
-    listen 80;
-    server_name chat.example.com;
-
-    # Редирект на HTTPS
-    return 301 https://$server_name$request_uri;
-}
-
-server {
-    listen 443 ssl http2;
-    server_name chat.example.com;
-
-    ssl_certificate /path/to/cert.pem;
-    ssl_certificate_key /path/to/key.pem;
-
-    location / {
-        proxy_pass http://localhost:3001;
-        proxy_http_version 1.1;
-        proxy_set_header Upgrade $http_upgrade;
-        proxy_set_header Connection 'upgrade';
-        proxy_set_header Host $host;
-        proxy_set_header X-Real-IP $remote_addr;
-        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
-        proxy_set_header X-Forwarded-Proto $scheme;
-        proxy_cache_bypass $http_upgrade;
-    }
-}
-```
-
-Активация:
-
-```bash
-sudo ln -s /etc/nginx/sites-available/osmi-chat-embed /etc/nginx/sites-enabled/
-sudo nginx -t
-sudo systemctl reload nginx
-```
-
----
-
-## Использование после развертывания
-
-После успешного развертывания вы можете встраивать чат-бот на своих сайтах:
-
-### PopUp режим
+### Popup чат (Bubble)
 
 ```html
 <script type="module">
-  import Chatbot from 'https://your-server.com/web.js';
+  import Chatbot from 'https://your-cdn.com/web.js';
+  
   Chatbot.init({
-    chatflowid: 'chatflow_1', // Используйте identifier из .env (с префиксом chatflow_)
-    apiHost: 'https://your-server.com',
+    chatflowid: 'your-chatflow-id',
+    apiHost: 'https://your-api-host.com',
+    apiKey: 'your-api-key', // Опционально
   });
 </script>
 ```
 
-### FullPage режим
+### Полноэкранный чат
 
 ```html
 <start-ai-fullchatbot></start-ai-fullchatbot>
+
 <script type="module">
-  import Chatbot from 'https://your-server.com/web.js';
+  import Chatbot from 'https://your-cdn.com/web.js';
+  
   Chatbot.initFull({
-    chatflowid: 'chatflow_1',
-    apiHost: 'https://your-server.com',
+    chatflowid: 'your-chatflow-id',
+    apiHost: 'https://your-api-host.com',
+    apiKey: 'your-api-key', // Опционально
   });
 </script>
 ```
 
 ---
 
-## Параметры инициализации чат-бота
-
-### Методы инициализации
-
-#### `Chatbot.init(props)` - Popup чат
-
-Инициализирует всплывающий чат-бот (bubble).
-
-#### `Chatbot.initFull(props)` - Полноэкранный чат
-
-Инициализирует полноэкранный чат-бот.
+## Параметры инициализации
 
 ### Основные параметры
 
 | Параметр          | Тип                                       | Описание                                                                                               |
 | ----------------- | ----------------------------------------- | ------------------------------------------------------------------------------------------------------ |
-| `chatflowid`      | `string`                                  | Идентификатор chatflow. Если не указан, используется первый из `.env`. Можно получить из `/api/config` |
-| `apiHost`         | `string`                                  | URL прокси-сервера. Если не указан, берется из `.env` (BASE_URL). Можно получить из `/api/config`      |
-| `onRequest`       | `(request: RequestInit) => Promise<void>` | Callback для модификации запросов перед отправкой                                                      |
-| `chatflowConfig`  | `Record<string, unknown>`                 | Дополнительная конфигурация chatflow                                                                   |
-| `observersConfig` | `observersConfigType`                     | Конфигурация наблюдателей (callbacks для событий)                                                      |
-
-**Примечание:** `chatflowid` и `apiHost` можно не указывать, если они есть в `.env` и вы используете `/api/config` для загрузки конфигурации.
+| `chatflowid`      | `string`                                  | UUID вашего chatflow из AI платформы (обязательно)                                                      |
+| `apiHost`         | `string`                                  | URL вашего AI инстанса (обязательно)                                                                   |
+| `apiKey`          | `string`                                  | API ключ для авторизации (опционально, добавляется как Bearer token)                                   |
+| `onRequest`       | `(request: RequestInit) => Promise<void>` | Callback для модификации запросов перед отправкой (опционально)                                        |
+| `chatflowConfig`  | `Record<string, unknown>`                 | Дополнительная конфигурация chatflow (опционально)                                                     |
+| `observersConfig` | `observersConfigType`                     | Конфигурация наблюдателей (callbacks для событий) (опционально)                                        |
+| `theme`           | `BubbleTheme`                             | Настройки темы (опционально)                                                                           |
 
 ### Параметры темы (через объект `theme`)
-
-Рекомендуемый способ настройки внешнего вида чат-бота - использование объекта `theme`.
 
 #### `theme.chatWindow` - Окно чата
 
@@ -537,33 +222,46 @@ sudo systemctl reload nginx
 | ----------- | -------- | ------------------- |
 | `customCSS` | `string` | Кастомные CSS стили |
 
-**Примечание:** Все цвета настраиваются через Tailwind классы в `customCSS` или через CSS переменные. Параметры цветов (`backgroundColor`, `textColor`, `iconColor` и т.д.) **не поддерживаются** в публичном API.
+**Примечание:** Все цвета настраиваются через Tailwind классы в `customCSS` или через CSS переменные.
 
-### Примеры использования
+### Конфигурация AutoFAQ
 
-#### Минимальная инициализация (данные из .env)
+| Параметр      | Тип       | Описание                                                      |
+| ------------- | --------- | ------------------------------------------------------------- |
+| `enabled`     | `boolean` | Включить/выключить интеграцию AutoFAQ                         |
+| `apiBaseUrl`  | `string`  | Базовый URL API AutoFAQ                                        |
+| `serviceId`   | `string`  | ID сервиса в AutoFAQ                                           |
+| `channelId`   | `string`  | ID канала (по умолчанию: 'web')                               |
+| `apiToken`    | `string`  | API токен для авторизации в AutoFAQ                            |
+| `webhookUrl`  | `string`  | URL для webhook (опционально)                                 |
+| `getClientId` | `function`| Функция для получения clientId (опционально)                   |
+| `getMetadata` | `function`| Функция для получения метаданных (опционально)               |
+
+---
+
+## Примеры
+
+### Минимальная инициализация
 
 ```javascript
-// Вариант 1: Загрузка конфигурации с сервера (рекомендуется)
-const config = await fetch('/api/config').then((r) => r.json());
-Chatbot.init({
-  chatflowid: config.chatflowid,
-  apiHost: config.apiHost,
-});
+import Chatbot from 'https://your-cdn.com/web.js';
 
-// Вариант 2: Явное указание (если нужен конкретный chatflow)
 Chatbot.init({
-  chatflowid: 'support', // Используйте identifier из .env
-  apiHost: 'https://your-server.com',
+  chatflowid: '91e9c803-5169-4db9-8207-3c0915d71c5f',
+  apiHost: 'https://ai-platform.example.com',
+  apiKey: 'sk-xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx',
 });
 ```
 
-#### С темой
+### С темой
 
 ```javascript
+import Chatbot from 'https://your-cdn.com/web.js';
+
 Chatbot.init({
-  chatflowid: 'support',
-  apiHost: 'https://your-server.com',
+  chatflowid: 'your-chatflow-id',
+  apiHost: 'https://ai-platform.example.com',
+  apiKey: 'your-api-key',
   theme: {
     chatWindow: {
       showTitle: true,
@@ -582,7 +280,6 @@ Chatbot.init({
       size: 'large',
     },
     customCSS: `
-      /* Используйте Tailwind классы или CSS переменные */
       .chatbot-container {
         @apply bg-white;
       }
@@ -597,12 +294,15 @@ Chatbot.init({
 });
 ```
 
-#### Полноэкранный чат
+### Полноэкранный чат
 
 ```javascript
+import Chatbot from 'https://your-cdn.com/web.js';
+
 Chatbot.initFull({
-  chatflowid: 'support',
-  apiHost: 'https://your-server.com',
+  chatflowid: 'your-chatflow-id',
+  apiHost: 'https://ai-platform.example.com',
+  apiKey: 'your-api-key',
   theme: {
     chatWindow: {
       showTitle: true,
@@ -619,152 +319,117 @@ Chatbot.initFull({
 });
 ```
 
-#### Загрузка конфигурации с сервера
+### С AutoFAQ
 
 ```javascript
-// Загружаем конфигурацию из .env
-const config = await fetch('/api/config').then((r) => r.json());
+import Chatbot from 'https://your-cdn.com/web.js';
 
 Chatbot.init({
-  chatflowid: config.chatflowid,
-  apiHost: config.apiHost,
-  // autofaqConfig загружается автоматически, если настроен в .env
+  chatflowid: 'your-chatflow-id',
+  apiHost: 'https://ai-platform.example.com',
+  apiKey: 'your-api-key',
+  autofaqConfig: {
+    enabled: true,
+    apiBaseUrl: 'https://api.autofaq.ai',
+    serviceId: 'your-service-id',
+    channelId: 'web',
+    apiToken: 'your-api-token',
+    webhookUrl: 'https://your-domain.com/api/autofaq/webhook',
+  },
 });
 ```
 
-### Примечания
+### С кастомным onRequest
 
-1. **Конфигурация из .env**: Используйте endpoint `/api/config` для получения конфигурации с сервера. `chatflowid` и `apiHost` можно не указывать, если они есть в `.env`.
+```javascript
+import Chatbot from 'https://your-cdn.com/web.js';
 
-2. **Приоритет**: Параметры в объекте `theme` имеют приоритет над прямыми параметрами (устаревший способ).
-
-3. **Полноэкранный режим**: Для `initFull()` параметры `theme.button` и `theme.tooltip` не применяются.
-
-4. **Стилизация**: Все цвета настраиваются через Tailwind классы в `customCSS`. Параметры цветов не поддерживаются в публичном API.
-
-5. **AutoFAQ**: Конфигурация AutoFAQ загружается автоматически из `.env` через `/api/config` и не должна передаваться при инициализации.
-
----
-
-## Устранение неполадок
-
-### Сервер не запускается
-
-**Проблема:** `API_HOST is not set in environment variables`
-
-**Решение:** Убедитесь, что переменная `API_HOST` установлена в `.env` файле. Проверьте, что файл `.env` существует и правильно настроен.
-
----
-
-**Проблема:** `No chatflow configurations found`
-
-**Решение:** Добавьте хотя бы одну конфигурацию chatflow в `.env` файл. Формат: `chatflow_[identifier]=chatflowId` (только UUID, без доменов). Имя переменной должно начинаться с префикса `chatflow_`.
-
----
-
-**Проблема:** `Port 3001 is already in use`
-
-**Решение:** Измените порт через переменную `PORT` в `.env` файле или освободите порт. В `docker-compose.yml` порт автоматически подхватится из переменной окружения.
-
----
-
-### Docker проблемы
-
-**Проблема:** Контейнер не запускается или сразу останавливается
-
-**Решение:**
-
-```bash
-# Просмотрите логи для диагностики
-docker-compose logs
-
-# Проверьте статус контейнера
-docker-compose ps
-
-# Убедитесь, что .env файл существует и правильно настроен
-cat .env
+Chatbot.init({
+  chatflowid: 'your-chatflow-id',
+  apiHost: 'https://ai-platform.example.com',
+  onRequest: async (request) => {
+    // Добавляем кастомные заголовки
+    if (!request.headers) {
+      request.headers = {};
+    }
+    request.headers['X-Custom-Header'] = 'value';
+    
+    // Или используем apiKey напрямую
+    request.headers['Authorization'] = `Bearer your-api-key`;
+  },
+});
 ```
 
 ---
 
-**Проблема:** Изменения в коде не применяются
+## Развертывание с Docker
 
-**Решение:** Пересоберите образ:
+### Быстрый старт
 
+1. Клонируйте репозиторий:
+```bash
+git clone <repository-url>
+cd FlowiseChatEmbed
+```
+
+2. Соберите и запустите Docker контейнер:
 ```bash
 docker-compose up -d --build
 ```
 
----
+Сервер будет доступен по адресу: `http://localhost:5678`
 
-### Chatflow не работает
+### Использование после развертывания
 
-**Проблема:** `Chatflow not found: identifier`
+После запуска Docker контейнера файлы будут доступны по следующим URL:
 
-**Решение:**
+- `http://your-server.com/web.js` - основной модуль чат-бота
+- `http://your-server.com/dist/web.js` - альтернативный путь
+- `http://your-server.com/index.html` - демо страница (popup)
+- `http://your-server.com/fullchat.html` - демо страница (full page)
 
-- Проверьте, что identifier в HTML совпадает с именем переменной в `.env`
-- Убедитесь, что переменная окружения правильно настроена
-- После изменения `.env` перезапустите контейнер: `docker-compose restart`
+### Пример использования на сайте клиента
 
----
+```html
+<script type="module">
+  import Chatbot from 'https://your-server.com/web.js';
+  
+  Chatbot.init({
+    chatflowid: 'your-chatflow-id',
+    apiHost: 'https://your-api-host.com',
+    apiKey: 'your-api-key',
+  });
+</script>
+```
 
-**Проблема:** `Access Denied` при загрузке `web.js`
+### Настройка порта
 
-**Решение:**
+По умолчанию контейнер использует порт 5678. Чтобы изменить порт, установите переменную окружения:
 
-- Проверьте, что домен, с которого вы обращаетесь, указан в `allowedDomains` для данного chatflow
-- Убедитесь, что вы используете правильный `identifier`
-- Проверьте логи: `docker-compose logs`
-
----
-
-### Проблемы с API
-
-**Проблема:** `Unauthorized` ошибки
-
-**Решение:**
-
-- Если используется авторизация, проверьте правильность `API_KEY` в `.env` файле
-- Убедитесь, что API ключ имеет необходимые права в AI платформе
-- Если `API_KEY` не указан, убедитесь, что ваш AI инстанс не требует авторизации
-- После изменения `.env` перезапустите контейнер
-
----
-
-**Проблема:** `Proxy error: 404`
-
-**Решение:**
-
-- Проверьте правильность `chatflowId` (UUID) в `.env`
-- Убедитесь, что chatflow существует в AI платформе
-- Проверьте доступность `API_HOST` из контейнера:
   ```bash
-  docker-compose exec osmi-chat-embed wget -O- $API_HOST
+PORT=8080 docker-compose up -d
   ```
 
----
+Или отредактируйте `docker-compose.yml`:
 
-### Проблемы со сборкой
+```yaml
+ports:
+  - "8080:80"
+```
 
-**Проблема:** Ошибки при сборке Docker образа
+### Обновление приложения
 
-**Решение:**
+Для обновления приложения до последней версии:
 
 ```bash
-# Очистите кэш Docker и пересоберите
-docker-compose build --no-cache
+# Получите последние изменения из репозитория
+git pull origin main
 
-# Или полностью пересоздайте контейнеры
-docker-compose down
+# Пересоберите и перезапустите контейнер
 docker-compose up -d --build
 ```
 
----
-
-## Просмотр логов
-
-Для просмотра логов приложения:
+### Просмотр логов
 
 ```bash
 # Все логи
@@ -773,9 +438,78 @@ docker-compose logs
 # Логи в реальном времени
 docker-compose logs -f
 
-# Логи конкретного сервиса
-docker-compose logs osmi-chat-embed
-
 # Последние 100 строк
 docker-compose logs --tail=100
 ```
+
+### Остановка и удаление
+
+```bash
+# Остановка
+docker-compose down
+
+# Остановка с удалением volumes
+docker-compose down -v
+```
+
+---
+
+## Развертывание без Docker
+
+После сборки проекта (`npm run build`) файлы будут в папке `dist/`:
+
+- `dist/web.js` - ES модуль (рекомендуется)
+- `dist/web.umd.js` - UMD модуль
+
+Загрузите эти файлы на ваш CDN или веб-сервер и используйте их в ваших HTML страницах.
+
+### Пример развертывания на статический хостинг
+
+1. Соберите проект: `npm run build`
+2. Загрузите папку `dist/` на ваш хостинг
+3. Используйте файлы в ваших HTML страницах:
+
+```html
+<script type="module">
+  import Chatbot from 'https://your-domain.com/web.js';
+  Chatbot.init({
+    chatflowid: 'your-chatflow-id',
+    apiHost: 'https://your-api-host.com',
+    apiKey: 'your-api-key',
+  });
+</script>
+```
+
+---
+
+## Примечания
+
+1. **API ключ**: Если указан `apiKey`, он автоматически добавляется как `Authorization: Bearer <apiKey>` во все запросы к API.
+
+2. **CORS**: Убедитесь, что ваш AI инстанс настроен для работы с CORS и разрешает запросы с ваших доменов.
+
+3. **Безопасность**: Не храните API ключи в открытом виде в клиентском коде. Рассмотрите использование прокси-сервера для защиты ключей.
+
+4. **Полноэкранный режим**: Для `initFull()` параметры `theme.button` и `theme.tooltip` не применяются.
+
+5. **Стилизация**: Все цвета настраиваются через Tailwind классы в `customCSS`. Параметры цветов не поддерживаются в публичном API.
+
+---
+
+## Устранение неполадок
+
+### Ошибка загрузки модуля
+
+Убедитесь, что путь к `web.js` правильный и файл доступен.
+
+### CORS ошибки
+
+Проверьте настройки CORS на вашем AI инстансе. Убедитесь, что ваш домен разрешен для запросов.
+
+### Ошибки авторизации
+
+Проверьте правильность `apiKey` и что он имеет необходимые права в AI платформе.
+
+### Chatflow не найден
+
+Убедитесь, что `chatflowid` правильный (UUID) и chatflow существует в AI платформе.

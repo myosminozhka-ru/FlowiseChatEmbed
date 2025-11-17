@@ -1,7 +1,7 @@
 <!--
   NOTE: This .html file (and public folder) is optional and can be safely deleted.
   It serves only as a demo/test page.
-  
+
   The chatbot can be embedded directly on any allowed domain using the embed script that
   is generated when starting the server.
 -->
@@ -20,23 +20,15 @@
     <script type="module">
         (async () => {
             try {
-                // Загружаем конфигурацию с сервера
-                const baseUrl = window.location.origin;
-                const configResponse = await fetch(`${baseUrl}/api/config`);
-                if (!configResponse.ok) {
-                    throw new Error('Не удалось загрузить конфигурацию');
-                }
-                const config = await configResponse.json();
-
                 // Загружаем модуль чатбота
                 let module;
                 try {
-                    module = await import(`${baseUrl}/web.js`);
+                    module = await import('./web.js');
                 } catch (e1) {
                     try {
-                        module = await import('./web.js');
-                    } catch (e2) {
                         module = await import('/web.js');
+                    } catch (e2) {
+                        module = await import('/dist/web.js');
                     }
                 }
 
@@ -50,11 +42,29 @@
                     throw new Error('Chatbot.init не доступен');
                 }
 
-                // Инициализируем чатбот с конфигурацией из .env
+                // Инициализируем чатбот с параметрами
+                // ВАЖНО: Замените эти значения на ваши реальные данные
+                const chatflowid = '416feeac-4a95-4f6e-a81d-73f8f48bc54f'; // UUID вашего chatflow
+                const apiHost = 'https://app.osmi-it.ru'; // URL вашего AI инстанса
+
+                // Проверка на примеры значений
+                if (chatflowid === 'your-chatflow-id-here' || apiHost === 'https://your-api-host.com') {
+                    console.warn('⚠️ ВНИМАНИЕ: Используются примеры значений!');
+                    console.warn('⚠️ Замените chatflowid и apiHost на ваши реальные данные в public/index.html');
+                    console.warn('⚠️ Чатбот не будет инициализирован с примерами значений.');
+                    return;
+                }
+
                 Chatbot.init({
-                    chatflowid: config.chatflowid,
-                    apiHost: config.apiHost,
-                    autofaqConfig: config.autofaqConfig,
+                    chatflowid,
+                    apiHost,
+                    apiKey: undefined,
+                    autofaqConfig: {
+                        enabled: true,
+                        apiBaseUrl: 'https://chat.autofaq.ai/',
+                        serviceId: '7e0e1bb2-6dc1-4e9b-b471-47d63751dac7',
+                        channelId: '7f85e6d0-b9ee-453b-86b1-d2d9ffa0f7de',
+                    },
                 });
             } catch (error) {
                 console.error('❌ Ошибка загрузки чатбота:', error);

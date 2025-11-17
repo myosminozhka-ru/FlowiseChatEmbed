@@ -54,9 +54,7 @@ export const ShortTextInput = (props: ShortTextInputProps) => {
   return (
     <textarea
       ref={props.ref}
-      class={`focus:outline-none bg-transparent ${paddingX} ${paddingY} flex-1 w-full h-full min-h-[56px] max-h-[128px] text-input placeholder:text-gray-400 disabled:opacity-50 disabled:cursor-not-allowed disabled:brightness-100 ${
-        'caret-[var(--chatbot-input-caret-color)]'
-      }`}
+      class={`focus:outline-none bg-transparent ${paddingX} ${paddingY} flex-1 w-full h-full min-h-[56px] max-h-[128px] text-input placeholder:text-gray-400 disabled:opacity-50 disabled:cursor-not-allowed disabled:brightness-100 ${'caret-[var(--chatbot-input-caret-color)]'}`}
       disabled={props.disabled}
       style={{
         'font-size': `${fontSize}px`,

@@ -8,37 +8,58 @@ import tailwindcss from 'tailwindcss';
 import typescript from '@rollup/plugin-typescript';
 import { typescriptPaths } from 'rollup-plugin-typescript-paths';
 import commonjs from '@rollup/plugin-commonjs';
+import serve from 'rollup-plugin-serve';
+import livereload from 'rollup-plugin-livereload';
 
 const isDev = process.env.NODE_ENV === 'development';
 
 const extensions = ['.ts', '.tsx'];
 
+const plugins = [
+  resolve({ extensions, browser: true }),
+  commonjs(),
+  json(),
+  babel({
+    babelHelpers: 'bundled',
+    exclude: 'node_modules/**',
+    presets: ['solid', '@babel/preset-typescript'],
+    extensions,
+  }),
+  postcss({
+    plugins: [autoprefixer(), tailwindcss()],
+    extract: false,
+    modules: false,
+    autoModules: false,
+    minimize: !isDev,
+    inject: false,
+  }),
+  typescript(),
+  typescriptPaths({ preserveExtensions: true }),
+];
+
+// Добавляем минификацию только в production
+if (!isDev) {
+  plugins.push(terser({ output: { comments: false } }));
+}
+
+// Добавляем dev сервер и livereload только в development
+if (isDev) {
+  plugins.push(
+    serve({
+      open: true,
+      contentBase: ['dist', 'public'],
+      host: 'localhost',
+      port: 5678,
+    }),
+    livereload({
+      watch: ['dist', 'public'],
+    })
+  );
+}
+
 const indexConfig = {
   context: 'this',
-  plugins: [
-    resolve({ extensions, browser: true }),
-    commonjs(),
-    json(),
-    babel({
-      babelHelpers: 'bundled',
-      exclude: 'node_modules/**',
-      presets: ['solid', '@babel/preset-typescript'],
-      extensions,
-    }),
-    postcss({
-      plugins: [autoprefixer(), tailwindcss()],
-      extract: false,
-      modules: false,
-      autoModules: false,
-      minimize: true,
-      inject: false,
-    }),
-    typescript(),
-    typescriptPaths({ preserveExtensions: true }),
-    terser({ output: { comments: false } }),
-    // В dev-режиме используем Express сервер вместо rollup-plugin-serve
-    // Express сервер раздает статику и обрабатывает API запросы
-  ],
+  plugins,
 };
 
 const configs = [

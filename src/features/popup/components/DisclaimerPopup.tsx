@@ -40,10 +40,7 @@ export const DisclaimerPopup = (props: DisclaimerPopupProps) => {
 
           <p
             class="text-gray-700 text-base mb-6"
-            innerHTML={
-              popupProps.message ??
-              'Используя этот чат-бот, вы соглашаетесь с условиями использования.'
-            }
+            innerHTML={popupProps.message ?? 'Используя этот чат-бот, вы соглашаетесь с условиями использования.'}
           />
 
           <div class="flex justify-center space-x-4">

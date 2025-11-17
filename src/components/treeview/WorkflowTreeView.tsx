@@ -674,9 +674,7 @@ export const WorkflowTreeView = (props: WorkflowTreeViewProps) => {
 
   return (
     <div
-      class={`mb-2 ml-2 border rounded-lg shadow-sm overflow-hidden text-gray-880 ${
-        props.class || ''
-      }`}
+      class={`mb-2 ml-2 border rounded-lg shadow-sm overflow-hidden text-gray-880 ${props.class || ''}`}
       style={{
         'background-color': defaultBackgroundColor,
         'font-size': props.fontSize ? `${props.fontSize}px` : defaultFontSize,

@@ -35,23 +35,15 @@
     <script type="module">
         (async () => {
             try {
-                // Загружаем конфигурацию с сервера
-                const baseUrl = window.location.origin;
-                const configResponse = await fetch(`${baseUrl}/api/config`);
-                if (!configResponse.ok) {
-                    throw new Error('Не удалось загрузить конфигурацию');
-                }
-                const config = await configResponse.json();
-
                 // Загружаем модуль чатбота
                 let module;
                 try {
-                    module = await import(`${baseUrl}/web.js`);
+                    module = await import('./web.js');
                 } catch (e1) {
                     try {
-                        module = await import('./web.js');
-                    } catch (e2) {
                         module = await import('/web.js');
+                    } catch (e2) {
+                        module = await import('/dist/web.js');
                     }
                 }
 
@@ -65,11 +57,21 @@
                     throw new Error('Chatbot.initFull не доступен');
                 }
 
-                // Инициализируем полноэкранный чат с конфигурацией из .env
+                // Инициализируем полноэкранный чат с параметрами
+                // ВАЖНО: Замените эти значения на ваши реальные данные
+                const chatflowid = '416feeac-4a95-4f6e-a81d-73f8f48bc54f'; // UUID вашего chatflow
+                const apiHost = 'https://app.osmi-it.ru'; // URL вашего AI инстанса
+
                 Chatbot.initFull({
-                    chatflowid: config.chatflowid,
-                    apiHost: config.apiHost,
-                    autofaqConfig: config.autofaqConfig,
+                    chatflowid,
+                    apiHost,
+                    apiKey: undefined,
+                    autofaqConfig: {
+                        enabled: true,
+                        apiBaseUrl: 'https://chat.autofaq.ai/',
+                        serviceId: '7e0e1bb2-6dc1-4e9b-b471-47d63751dac7',
+                        channelId: '7f85e6d0-b9ee-453b-86b1-d2d9ffa0f7de',
+                    },
                     chatflowConfig: {
                         chatFeedback: {
                             status: true

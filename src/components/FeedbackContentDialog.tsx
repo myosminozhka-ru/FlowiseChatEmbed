@@ -1,4 +1,4 @@
-import { createSignal, createMemo, For } from 'solid-js';
+import { createSignal, createMemo, For, Show } from 'solid-js';
 import { IconButton } from './buttons/IconButton';
 import { Button } from './buttons/Button';
 import { XIcon } from './icons';
@@ -9,6 +9,9 @@ type FeedbackContentDialogProps = {
   onSubmit: (text: string, reason?: string) => void;
   reasons?: string[];
   // Цвета настраиваются через Tailwind классы
+  // Добавьте новые props для AutoFAQ интеграции:
+  onTransferToOperator?: () => void;
+  showTransferButton?: boolean; // Показывать ли кнопку переключения
 };
 
 const defaultBackgroundColor = 'var(--chatbot-input-bg-color, #ffffff)';
@@ -143,16 +146,25 @@ const FeedbackContentDialog = (props: FeedbackContentDialogProps) => {
               </div>
 
               {/* Contact operator button */}
-              <div class="flex justify-center">
-                <Button
-                  text="Связаться с оператором"
-                  type="button"
-                  onClick={() => {
-                    // Пока ничего не делает
-                  }}
-                  class={'flex-1'}
-                />
-              </div>
+              <Show when={props.showTransferButton !== false}>
+                <div class="flex justify-center">
+                  <Button
+                    text="Связаться с оператором2"
+                    type="button"
+                    onClick={() => {
+                      console.log('🔵 [FeedbackDialog] Кнопка "Связаться с оператором" нажата');
+                      console.log('🔵 [FeedbackDialog] onTransferToOperator:', typeof props.onTransferToOperator);
+                      if (props.onTransferToOperator) {
+                        console.log('🔵 [FeedbackDialog] Вызываем onTransferToOperator');
+                        props.onTransferToOperator();
+                      } else {
+                        console.warn('⚠️ [FeedbackDialog] onTransferToOperator не передан');
+                      }
+                    }}
+                    class={'flex-1 bg-white'}
+                  />
+                </div>
+              </Show>
             </div>
           </div>
         </div>

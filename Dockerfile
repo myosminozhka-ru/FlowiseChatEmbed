@@ -1,4 +1,4 @@
-FROM node:20-alpine
+FROM node:20-alpine AS builder
 
 WORKDIR /app
 
@@ -13,9 +13,18 @@ COPY . .
 # Собираем проект
 RUN yarn build
 
-# Открываем порт
-EXPOSE 3001
+# Финальный образ с nginx для раздачи статики
+FROM nginx:alpine
 
-# Запускаем сервер
-CMD ["node", "server.js"]
+# Копируем собранные файлы
+COPY --from=builder /app/dist /usr/share/nginx/html/dist
+COPY --from=builder /app/public /usr/share/nginx/html
+
+# Копируем конфигурацию nginx
+COPY nginx.conf /etc/nginx/conf.d/default.conf
+
+# Открываем порт
+EXPOSE 80
+
+CMD ["nginx", "-g", "daemon off;"]
 

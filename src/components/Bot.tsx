@@ -142,6 +142,7 @@ export type observersConfigType = Record<'observeUserInput' | 'observeLoading' |
 export type BotProps = {
   chatflowid: string;
   apiHost?: string;
+  apiKey?: string;
   onRequest?: (request: RequestInit) => Promise<void>;
   chatflowConfig?: Record<string, unknown>;
   welcomeTitle?: string;
@@ -358,11 +359,7 @@ const FormInputView = (props: {
       >
         <div class="p-6">
           <h2 class="text-xl font-bold mb-2">{props.title}</h2>
-          {props.description && (
-            <p class="text-gray-600 mb-6">
-              {props.description}
-            </p>
-          )}
+          {props.description && <p class="text-gray-600 mb-6">{props.description}</p>}
 
           <form onSubmit={handleSubmit} class="space-y-4">
             <For each={props.inputParams}>
@@ -772,13 +769,30 @@ export const Bot = (botProps: BotProps & { class?: string }) => {
     const chatId = params.chatId;
     const input = params.question;
     params.streaming = true;
+    
+    // Подготавливаем headers и применяем onRequest если есть
+    const headers: Record<string, string> = {
+      'Content-Type': 'application/json',
+    };
+    
+    if (props.onRequest) {
+      const requestInit: RequestInit = {
+        method: 'POST',
+        headers,
+        body: JSON.stringify(params),
+      };
+      await props.onRequest(requestInit);
+      // Копируем обновленные headers обратно
+      if (requestInit.headers) {
+        Object.assign(headers, requestInit.headers as Record<string, string>);
+      }
+    }
+    
     fetchEventSource(`${props.apiHost}/api/v1/prediction/${chatflowid}`, {
       openWhenHidden: true,
       method: 'POST',
       body: JSON.stringify(params),
-      headers: {
-        'Content-Type': 'application/json',
-      },
+      headers,
       async onopen(response) {
         if (response.ok && response.headers.get('content-type')?.startsWith(EventStreamContentType)) {
           return; // everything's good
@@ -1844,6 +1858,7 @@ export const Bot = (botProps: BotProps & { class?: string }) => {
                             isFullscreen={props.isFullscreen}
                             isPopup={!props.isFullPage}
                             feedbackReasons={props.feedback?.reasons}
+                            autofaqConfig={props.autofaqConfig}
                           />
                         )}
                         {message.type === 'leadCaptureMessage' && leadsConfig()?.status && !getLocalStorageChatflow(props.chatflowid)?.lead && (
