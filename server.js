@@ -17,15 +17,10 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
 const API_HOST = process.env.API_HOST;
-const FLOWISE_API_KEY = process.env.FLOWISE_API_KEY;
+const API_KEY = process.env.API_KEY;
 
 if (!API_HOST) {
   console.error('API_HOST is not set in environment variables');
-  process.exit(1);
-}
-
-if (!FLOWISE_API_KEY) {
-  console.error('FLOWISE_API_KEY is not set in environment variables');
   process.exit(1);
 }
 
@@ -41,7 +36,7 @@ const parseChatflows = () => {
         !key.startsWith('yarn_') &&
         !key.startsWith('VSCODE_') &&
         key !== 'API_HOST' &&
-        key !== 'FLOWISE_API_KEY' &&
+        key !== 'API_KEY' &&
         key !== 'PORT' &&
         key !== 'HOST' &&
         key !== 'BASE_URL' &&
@@ -176,6 +171,11 @@ const validateApiKey = (req, res, next) => {
     return next();
   }
 
+  // Разрешаем запросы к прокси AutoFAQ (CORS обход)
+  if (req.path === '/api/v1/autofaq-proxy' || req.path.startsWith('/api/v1/autofaq-proxy/')) {
+    return next();
+  }
+
   let identifier;
   const pathParts = req.path.split('/').filter(Boolean);
 
@@ -218,7 +218,7 @@ const validateApiKey = (req, res, next) => {
   }
 
   const authHeader = req.headers.authorization;
-  if (authHeader && authHeader.startsWith('Bearer ') && authHeader.split(' ')[1] === FLOWISE_API_KEY) {
+  if (API_KEY && authHeader && authHeader.startsWith('Bearer ') && authHeader.split(' ')[1] === API_KEY) {
     return next();
   }
 
@@ -266,11 +266,13 @@ const handleProxy = async (req, res, targetPath) => {
     if (req.query.chatId && req.query.fileName) {
       const url = `${API_HOST}${targetPath}?chatflowId=${chatflow.chatflowId}&chatId=${req.query.chatId}&fileName=${req.query.fileName}`;
 
+      const headers = {};
+      if (API_KEY) {
+        headers.Authorization = `Bearer ${API_KEY}`;
+      }
       const response = await fetch(url, {
         method: req.method,
-        headers: {
-          Authorization: `Bearer ${FLOWISE_API_KEY}`,
-        },
+        headers,
       });
 
       if (!response.ok) {
@@ -289,12 +291,15 @@ const handleProxy = async (req, res, targetPath) => {
     let finalPath = `${targetPath}/${chatflow.chatflowId}`;
     const url = `${API_HOST}${finalPath}`;
 
+    const headers = {
+      ...(req.method !== 'GET' && { 'Content-Type': 'application/json' }),
+    };
+    if (API_KEY) {
+      headers.Authorization = `Bearer ${API_KEY}`;
+    }
     const response = await fetch(url, {
       method: req.method,
-      headers: {
-        ...(req.method !== 'GET' && { 'Content-Type': 'application/json' }),
-        Authorization: `Bearer ${FLOWISE_API_KEY}`,
-      },
+      headers,
       body: req.method !== 'GET' ? JSON.stringify(req.body) : undefined,
     });
 
@@ -360,17 +365,90 @@ app.post('/api/v1/attachments/:identifier/:chatId', upload.array('files'), async
     const chatflow = req.chatflow;
     const targetUrl = `${API_HOST}/api/v1/attachments/${chatflow.chatflowId}/${chatId}`;
 
+    const headers = {
+      ...form.getHeaders(),
+    };
+    if (API_KEY) {
+      headers.Authorization = `Bearer ${API_KEY}`;
+    }
     const response = await axios.post(targetUrl, form, {
-      headers: {
-        ...form.getHeaders(),
-        Authorization: `Bearer ${FLOWISE_API_KEY}`,
-      },
+      headers,
     });
 
     res.json(response.data);
   } catch (error) {
     console.error('Attachment upload error:', error);
     res.status(500).json({ error: 'Internal Server Error' });
+  }
+});
+
+// Прокси для AutoFAQ API (для обхода CORS)
+app.all('/api/v1/autofaq-proxy', async (req, res) => {
+  try {
+    // Получаем целевой URL из query параметра
+    const targetUrl = req.query.targetUrl;
+    
+    if (!targetUrl) {
+      return res.status(400).json({ error: 'Bad Request', message: 'targetUrl parameter is required' });
+    }
+    
+    // Декодируем URL
+    const decodedUrl = decodeURIComponent(targetUrl);
+    
+    // Получаем метод запроса
+    const method = req.method;
+    
+    // Формируем заголовки для запроса к AutoFAQ
+    const headers = {
+      'Content-Type': 'application/json',
+    };
+    
+    // Копируем Authorization заголовок, если он есть
+    if (req.headers.authorization) {
+      headers.Authorization = req.headers.authorization;
+    }
+    
+    // Формируем опции для запроса
+    const fetchOptions = {
+      method,
+      headers,
+    };
+    
+    // Добавляем тело запроса для POST, PUT, PATCH
+    if (['POST', 'PUT', 'PATCH'].includes(method) && req.body) {
+      fetchOptions.body = JSON.stringify(req.body);
+    }
+    
+    // Выполняем запрос к AutoFAQ API
+    const response = await fetch(decodedUrl, fetchOptions);
+    
+    // Получаем данные ответа
+    const contentType = response.headers.get('content-type');
+    let data;
+    
+    if (contentType && contentType.includes('application/json')) {
+      data = await response.json();
+    } else {
+      data = await response.text();
+    }
+    
+    // Устанавливаем статус ответа
+    res.status(response.status);
+    
+    // Устанавливаем Content-Type
+    if (contentType) {
+      res.setHeader('Content-Type', contentType);
+    }
+    
+    // Отправляем ответ
+    if (contentType && contentType.includes('application/json')) {
+      return res.json(data);
+    } else {
+      return res.send(data);
+    }
+  } catch (error) {
+    console.error('AutoFAQ proxy error:', error);
+    res.status(500).json({ error: 'Internal Server Error', message: error.message });
   }
 });
 

@@ -6,6 +6,8 @@
   "types": "dist/index.d.ts",
   "scripts": {
     "dev": "cross-env NODE_ENV=development rollup --watch --config rollup.config.js",
+    "dev:server": "cross-env NODE_ENV=development PORT=3001 node server.js",
+    "dev:all": "npm run dev:server & npm run dev",
     "dev:build": "cross-env NODE_ENV=development rollup --watch --config rollup.config.js",
     "build": "cross-env NODE_ENV=production rollup --config rollup.config.js",
     "start": "node server.js",
