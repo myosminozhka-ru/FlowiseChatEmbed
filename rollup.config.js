@@ -16,9 +16,17 @@ const isDev = process.env.NODE_ENV === 'development';
 const extensions = ['.ts', '.tsx'];
 
 const plugins = [
+  // typescriptPaths должен быть ПЕРВЫМ, чтобы разрешать пути до компиляции
+  typescriptPaths({
+    preserveExtensions: false,
+    tsConfigPath: './tsconfig.json',
+  }),
   resolve({ extensions, browser: true }),
   commonjs(),
   json(),
+  typescript({
+    tsconfig: './tsconfig.json',
+  }),
   babel({
     babelHelpers: 'bundled',
     exclude: 'node_modules/**',
@@ -33,8 +41,6 @@ const plugins = [
     minimize: !isDev,
     inject: false,
   }),
-  typescript(),
-  typescriptPaths({ preserveExtensions: true }),
 ];
 
 // Добавляем минификацию только в production

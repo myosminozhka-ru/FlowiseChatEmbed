@@ -21,20 +21,31 @@ export const sendRequest = async <ResponseData>(
 ): Promise<{ data?: ResponseData; error?: Error }> => {
   try {
     const url = typeof params === 'string' ? params : params.url;
-    const headers =
-      typeof params !== 'string' && isDefined(params.body)
-        ? {
-            'Content-Type': 'application/json',
-            ...params.headers,
-          }
-        : undefined;
-    let body: string | FormData | undefined = typeof params !== 'string' && isDefined(params.body) ? JSON.stringify(params.body) : undefined;
-    if (typeof params !== 'string' && params.formData) body = params.formData;
+    
+    // Формируем заголовки: всегда используем переданные заголовки, добавляем Content-Type для JSON
+    const headers: Record<string, string> = {};
+    if (typeof params !== 'string' && params.headers) {
+      Object.assign(headers, params.headers);
+    }
+    
+    // Добавляем Content-Type для JSON body, если его нет
+    let body: string | FormData | undefined = undefined;
+    if (typeof params !== 'string') {
+      if (params.formData) {
+        body = params.formData;
+        // Для FormData не устанавливаем Content-Type - браузер установит автоматически с boundary
+      } else if (isDefined(params.body)) {
+        body = JSON.stringify(params.body);
+        if (!headers['Content-Type']) {
+          headers['Content-Type'] = 'application/json';
+        }
+      }
+    }
 
     const requestInfo: RequestInit = {
       method: typeof params === 'string' ? 'GET' : params.method,
       mode: 'cors',
-      headers,
+      headers: Object.keys(headers).length > 0 ? headers : undefined,
       body,
     };
 

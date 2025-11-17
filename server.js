@@ -9,6 +9,7 @@ import dotenv from 'dotenv';
 import axios from 'axios';
 import multer from 'multer';
 import FormData from 'form-data';
+import fs from 'fs';
 import { generateEmbedScript } from './src/utils/embedScript.js';
 
 dotenv.config();
@@ -120,21 +121,29 @@ chatflows.forEach((config, identifier) => {
 const isValidDomain = (origin, domains, host) => {
   // Если origin отсутствует (прямой доступ к странице), разрешаем
   if (!origin) return true;
-  
+
   // Нормализуем origin и host для сравнения (убираем протокол и порт)
-  const normalizeOrigin = origin.replace(/^https?:\/\//, '').replace(/\/$/, '').split(':')[0];
-  const normalizeHost = host ? host.replace(/^https?:\/\//, '').replace(/\/$/, '').split(':')[0] : '';
-  
+  const normalizeOrigin = origin
+    .replace(/^https?:\/\//, '')
+    .replace(/\/$/, '')
+    .split(':')[0];
+  const normalizeHost = host
+    ? host
+        .replace(/^https?:\/\//, '')
+        .replace(/\/$/, '')
+        .split(':')[0]
+    : '';
+
   // Если origin совпадает с host сервера (запрос с того же домена), разрешаем
   if (normalizeHost && normalizeOrigin === normalizeHost) {
     return true;
   }
-  
+
   // Также проверяем, если origin содержит host (для поддоменов)
   if (normalizeHost && normalizeOrigin.endsWith('.' + normalizeHost)) {
     return true;
   }
-  
+
   // Проверяем по списку разрешенных доменов
   return domains.includes(origin);
 };
@@ -154,6 +163,22 @@ app.use(
 
 app.get('/', (_, res) => {
   res.sendFile(path.join(__dirname, 'public', 'index.html'));
+});
+
+// Обработка статических файлов из public (fullchat.html, index.html и т.д.)
+app.get(/^\/[^/]+\.html$/, (req, res, next) => {
+  const fileName = req.path.substring(1); // Убираем ведущий слэш
+  const filePath = path.join(__dirname, 'public', fileName);
+  
+  // Проверяем, существует ли файл в public
+  fs.access(filePath, fs.constants.F_OK, (err) => {
+    if (err) {
+      // Если файл не найден, передаем управление дальше
+      return next();
+    }
+    // Отправляем файл
+    res.sendFile(filePath);
+  });
 });
 
 // Обработка favicon.ico и других статических файлов
@@ -239,6 +264,7 @@ const validateApiKey = (req, res, next) => {
     req.path === '/favicon.ico' ||
     req.path.startsWith('/dist/') ||
     req.path.startsWith('/public/') ||
+    req.path.endsWith('.html') || // Разрешаем все HTML файлы (fullchat.html и т.д.)
     req.method === 'OPTIONS'
   ) {
     return next();
@@ -490,8 +516,14 @@ app.all('/api/v1/autofaq-proxy', async (req, res) => {
     };
 
     // Копируем Authorization заголовок, если он есть
-    if (req.headers.authorization) {
-      headers.Authorization = req.headers.authorization;
+    // Express автоматически приводит заголовки к lowercase
+    const authHeader = req.headers.authorization || req.headers['authorization'];
+    if (authHeader) {
+      headers.Authorization = authHeader;
+      console.log('🔵 [AutoFAQ Proxy] Authorization заголовок найден:', authHeader.substring(0, 20) + '...');
+    } else {
+      console.log('⚠️ [AutoFAQ Proxy] Authorization заголовок отсутствует');
+      console.log('🔵 [AutoFAQ Proxy] Все заголовки запроса:', Object.keys(req.headers));
     }
 
     // Формируем опции для запроса
@@ -505,8 +537,24 @@ app.all('/api/v1/autofaq-proxy', async (req, res) => {
       fetchOptions.body = JSON.stringify(req.body);
     }
 
+    // Логируем запрос к AutoFAQ API
+    console.log('📤 [AutoFAQ Proxy] Отправка запроса к AutoFAQ:', {
+      method,
+      url: decodedUrl,
+      hasAuth: !!headers.Authorization,
+      authPrefix: headers.Authorization ? headers.Authorization.substring(0, 20) + '...' : 'нет',
+      bodySize: fetchOptions.body ? JSON.stringify(fetchOptions.body).length : 0,
+    });
+
     // Выполняем запрос к AutoFAQ API
     const response = await fetch(decodedUrl, fetchOptions);
+
+    // Логируем ответ от AutoFAQ API
+    console.log('📥 [AutoFAQ Proxy] Ответ от AutoFAQ:', {
+      status: response.status,
+      statusText: response.statusText,
+      hasData: response.ok,
+    });
 
     // Получаем данные ответа
     const contentType = response.headers.get('content-type');
