@@ -19,11 +19,6 @@ const __dirname = path.dirname(__filename);
 const API_HOST = process.env.API_HOST;
 const API_KEY = process.env.API_KEY;
 
-if (!API_HOST) {
-  console.error('API_HOST is not set in environment variables');
-  process.exit(1);
-}
-
 const parseChatflows = () => {
   try {
     const chatflows = new Map();
@@ -122,8 +117,25 @@ chatflows.forEach((config, identifier) => {
   }
 });
 
-const isValidDomain = (origin, domains) => {
+const isValidDomain = (origin, domains, host) => {
+  // Если origin отсутствует (прямой доступ к странице), разрешаем
   if (!origin) return true;
+  
+  // Нормализуем origin и host для сравнения (убираем протокол и порт)
+  const normalizeOrigin = origin.replace(/^https?:\/\//, '').replace(/\/$/, '').split(':')[0];
+  const normalizeHost = host ? host.replace(/^https?:\/\//, '').replace(/\/$/, '').split(':')[0] : '';
+  
+  // Если origin совпадает с host сервера (запрос с того же домена), разрешаем
+  if (normalizeHost && normalizeOrigin === normalizeHost) {
+    return true;
+  }
+  
+  // Также проверяем, если origin содержит host (для поддоменов)
+  if (normalizeHost && normalizeOrigin.endsWith('.' + normalizeHost)) {
+    return true;
+  }
+  
+  // Проверяем по списку разрешенных доменов
   return domains.includes(origin);
 };
 
@@ -144,12 +156,68 @@ app.get('/', (_, res) => {
   res.sendFile(path.join(__dirname, 'public', 'index.html'));
 });
 
-app.get('/web.js', (req, res) => {
+// Обработка favicon.ico и других статических файлов
+app.get('/favicon.ico', (_, res) => {
+  res.status(204).end();
+});
+
+// Обработка /dist/web.js (прямой доступ к файлу)
+app.get('/dist/web.js', (req, res) => {
   const origin = req.headers.origin;
+  const host = req.headers.host;
+
+  // Разрешаем доступ для localhost в dev режиме
+  const isLocalhost = host && (host.includes('localhost') || host.includes('127.0.0.1'));
+  const isDev = process.env.NODE_ENV !== 'production';
+
+  if (isDev && isLocalhost) {
+    res.set({
+      'Content-Type': 'application/javascript',
+      'Cache-Control': 'no-store, no-cache, must-revalidate, proxy-revalidate',
+      Pragma: 'no-cache',
+      Expires: '0',
+    });
+    return res.sendFile(path.join(__dirname, 'dist', 'web.js'));
+  }
 
   const allAllowedDomains = Array.from(chatflows.values()).flatMap((config) => config.domains);
 
-  if (!isValidDomain(origin, allAllowedDomains)) {
+  // Разрешаем доступ, если origin совпадает с host или отсутствует
+  if (!isValidDomain(origin, allAllowedDomains, host)) {
+    return res.status(403).send('Access Denied');
+  }
+
+  res.set({
+    'Content-Type': 'application/javascript',
+    'Cache-Control': 'no-store, no-cache, must-revalidate, proxy-revalidate',
+    Pragma: 'no-cache',
+    Expires: '0',
+  });
+  res.sendFile(path.join(__dirname, 'dist', 'web.js'));
+});
+
+app.get('/web.js', (req, res) => {
+  const origin = req.headers.origin;
+  const host = req.headers.host;
+
+  // Разрешаем доступ для localhost в dev режиме
+  const isLocalhost = host && (host.includes('localhost') || host.includes('127.0.0.1'));
+  const isDev = process.env.NODE_ENV !== 'production';
+
+  if (isDev && isLocalhost) {
+    res.set({
+      'Content-Type': 'application/javascript',
+      'Cache-Control': 'no-store, no-cache, must-revalidate, proxy-revalidate',
+      Pragma: 'no-cache',
+      Expires: '0',
+    });
+    return res.sendFile(path.join(__dirname, 'dist', 'web.js'));
+  }
+
+  const allAllowedDomains = Array.from(chatflows.values()).flatMap((config) => config.domains);
+
+  // Разрешаем доступ, если origin совпадает с host или отсутствует
+  if (!isValidDomain(origin, allAllowedDomains, host)) {
     return res.status(403).send('Access Denied');
   }
 
@@ -163,7 +231,16 @@ app.get('/web.js', (req, res) => {
 });
 
 const validateApiKey = (req, res, next) => {
-  if (req.path === '/web.js' || req.path === '/' || req.method === 'OPTIONS') {
+  // Разрешаем статические файлы и основные маршруты
+  if (
+    req.path === '/web.js' ||
+    req.path === '/dist/web.js' ||
+    req.path === '/' ||
+    req.path === '/favicon.ico' ||
+    req.path.startsWith('/dist/') ||
+    req.path.startsWith('/public/') ||
+    req.method === 'OPTIONS'
+  ) {
     return next();
   }
 
@@ -212,7 +289,8 @@ const validateApiKey = (req, res, next) => {
     secFetchSite &&
     ['same-origin', 'same-site', 'cross-site'].includes(secFetchSite)
   ) {
-    if (isValidDomain(origin, chatflow.domains)) {
+    const host = req.headers.host;
+    if (isValidDomain(origin, chatflow.domains, host)) {
       return next();
     }
   }
@@ -252,6 +330,10 @@ const proxyEndpoints = {
 
 const handleProxy = async (req, res, targetPath) => {
   try {
+    if (!API_HOST) {
+      return res.status(500).json({ error: 'API_HOST is not configured. Proxy functionality is disabled.' });
+    }
+
     let identifier = req.query.chatflowId?.split('/')[0] || req.path.split('/').pop() || null;
 
     if (!identifier) {
@@ -345,6 +427,10 @@ const upload = multer({ storage: storage });
 
 app.post('/api/v1/attachments/:identifier/:chatId', upload.array('files'), async (req, res) => {
   try {
+    if (!API_HOST) {
+      return res.status(500).json({ error: 'API_HOST is not configured. Proxy functionality is disabled.' });
+    }
+
     const chatId = req.params.chatId;
     if (!chatId) {
       return res.status(400).json({ error: 'Bad Request' });
@@ -387,59 +473,59 @@ app.all('/api/v1/autofaq-proxy', async (req, res) => {
   try {
     // Получаем целевой URL из query параметра
     const targetUrl = req.query.targetUrl;
-    
+
     if (!targetUrl) {
       return res.status(400).json({ error: 'Bad Request', message: 'targetUrl parameter is required' });
     }
-    
+
     // Декодируем URL
     const decodedUrl = decodeURIComponent(targetUrl);
-    
+
     // Получаем метод запроса
     const method = req.method;
-    
+
     // Формируем заголовки для запроса к AutoFAQ
     const headers = {
       'Content-Type': 'application/json',
     };
-    
+
     // Копируем Authorization заголовок, если он есть
     if (req.headers.authorization) {
       headers.Authorization = req.headers.authorization;
     }
-    
+
     // Формируем опции для запроса
     const fetchOptions = {
       method,
       headers,
     };
-    
+
     // Добавляем тело запроса для POST, PUT, PATCH
     if (['POST', 'PUT', 'PATCH'].includes(method) && req.body) {
       fetchOptions.body = JSON.stringify(req.body);
     }
-    
+
     // Выполняем запрос к AutoFAQ API
     const response = await fetch(decodedUrl, fetchOptions);
-    
+
     // Получаем данные ответа
     const contentType = response.headers.get('content-type');
     let data;
-    
+
     if (contentType && contentType.includes('application/json')) {
       data = await response.json();
     } else {
       data = await response.text();
     }
-    
+
     // Устанавливаем статус ответа
     res.status(response.status);
-    
+
     // Устанавливаем Content-Type
     if (contentType) {
       res.setHeader('Content-Type', contentType);
     }
-    
+
     // Отправляем ответ
     if (contentType && contentType.includes('application/json')) {
       return res.json(data);
