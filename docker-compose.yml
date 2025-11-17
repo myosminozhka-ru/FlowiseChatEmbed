@@ -1,15 +1,8 @@
-version: '3.8'
-
 services:
-  osmi-chat-embed:
+  skchat:
+    container_name: osmi-ai-skchat
+    image: osmi-ai-skchat
     build: .
     ports:
-      - "${PORT:-5678}:80"
-    restart: unless-stopped
-    healthcheck:
-      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost/"]
-      interval: 30s
-      timeout: 10s
-      retries: 3
-      start_period: 10s
-
+      - "3001:3001"
+    restart: always
