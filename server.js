@@ -14,11 +14,29 @@ import { generateEmbedScript } from './src/utils/embedScript.js';
 
 dotenv.config();
 
+// Константы и утилиты
+
+const isDev = process.env.NODE_ENV === 'development';
+const isProd = process.env.NODE_ENV === 'production';
+
+// Условное логирование (только для dev)
+const devLog = (...args) => {
+  if (isDev) {
+    console.log(...args);
+  }
+};
+
+const errorLog = (...args) => {
+  console.error(...args); // Ошибки всегда логируем
+};
+
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
 const API_HOST = process.env.API_HOST;
 const API_KEY = process.env.API_KEY;
+
+// Парсинг конфигурации chatflows
 
 const parseChatflows = () => {
   try {
@@ -148,6 +166,8 @@ const isValidDomain = (origin, domains, host) => {
   return domains.includes(origin);
 };
 
+// Express приложение
+
 const app = express();
 app.use(express.json({ limit: '50mb' }));
 app.use(express.urlencoded({ limit: '50mb', extended: true }));
@@ -160,6 +180,8 @@ app.use(
     allowedHeaders: ['*'],
   }),
 );
+
+// Статические файлы
 
 app.get('/', (_, res) => {
   res.sendFile(path.join(__dirname, 'public', 'index.html'));
@@ -193,7 +215,6 @@ app.get('/dist/web.js', (req, res) => {
 
   // Разрешаем доступ для localhost в dev режиме
   const isLocalhost = host && (host.includes('localhost') || host.includes('127.0.0.1'));
-  const isDev = process.env.NODE_ENV !== 'production';
 
   if (isDev && isLocalhost) {
     res.set({
@@ -227,7 +248,6 @@ app.get('/web.js', (req, res) => {
 
   // Разрешаем доступ для localhost в dev режиме
   const isLocalhost = host && (host.includes('localhost') || host.includes('127.0.0.1'));
-  const isDev = process.env.NODE_ENV !== 'production';
 
   if (isDev && isLocalhost) {
     res.set({
@@ -255,6 +275,8 @@ app.get('/web.js', (req, res) => {
   res.sendFile(path.join(__dirname, 'dist', 'web.js'));
 });
 
+// Middleware для проверки доступа (домены и API ключ)
+
 const validateApiKey = (req, res, next) => {
   // Разрешаем статические файлы и основные маршруты
   if (
@@ -274,8 +296,8 @@ const validateApiKey = (req, res, next) => {
     return next();
   }
 
-  // Разрешаем запросы к прокси AutoFAQ (CORS обход)
-  if (req.path === '/api/v1/autofaq-proxy' || req.path.startsWith('/api/v1/autofaq-proxy/')) {
+  // Разрешаем запросы к прокси AutoFAQ (только в dev)
+  if (isDev && (req.path === '/api/v1/autofaq-proxy' || req.path.startsWith('/api/v1/autofaq-proxy/'))) {
     return next();
   }
 
@@ -330,6 +352,8 @@ const validateApiKey = (req, res, next) => {
 };
 
 app.use(validateApiKey);
+
+// Прокси для API
 
 const proxyEndpoints = {
   prediction: {
@@ -448,6 +472,8 @@ Object.values(proxyEndpoints).forEach(({ method, path, target }) => {
   });
 });
 
+// Загрузка файлов
+
 const storage = multer.memoryStorage();
 const upload = multer({ storage: storage });
 
@@ -494,76 +520,61 @@ app.post('/api/v1/attachments/:identifier/:chatId', upload.array('files'), async
   }
 });
 
-// Прокси для AutoFAQ API (для обхода CORS)
-app.all('/api/v1/autofaq-proxy', async (req, res) => {
-  try {
-    // Получаем целевой URL из query параметра
-    const targetUrl = req.query.targetUrl;
+// Прокси для AutoFAQ API (только для dev - обход CORS на localhost)
 
+if (isDev) {
+  app.all('/api/v1/autofaq-proxy', async (req, res) => {
+  devLog('🔵 [AutoFAQ Proxy] Запрос получен:', {
+    method: req.method,
+    path: req.path,
+    hasAuth: !!req.headers.authorization,
+  });
+  
+  try {
+    const targetUrl = req.query.targetUrl;
     if (!targetUrl) {
+      errorLog('❌ [AutoFAQ Proxy] targetUrl отсутствует');
       return res.status(400).json({ error: 'Bad Request', message: 'targetUrl parameter is required' });
     }
 
-    // Декодируем URL
     const decodedUrl = decodeURIComponent(targetUrl);
-
-    // Получаем метод запроса
     const method = req.method;
+    const headers = { 'Content-Type': 'application/json' };
 
-    // Формируем заголовки для запроса к AutoFAQ
-    const headers = {
-      'Content-Type': 'application/json',
-    };
-
-    // Копируем Authorization заголовок, если он есть
-    // Express автоматически приводит заголовки к lowercase
+    // Копируем Authorization заголовок
     const authHeader = req.headers.authorization || req.headers['authorization'];
     if (authHeader) {
       headers.Authorization = authHeader;
-      console.log('🔵 [AutoFAQ Proxy] Authorization заголовок найден:', authHeader.substring(0, 20) + '...');
+      devLog('🔵 [AutoFAQ Proxy] Authorization заголовок найден');
     } else {
-      console.log('⚠️ [AutoFAQ Proxy] Authorization заголовок отсутствует');
-      console.log('🔵 [AutoFAQ Proxy] Все заголовки запроса:', Object.keys(req.headers));
+      devLog('⚠️ [AutoFAQ Proxy] Authorization заголовок отсутствует');
     }
 
-    // Формируем опции для запроса
-    const fetchOptions = {
-      method,
-      headers,
-    };
-
-    // Добавляем тело запроса для POST, PUT, PATCH
+    const fetchOptions = { method, headers };
     if (['POST', 'PUT', 'PATCH'].includes(method) && req.body) {
       fetchOptions.body = JSON.stringify(req.body);
     }
 
-    // Логируем запрос к AutoFAQ API
-    console.log('📤 [AutoFAQ Proxy] Отправка запроса к AutoFAQ:', {
+    devLog('📤 [AutoFAQ Proxy] Отправка запроса к AutoFAQ:', {
       method,
       url: decodedUrl,
       hasAuth: !!headers.Authorization,
-      authPrefix: headers.Authorization ? headers.Authorization.substring(0, 20) + '...' : 'нет',
-      bodySize: fetchOptions.body ? JSON.stringify(fetchOptions.body).length : 0,
     });
 
-    // Выполняем запрос к AutoFAQ API
     const response = await fetch(decodedUrl, fetchOptions);
-
-    // Логируем ответ от AutoFAQ API
-    console.log('📥 [AutoFAQ Proxy] Ответ от AutoFAQ:', {
-      status: response.status,
-      statusText: response.statusText,
-      hasData: response.ok,
-    });
-
-    // Получаем данные ответа
+    
     const contentType = response.headers.get('content-type');
-    let data;
-
-    if (contentType && contentType.includes('application/json')) {
-      data = await response.json();
+    let data = contentType?.includes('application/json') 
+      ? await response.json() 
+      : await response.text();
+    
+    if (!response.ok) {
+      errorLog('❌ [AutoFAQ Proxy] Ошибка от AutoFAQ API:', {
+        status: response.status,
+        body: data,
+      });
     } else {
-      data = await response.text();
+      devLog('📥 [AutoFAQ Proxy] Ответ от AutoFAQ:', { status: response.status });
     }
 
     // Устанавливаем статус ответа
@@ -581,14 +592,17 @@ app.all('/api/v1/autofaq-proxy', async (req, res) => {
       return res.send(data);
     }
   } catch (error) {
-    console.error('AutoFAQ proxy error:', error);
+    errorLog('AutoFAQ proxy error:', error);
     res.status(500).json({ error: 'Internal Server Error', message: error.message });
   }
-});
+  });
+}
 
 app.use((_req, res) => {
   res.status(404).json({ error: 'Not Found' });
 });
+
+// Запуск сервера
 
 const PORT = process.env.PORT || 3001;
 const HOST = process.env.HOST || '0.0.0.0';

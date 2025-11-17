@@ -49,6 +49,15 @@ export const sendRequest = async <ResponseData>(
       body,
     };
 
+    // Логируем заголовки для отладки (скрываем токены)
+    if (typeof params !== 'string' && requestInfo.headers) {
+      const logHeaders = { ...requestInfo.headers };
+      if (logHeaders.Authorization) {
+        logHeaders.Authorization = logHeaders.Authorization.substring(0, 20) + '...';
+      }
+      console.log('🔵 [sendRequest] Заголовки запроса:', logHeaders);
+    }
+
     if (typeof params !== 'string' && params.onRequest) {
       await params.onRequest(requestInfo);
     }

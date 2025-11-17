@@ -5,7 +5,8 @@ export type AutoFAQConfig = {
   apiBaseUrl: string;
   serviceId: string;
   channelId: string;
-  apiToken: string;
+  apiToken: string; // Basic токен для логина (учетные данные)
+  jwtToken?: string; // JWT токен, полученный через /login (кэшируется)
   webhookUrl?: string;
 };
 
@@ -36,21 +37,92 @@ type BaseAutoFAQRequest = {
 };
 
 /**
- * Получает прокси-URL для AutoFAQ API запросов
- * Использует прокси сервера для обхода CORS
+ * Авторизация в AutoFAQ API через /login endpoint
+ * Возвращает JWT токен для использования в последующих запросах
+ * GET /api/ext/v2/login
+ * 
+ * Использует Basic токен (apiToken) для получения JWT токена
+ */
+export const loginToAutoFAQ = async ({ config, onRequest }: BaseAutoFAQRequest): Promise<{ data?: string; error?: Error }> => {
+  const targetUrl = `${config.apiBaseUrl}/api/ext/v2/login`;
+  const url = getProxyUrl(targetUrl);
+
+  const headers: Record<string, string> = {
+    'accept': 'text/plain',
+  };
+
+  if (config.apiToken) {
+    headers.Authorization = `Basic ${config.apiToken}`;
+  }
+
+  console.log('🔵 [AutoFAQ Login] Попытка авторизации:', {
+    url,
+    targetUrl,
+    hasToken: !!config.apiToken,
+  });
+
+  const result = await sendRequest<string>({
+    method: 'GET',
+    url,
+    headers,
+    onRequest,
+  });
+
+  if (result.data) {
+    console.log('✅ [AutoFAQ Login] Авторизация успешна, получен JWT токен');
+    // JWT токен возвращается как строка (text/plain)
+    return { data: result.data };
+  } else if (result.error) {
+    console.error('❌ [AutoFAQ Login] Ошибка авторизации:', result.error);
+    return { error: result.error };
+  }
+
+  return result;
+};
+
+/**
+ * Получает URL для AutoFAQ API запросов
+ * В dev режиме использует прокси сервера для обхода CORS
+ * В production использует прямой URL
  */
 const getProxyUrl = (targetUrl: string): string => {
-  // Если мы в браузере, используем прокси через сервер
+  // Если мы в браузере
   if (typeof window !== 'undefined') {
-    // В dev режиме Express сервер обычно работает на порту 3001
-    // В production используем текущий origin
+    // В dev режиме используем прокси (обход CORS на localhost)
     const isDev = window.location.hostname === 'localhost' && window.location.port === '5678';
-    const proxyBaseUrl = isDev ? 'http://localhost:3001' : window.location.origin;
-    const encodedTargetUrl = encodeURIComponent(targetUrl);
-    return `${proxyBaseUrl}/api/v1/autofaq-proxy?targetUrl=${encodedTargetUrl}`;
+    if (isDev) {
+      const proxyBaseUrl = 'http://localhost:3001';
+      const encodedTargetUrl = encodeURIComponent(targetUrl);
+      return `${proxyBaseUrl}/api/v1/autofaq-proxy?targetUrl=${encodedTargetUrl}`;
+    }
+    // В production используем прямой URL (CORS должен быть настроен на сервере AutoFAQ)
+    return targetUrl;
   }
   // Если на сервере, используем прямой URL
   return targetUrl;
+};
+
+/**
+ * Получает JWT токен, если его еще нет (выполняет логин)
+ */
+const ensureJWTToken = async (config: AutoFAQConfig, onRequest?: (request: RequestInit) => Promise<void>): Promise<string | null> => {
+  // Если JWT токен уже есть, используем его
+  if (config.jwtToken) {
+    return config.jwtToken;
+  }
+
+  // Если нет JWT токена, получаем его через /login
+  console.log('🔵 [AutoFAQ] JWT токен отсутствует, выполняем логин...');
+  const loginResult = await loginToAutoFAQ({ config, onRequest });
+
+  if (loginResult.data) {
+    // Сохраняем JWT токен в конфигурации
+    config.jwtToken = loginResult.data;
+    return loginResult.data;
+  } else {
+    console.error('❌ [AutoFAQ] Не удалось получить JWT токен:', loginResult.error);
+    return null;
+  }
 };
 
 /**
@@ -58,23 +130,54 @@ const getProxyUrl = (targetUrl: string): string => {
  * POST /api/ext/v2/services/{serviceId}/{channelId}/questionsAsync
  */
 export const sendQuestionToAutoFAQ = async ({ config, message, onRequest }: BaseAutoFAQRequest & { message: AutoFAQMessage }) => {
+  // Сначала получаем JWT токен, если его нет
+  const jwtToken = await ensureJWTToken(config, onRequest);
+  
+  if (!jwtToken) {
+    return { error: new Error('Не удалось получить JWT токен для авторизации') };
+  }
+
   const targetUrl = `${config.apiBaseUrl}/api/ext/v2/services/${config.serviceId}/${config.channelId}/questionsAsync`;
   const url = getProxyUrl(targetUrl);
 
-  const body = {
+  // Формируем body согласно документации AutoFAQ API
+  // Документация: https://app.swaggerhub.com/apis-docs/AutoFAQ.ai/external-api
+  const body: Record<string, unknown> = {
     text: message.text,
-    dialogId: message.dialogId,
-    clientId: message.clientId,
-    metadata: message.metadata || {},
   };
 
-  // Формируем заголовки: добавляем Authorization только если токен есть
+  // Добавляем опциональные поля, если они есть
+  if (message.dialogId) {
+    body.dialogId = message.dialogId;
+  }
+
+  // clientId может быть частью channelUser или отдельным полем
+  // В документации показан channelUser, но мы используем clientId для идентификации
+  if (message.clientId) {
+    body.clientId = message.clientId;
+  }
+
+  // metadata может содержать дополнительную информацию
+  if (message.metadata && Object.keys(message.metadata).length > 0) {
+    // Если в metadata есть channelUser, используем его
+    if (message.metadata.channelUser) {
+      body.channelUser = message.metadata.channelUser;
+    }
+    // Остальные поля metadata добавляем как есть
+    Object.keys(message.metadata).forEach((key) => {
+      if (key !== 'channelUser') {
+        body[key] = message.metadata![key];
+      }
+    });
+  }
+
+  // Формируем заголовки: используем JWT токен (Bearer)
   const headers: Record<string, string> = {
     'Content-Type': 'application/json',
   };
 
-  if (config.apiToken) {
-    headers.Authorization = `Bearer ${config.apiToken}`;
+  if (jwtToken) {
+    headers.Authorization = `Bearer ${jwtToken}`;
   }
 
   // Логируем запрос для отладки
@@ -84,11 +187,11 @@ export const sendQuestionToAutoFAQ = async ({ config, message, onRequest }: Base
     targetUrl,
     headers: {
       ...headers,
-      Authorization: headers.Authorization ? 'Bearer ***' : '(отсутствует)',
+      Authorization: headers.Authorization ? 'Basic ***' : '(отсутствует)',
     },
     body: {
       ...body,
-      text: body.text.substring(0, 100) + (body.text.length > 100 ? '...' : ''),
+      text: typeof body.text === 'string' ? body.text.substring(0, 100) + (body.text.length > 100 ? '...' : '') : body.text,
     },
   });
 
@@ -124,12 +227,19 @@ export const setAutoFAQWebhook = async ({ config, webhookUrl, onRequest }: BaseA
     url: webhookUrl,
   };
 
+  // Получаем JWT токен, если его нет
+  const jwtToken = await ensureJWTToken(config, onRequest);
+  
+  if (!jwtToken) {
+    return { error: new Error('Не удалось получить JWT токен для авторизации') };
+  }
+
   return sendRequest({
     method: 'PUT',
     url,
     body,
     headers: {
-      Authorization: `Bearer ${config.apiToken}`,
+      Authorization: `Bearer ${jwtToken}`,
       'Content-Type': 'application/json',
     },
     onRequest,
@@ -141,6 +251,13 @@ export const setAutoFAQWebhook = async ({ config, webhookUrl, onRequest }: BaseA
  * GET /api/ext/v2/dialogs/{dialogId}
  */
 export const getAutoFAQDialog = async ({ config, dialogId, onRequest }: BaseAutoFAQRequest & { dialogId: string }) => {
+  // Получаем JWT токен, если его нет
+  const jwtToken = await ensureJWTToken(config, onRequest);
+  
+  if (!jwtToken) {
+    return { error: new Error('Не удалось получить JWT токен для авторизации') };
+  }
+
   const targetUrl = `${config.apiBaseUrl}/api/ext/v2/dialogs/${dialogId}`;
   const url = getProxyUrl(targetUrl);
 
@@ -148,7 +265,7 @@ export const getAutoFAQDialog = async ({ config, dialogId, onRequest }: BaseAuto
     method: 'GET',
     url,
     headers: {
-      Authorization: `Bearer ${config.apiToken}`,
+      Authorization: `Bearer ${jwtToken}`,
     },
     onRequest,
   });
@@ -173,12 +290,19 @@ export const sendMessageToAutoFAQDialog = async ({
     metadata: message.metadata || {},
   };
 
+  // Получаем JWT токен, если его нет
+  const jwtToken = await ensureJWTToken(config, onRequest);
+  
+  if (!jwtToken) {
+    return { error: new Error('Не удалось получить JWT токен для авторизации') };
+  }
+
   return sendRequest({
     method: 'POST',
     url,
     body,
     headers: {
-      Authorization: `Bearer ${config.apiToken}`,
+      Authorization: `Bearer ${jwtToken}`,
       'Content-Type': 'application/json',
     },
     onRequest,
