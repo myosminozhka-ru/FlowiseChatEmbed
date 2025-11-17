@@ -2,9 +2,9 @@ import { createSignal, Show, splitProps, onCleanup, createEffect } from 'solid-j
 import styles from '../../../assets/index.css';
 import { BubbleButton } from './BubbleButton';
 import { BubbleParams } from '../types';
-import { Bot, BotProps } from '../../../components/Bot';
+import { Bot, BotProps } from '@/components/Bot';
 import Tooltip from './Tooltip';
-import { getBubbleButtonSize } from '../../../utils';
+import { getBubbleButtonSize } from '@/utils';
 
 const defaultButtonColor = '#3B81F6';
 const defaultIconColor = 'white';

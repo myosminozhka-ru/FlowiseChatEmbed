@@ -1,5 +1,5 @@
 import { JSX, Show } from 'solid-js';
-import { SendButton } from './SendButton';
+import { SendButton } from '@/components/buttons/SendButton';
 
 type LeadCaptureButtonProps = {
   isDisabled?: boolean;

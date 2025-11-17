@@ -1,4 +1,4 @@
-import { TypingBubble } from '../TypingBubble';
+import { TypingBubble } from '@/components/TypingBubble';
 
 export const LoadingBubble = () => (
   <div class="flex justify-start mb-2 items-start animate-fade-in host-container">

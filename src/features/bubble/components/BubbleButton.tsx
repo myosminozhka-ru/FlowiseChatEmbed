@@ -1,5 +1,5 @@
 import { createSignal, createEffect, Show } from 'solid-js';
-import { isNotDefined, getBubbleButtonSize } from '../../../utils/index';
+import { isNotDefined, getBubbleButtonSize } from '@/utils/index';
 import { ButtonTheme } from '../types';
 
 type Props = ButtonTheme & {

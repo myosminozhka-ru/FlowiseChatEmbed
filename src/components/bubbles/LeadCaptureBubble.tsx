@@ -1,10 +1,10 @@
 import { createSignal, Show } from 'solid-js';
 import { z } from 'zod';
-import { FormEvent, LeadsConfig, MessageType } from '../Bot';
-import { addLeadQuery, LeadCaptureInput } from '../../queries/sendMessageQuery';
-import { SaveLeadButton } from '../buttons/LeadCaptureButtons';
-import { Avatar } from '../avatars/Avatar';
-import { getLocalStorageChatflow, setLocalStorageChatflow } from '../../utils';
+import { FormEvent, LeadsConfig, MessageType } from '@/components/Bot';
+import { addLeadQuery, LeadCaptureInput } from '@/queries/sendMessageQuery';
+import { SaveLeadButton } from '@/components/buttons/LeadCaptureButtons';
+import { Avatar } from '@/components/avatars/Avatar';
+import { getLocalStorageChatflow, setLocalStorageChatflow } from '@/utils';
 
 type Props = {
   message: MessageType;
