@@ -8,7 +8,7 @@ import {
   getChatbotConfig,
   FeedbackRatingType,
   createAttachmentWithFormData,
-} from '@/queries/sendMessageQuery';
+} from '../queries/sendMessageQuery';
 import { SendArea } from './SendArea';
 import { GuestBubble } from './bubbles/GuestBubble';
 import { BotBubble } from './bubbles/BotBubble';
@@ -22,21 +22,21 @@ import {
   FeedbackTheme,
   DisclaimerPopUpTheme,
   DateTimeToggleTheme,
-} from '@/features/bubble/types';
+} from '../features/bubble/types';
 import { Badge } from './Badge';
-import { Popup, DisclaimerPopup } from '@/features/popup';
-import { Avatar } from '@/components/avatars/Avatar';
-import { SendButton } from '@/components/buttons/SendButton';
-import { DeleteButton } from '@/components/buttons/DeleteButton';
-import { IconButton } from '@/components/buttons/IconButton';
-import { FilePreview } from '@/components/inputs/textInput/components/FilePreview';
+import { Popup, DisclaimerPopup } from '../features/popup';
+import { Avatar } from './avatars/Avatar';
+import { SendButton } from './buttons/SendButton';
+import { DeleteButton } from './buttons/DeleteButton';
+import { IconButton } from './buttons/IconButton';
+import { FilePreview } from './inputs/textInput/components/FilePreview';
 import { SparklesIcon, TrashIcon, XIcon, ResizeIcon } from './icons';
-import { LeadCaptureBubble } from '@/components/bubbles/LeadCaptureBubble';
-import { removeLocalStorageChatHistory, getLocalStorageChatflow, setLocalStorageChatflow, setCookie, getCookie } from '@/utils';
+import { LeadCaptureBubble } from './bubbles/LeadCaptureBubble';
+import { removeLocalStorageChatHistory, getLocalStorageChatflow, setLocalStorageChatflow, setCookie, getCookie } from '../utils';
 import { cloneDeep } from 'lodash';
-import { FollowUpPromptBubble } from '@/components/bubbles/FollowUpPromptBubble';
+import { FollowUpPromptBubble } from './bubbles/FollowUpPromptBubble';
 import { fetchEventSource, EventStreamContentType } from '@microsoft/fetch-event-source';
-import { WelcomeMessage } from '@/components/bubbles/WelcomeMessage';
+import { WelcomeMessage } from './bubbles/WelcomeMessage';
 import { ServiceErrorScreen } from './ServiceErrorScreen';
 
 export type FileEvent<T = EventTarget> = {

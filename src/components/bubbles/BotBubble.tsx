@@ -1,18 +1,18 @@
 import { createEffect, Show, createSignal, onMount, For } from 'solid-js';
 import { Avatar } from '../avatars/Avatar';
 import { Marked } from '@ts-stack/markdown';
-import { FeedbackRatingType, sendFeedbackQuery, sendFileDownloadQuery, updateFeedbackQuery } from '@/queries/sendMessageQuery';
+import { FeedbackRatingType, sendFeedbackQuery, sendFileDownloadQuery, updateFeedbackQuery } from '../../queries/sendMessageQuery';
 import { FileUpload, IAction, MessageType } from '../Bot';
 import { CopyToClipboardButton, ThumbsDownButton, ThumbsUpButton } from '../buttons/FeedbackButtons';
 import FeedbackContentDialog from '../FeedbackContentDialog';
 import { AgentReasoningBubble } from './AgentReasoningBubble';
 import { TickIcon, XIcon } from '../icons';
 import { SourceBubble } from '../bubbles/SourceBubble';
-import { DateTimeToggleTheme } from '@/features/bubble/types';
+import { DateTimeToggleTheme } from '../../features/bubble/types';
 import { WorkflowTreeView } from '../treeview/WorkflowTreeView';
 import { TypingBubble } from '../TypingBubble';
-import { transferToOperator, AutoFAQConfig } from '@/queries/autofaqQuery';
-import { getLocalStorageChatflow, setLocalStorageChatflow } from '@/utils';
+import { transferToOperator, AutoFAQConfig } from '../../queries/autofaqQuery';
+import { getLocalStorageChatflow, setLocalStorageChatflow } from '../../utils';
 
 type Props = {
   message: MessageType;

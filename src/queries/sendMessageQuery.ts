@@ -1,5 +1,5 @@
-import { FileUpload, IAction } from '@/components/Bot';
-import { sendRequest } from '@/utils/index';
+import { FileUpload, IAction } from '../components/Bot';
+import { sendRequest } from '../utils/index';
 
 export type IncomingInput = {
   question?: string;

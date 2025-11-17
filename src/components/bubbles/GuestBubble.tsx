@@ -3,7 +3,7 @@ import { Avatar } from '../avatars/Avatar';
 import { Marked } from '@ts-stack/markdown';
 import { FileUpload, MessageType } from '../Bot';
 import { AttachmentIcon } from '../icons';
-import { DateTimeToggleTheme } from '@/features/bubble/types';
+import { DateTimeToggleTheme } from '../../features/bubble/types';
 import { CopyToClipboardButton } from '../buttons/FeedbackButtons';
 
 type Props = {

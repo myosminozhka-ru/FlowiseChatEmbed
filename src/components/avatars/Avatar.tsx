@@ -1,5 +1,5 @@
 import { createEffect, createSignal, Show } from 'solid-js';
-import { isNotEmpty } from '@/utils/index';
+import { isNotEmpty } from '../../utils/index';
 import { FaceIcon } from '../icons/FaceIcon';
 
 export const Avatar = (props: { initialAvatarSrc?: string }) => {

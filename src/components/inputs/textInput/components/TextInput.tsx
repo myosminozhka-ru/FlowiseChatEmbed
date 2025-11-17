@@ -1,10 +1,10 @@
 import { ShortTextInput } from './ShortTextInput';
 import { Show, createSignal, createEffect, onMount, Setter } from 'solid-js';
-import { SendButton } from '@/components/buttons/SendButton';
-import { FileEvent, UploadsConfig } from '@/components/Bot';
-import { ImageUploadButton } from '@/components/buttons/ImageUploadButton';
-import { AttachmentUploadButton } from '@/components/buttons/AttachmentUploadButton';
-import { ChatInputHistory } from '@/utils/chatInputHistory';
+import { SendButton } from '../../../buttons/SendButton';
+import { FileEvent, UploadsConfig } from '../../../Bot';
+import { ImageUploadButton } from '../../../buttons/ImageUploadButton';
+import { AttachmentUploadButton } from '../../../buttons/AttachmentUploadButton';
+import { ChatInputHistory } from '../../../../utils/chatInputHistory';
 
 type TextInputProps = {
   placeholder?: string;
