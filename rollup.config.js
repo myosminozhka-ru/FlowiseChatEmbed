@@ -23,9 +23,7 @@ const extensions = ['.ts', '.tsx'];
 const plugins = [
   // alias должен быть ПЕРВЫМ для разрешения путей @/
   alias({
-    entries: [
-      { find: '@', replacement: path.resolve(__dirname, 'src') }
-    ]
+    entries: [{ find: '@', replacement: path.resolve(__dirname, 'src') }],
   }),
   resolve({ extensions, browser: true }),
   commonjs(),
