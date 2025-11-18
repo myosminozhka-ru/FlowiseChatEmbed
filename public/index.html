@@ -12,7 +12,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>OsmiAI Chatbot Widget</title>
+    <title>Chatbot Widget</title>
 </head>
 
 <body>
@@ -43,17 +43,8 @@
                 }
 
                 // Инициализируем чатбот с параметрами
-                // ВАЖНО: Замените эти значения на ваши реальные данные
                 const chatflowid = '416feeac-4a95-4f6e-a81d-73f8f48bc54f'; // UUID вашего chatflow
                 const apiHost = 'https://app.osmi-it.ru'; // URL вашего AI инстанса
-
-                // Проверка на примеры значений
-                if (chatflowid === 'your-chatflow-id-here' || apiHost === 'https://your-api-host.com') {
-                    console.warn('⚠️ ВНИМАНИЕ: Используются примеры значений!');
-                    console.warn('⚠️ Замените chatflowid и apiHost на ваши реальные данные в public/index.html');
-                    console.warn('⚠️ Чатбот не будет инициализирован с примерами значений.');
-                    return;
-                }
 
                 Chatbot.init({
                     chatflowid,
