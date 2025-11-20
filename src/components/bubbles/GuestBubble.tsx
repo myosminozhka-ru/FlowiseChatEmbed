@@ -13,8 +13,6 @@ type Props = {
   chatId: string;
   showAvatar?: boolean;
   avatarSrc?: string;
-  backgroundColor?: string;
-  textColor?: string;
   fontSize?: number;
   renderHTML?: boolean;
   dateTimeToggle?: DateTimeToggleTheme;
@@ -23,9 +21,9 @@ type Props = {
   isPopup?: boolean;
   enableCopyMessage?: boolean;
   feedbackReasons?: string[];
+  userName?: string; // Имя пользователя (fio) для отображения в bubble
 };
 
-const defaultBackgroundColor = 'var(--chatbot-guest-bubble-bg-color, #3B81F6)';
 const defaultFontSize = 16;
 
 const formatDateTime = (dateTimeString: string | undefined, showDate: boolean | undefined, showTime: boolean | undefined) => {
@@ -70,16 +68,10 @@ export const GuestBubble = (props: Props) => {
 
   const [copiedMessage, setCopiedMessage] = createSignal(false);
 
-  // Effect to set innerHTML and apply text color when element or message changes
+  // Effect to set innerHTML when element or message changes
   createEffect(() => {
     if (userMessageEl && props.message.message) {
       userMessageEl.innerHTML = Marked.parse(props.message.message);
-
-      // Apply textColor to all links, headings, and other markdown elements
-      const textColor = props.textColor ?? '#2D3537'; // black
-      userMessageEl.querySelectorAll('a, h1, h2, h3, h4, h5, h6, strong, em, blockquote, li').forEach((element) => {
-        (element as HTMLElement).style.color = textColor;
-      });
 
       // Code blocks (with pre) get white text
       userMessageEl.querySelectorAll('pre').forEach((element) => {
@@ -127,7 +119,7 @@ export const GuestBubble = (props: Props) => {
     } else {
       return (
         <div class={`inline-flex items-center h-12 max-w-max p-2 mr-1 flex-none bg-transparent border border-gray-300 rounded-md`}>
-          <AttachmentIcon color={props.textColor ?? '#2D3537'} />
+          <AttachmentIcon color="var(--chatbot-guest-bubble-text-color, #2D3537)" />
           <span class={`ml-1.5 text-inherit`}>{item.name}</span>
         </div>
       );
@@ -156,15 +148,22 @@ export const GuestBubble = (props: Props) => {
 
   return (
     <div class={getContainerClasses()}>
-      <div
-        class={`max-w-full flex flex-col justify-center items-start chatbot-guest-bubble min-h-[52px] px-4 py-2 gap-2 mr-2 rounded-lg rounded-br-none ${
-          props.textColor ? `text-[${props.textColor}]` : 'text-black'
-        }`}
-        data-testid="guest-bubble"
-        style={{
-          'background-color': props.backgroundColor ?? defaultBackgroundColor,
-        }}
-      >
+      <div class="flex flex-col items-end mr-2">
+        {/* Отображаем имя пользователя над сообщением, если оно есть и не "Гость" */}
+        <Show when={props.userName && props.userName !== 'Гость'}>
+          <span
+            class="text-xs mb-1 opacity-75 text-[var(--chatbot-guest-bubble-text-color)]"
+            style={{
+              'font-size': props.fontSize ? `${(props.fontSize * 0.75).toFixed(0)}px` : '12px',
+            }}
+          >
+            {props.userName}
+          </span>
+        </Show>
+        <div
+          class="max-w-full flex flex-col justify-center items-start chatbot-guest-bubble min-h-[52px] px-4 py-2 gap-2 rounded-lg rounded-br-none bg-[var(--chatbot-guest-bubble-bg-color)] text-[var(--chatbot-guest-bubble-text-color)]"
+          data-testid="guest-bubble"
+        >
         {props.message.fileUploads && props.message.fileUploads.length > 0 && (
           <div class="flex flex-col items-start flex-wrap w-full gap-2">
             <For each={props.message.fileUploads}>
@@ -196,6 +195,7 @@ export const GuestBubble = (props: Props) => {
             {formatDateTime(props.message.dateTime, props?.dateTimeToggle?.date, props?.dateTimeToggle?.time)}
           </div>
         )}
+        </div>
       </div>
       <Show when={props.showAvatar}>
         <Avatar initialAvatarSrc={props.avatarSrc} />

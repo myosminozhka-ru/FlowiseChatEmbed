@@ -22,8 +22,6 @@ type Props = {
   fileAnnotations?: any;
   showAvatar?: boolean;
   avatarSrc?: string;
-  backgroundColor?: string;
-  textColor?: string;
   chatFeedbackStatus?: boolean;
   fontSize?: number;
   feedbackColor?: string;
@@ -65,11 +63,7 @@ export const BotBubble = (props: Props) => {
     if (el) {
       el.innerHTML = Marked.parse(props.message.message);
 
-      // Apply textColor to all links, headings, and other markdown elements except code
-      const textColor = props.textColor ?? '#15181E'; // gray-880
-      el.querySelectorAll('a, h1, h2, h3, h4, h5, h6, strong, em, blockquote, li').forEach((element) => {
-        (element as HTMLElement).style.color = textColor;
-      });
+      // Цвета задаются через CSS переменные (не используем props.textColor)
 
       // Code blocks (with pre) get white text
       el.querySelectorAll('pre').forEach((element) => {
@@ -294,11 +288,7 @@ export const BotBubble = (props: Props) => {
     // Instead of onMount, we'll use a callback ref to apply styles
     const setArtifactRef = (el: HTMLSpanElement) => {
       if (el) {
-        const textColor = props.textColor ?? '#15181E'; // gray-880
-        // Apply textColor to all elements except code blocks
-        el.querySelectorAll('a, h1, h2, h3, h4, h5, h6, strong, em, blockquote, li').forEach((element) => {
-          (element as HTMLElement).style.color = textColor;
-        });
+        // Цвета задаются через CSS переменные (не используем props.textColor)
 
         // Code blocks (with pre) get white text
         el.querySelectorAll('pre').forEach((element) => {
@@ -346,9 +336,8 @@ export const BotBubble = (props: Props) => {
           <span
             ref={setArtifactRef}
             innerHTML={Marked.parse(item.data as string)}
-            class={`prose rounded-lg ${props.textColor ? `text-[${props.textColor}]` : 'text-gray-880'}`}
+            class="prose rounded-lg chatbot-host-bubble bg-[var(--chatbot-host-bubble-bg-color)] text-[var(--chatbot-host-bubble-text-color)]"
             style={{
-              'background-color': props.backgroundColor ?? defaultBackgroundColor,
               'font-size': props.fontSize ? `${props.fontSize}px` : defaultFontSize,
             }}
           />
@@ -416,11 +405,10 @@ export const BotBubble = (props: Props) => {
       <div class={getContainerClasses()}>
         {/* Основной контейнер с контентом */}
         <div
-          class={`flex flex-col justify-start px-4 py-3 rounded-lg rounded-bl-none chatbot-host-bubble min-h-[52px] ${
+          class={`flex flex-col justify-start px-4 py-3 rounded-lg rounded-bl-none chatbot-host-bubble min-h-[52px] bg-[var(--chatbot-host-bubble-bg-color)] text-[var(--chatbot-host-bubble-text-color)] ${
             props.isLoading && !props.message.message ? 'w-[72px]' : 'w-full'
-          } ${props.textColor ? `text-[${props.textColor}]` : 'text-gray-880'}`}
+          }`}
           style={{
-            'background-color': props.backgroundColor ?? defaultBackgroundColor,
             'font-size': props.fontSize ? `${props.fontSize}px` : defaultFontSize,
           }}
         >

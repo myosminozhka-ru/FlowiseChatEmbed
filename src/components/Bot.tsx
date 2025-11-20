@@ -32,7 +32,7 @@ import { IconButton } from '@/components/buttons/IconButton';
 import { FilePreview } from '@/components/inputs/textInput/components/FilePreview';
 import { SparklesIcon, TrashIcon, XIcon, ResizeIcon } from './icons';
 import { LeadCaptureBubble } from '@/components/bubbles/LeadCaptureBubble';
-import { removeLocalStorageChatHistory, getLocalStorageChatflow, setLocalStorageChatflow, setCookie, getCookie } from '@/utils';
+import { removeLocalStorageChatHistory, getLocalStorageChatflow, setLocalStorageChatflow, setCookie, getCookie, getUserDataWithAuth } from '@/utils';
 import { cloneDeep } from 'lodash';
 import { FollowUpPromptBubble } from '@/components/bubbles/FollowUpPromptBubble';
 import { fetchEventSource, EventStreamContentType } from '@microsoft/fetch-event-source';
@@ -475,6 +475,9 @@ export const Bot = (botProps: BotProps & { class?: string }) => {
   const [formInputsData, setFormInputsData] = createSignal({});
   const [formInputParams, setFormInputParams] = createSignal([]);
 
+  // Данные пользователя (ФИО и другие данные)
+  const [userData, setUserData] = createSignal<{ fio?: string; user_id?: string; user_name?: string; token?: string }>({});
+
   // drag & drop file input
   // TODO: fix this type
   const [previews, setPreviews] = createSignal<FilePreview[]>([]);
@@ -493,7 +496,12 @@ export const Bot = (botProps: BotProps & { class?: string }) => {
     setChatId(customerId ? `${customerId.toString()}+${uuidv4()}` : uuidv4());
   });
 
-  onMount(() => {
+  onMount(async () => {
+    // Загружаем данные пользователя при монтировании компонента
+    // URL для auth запроса фиксированный (https://sk.ru/auth/user_info/), не зависит от apiHost
+    const data = await getUserDataWithAuth(props.apiHost, props.onRequest);
+    setUserData(data);
+
     if (botProps?.observersConfig) {
       const { observeUserInput, observeLoading, observeMessages } = botProps.observersConfig;
       typeof observeUserInput === 'function' &&
@@ -1024,7 +1032,34 @@ export const Bot = (botProps: BotProps & { class?: string }) => {
 
     if (uploads && uploads.length > 0) body.uploads = uploads;
 
-    if (props.chatflowConfig) body.overrideConfig = props.chatflowConfig;
+    // Получаем актуальные данные пользователя (с кэшированием)
+    // Если данные уже загружены, используем их, иначе делаем запрос
+    // URL для auth запроса фиксированный, не зависит от apiHost
+    let currentUserData = userData();
+    if (!currentUserData.fio && !currentUserData.user_name) {
+      currentUserData = await getUserDataWithAuth(props.apiHost, props.onRequest);
+      setUserData(currentUserData);
+    }
+
+    // Формируем userData для отправки в AI платформу
+    // Передаем только user_id (id из ответа auth или guest_id для гостя)
+    // user_name (fio) используем только для отображения в bubble, не передаем в AI
+    const userDataForRequest: Record<string, unknown> = {};
+    // Передаем user_id только если он есть (для авторизованных) или guest_id (для гостей)
+    if (currentUserData.user_id) {
+      userDataForRequest.user_id = currentUserData.user_id;
+    }
+
+    // Если есть хотя бы одно поле, добавляем userData в overrideConfig
+    if (Object.keys(userDataForRequest).length > 0) {
+      const chatflowConfigWithUserData = {
+        ...(props.chatflowConfig || {}),
+        userData: userDataForRequest,
+      };
+      body.overrideConfig = chatflowConfigWithUserData;
+    } else if (props.chatflowConfig) {
+      body.overrideConfig = props.chatflowConfig;
+    }
 
     if (leadEmail()) body.leadEmail = leadEmail();
 
@@ -1816,6 +1851,7 @@ export const Bot = (botProps: BotProps & { class?: string }) => {
                             isFullscreen={props.isFullscreen}
                             isPopup={!props.isFullPage}
                             enableCopyMessage={props.enableCopyMessage}
+                            userName={userData().user_name} // Передаем user_name (fio) для отображения
                           />
                         )}
                         {message.type === 'apiMessage' && (

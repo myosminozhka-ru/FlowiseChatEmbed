@@ -24,8 +24,10 @@
   --chatbot-button-color: #1A1C23;
 
   --chatbot-host-bubble-bg-color: #E3FBBD;
+  --chatbot-host-bubble-text-color: #15181E;
 
   --chatbot-guest-bubble-bg-color: #DEE8FF;
+  --chatbot-guest-bubble-text-color: #2D3537;
 
   --chatbot-input-bg-color: #ffffff;
   --chatbot-input-caret-color: #88C400;

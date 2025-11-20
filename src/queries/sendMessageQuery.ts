@@ -137,3 +137,35 @@ export const addLeadQuery = ({ apiHost = 'http://localhost:3000', body, onReques
     body,
     onRequest: onRequest,
   });
+
+export type AuthRequest = BaseRequest & {
+  token: string;
+};
+
+export type AuthResponse = {
+  fio?: string; // ФИО пользователя
+  id?: string; // ID пользователя из ответа
+  user_id?: string; // Альтернативное имя для id
+  [key: string]: unknown;
+};
+
+/**
+ * Запрос для получения ФИО пользователя по токену sk_auth
+ * @param token - Токен sk_auth из cookies
+ * @param apiHost - Базовый URL API (не используется, так как endpoint фиксированный)
+ * @param onRequest - Callback для модификации запроса
+ * @returns Данные пользователя (fio и другие данные)
+ */
+export const authQuery = async ({ token, apiHost, onRequest }: AuthRequest): Promise<{ data?: AuthResponse; error?: Error }> => {
+  try {
+    const url = `https://sk.ru/auth/user_info/?sk_auth=${encodeURIComponent(token)}`;
+    return await sendRequest<AuthResponse>({
+      method: 'GET',
+      url,
+      onRequest: onRequest,
+    });
+  } catch (e) {
+    console.error('Auth query error:', e);
+    return { error: e as Error };
+  }
+};
