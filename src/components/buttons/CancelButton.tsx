@@ -6,7 +6,6 @@ type CancelButtonProps = {
   isLoading?: boolean;
   disableIcon?: boolean;
   text?: string;
-  // Цвета настраиваются через Tailwind классы
 } & JSX.ButtonHTMLAttributes<HTMLButtonElement>;
 
 export const CancelButton = (props: CancelButtonProps) => {

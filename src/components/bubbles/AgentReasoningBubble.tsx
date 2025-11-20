@@ -10,7 +10,6 @@ type Props = {
   agentName: string;
   agentMessage: string;
   agentArtifacts?: FileUpload[];
-  // Цвета настраиваются через Tailwind классы
   fontSize?: number;
   renderHTML?: boolean;
 };

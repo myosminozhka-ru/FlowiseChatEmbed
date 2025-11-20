@@ -5,7 +5,6 @@ type LeadCaptureButtonProps = {
   isDisabled?: boolean;
   isLoading?: boolean;
   disableIcon?: boolean;
-  // Цвета настраиваются через Tailwind классы
 } & JSX.ButtonHTMLAttributes<HTMLButtonElement>;
 
 // Not being used for now, keep it for future in case we want to allow users to cancel the form

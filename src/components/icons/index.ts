@@ -8,6 +8,7 @@ export * from './SendIcon';
 export * from './TrashIcon';
 export * from './XIcon';
 export * from './TickIcon';
+export * from './CheckIcon';
 export * from './AttachmentIcon';
 export * from './SparklesIcon';
 export * from './ResizeIcon';

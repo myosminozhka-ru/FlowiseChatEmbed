@@ -9,7 +9,6 @@ import { ChatInputHistory } from '@/utils/chatInputHistory';
 type TextInputProps = {
   placeholder?: string;
   inputValue: string;
-  // Цвета настраиваются через Tailwind классы
   fontSize?: number;
   disabled?: boolean;
   onSubmit: (value: string) => void;

@@ -8,7 +8,8 @@ type FeedbackContentDialogProps = {
   onClose: () => void;
   onSubmit: (text: string, reason?: string) => void;
   reasons?: string[];
-  // Цвета настраиваются через Tailwind классы
+  errorMessage?: string;
+  onErrorClear?: () => void;
 };
 
 const defaultBackgroundColor = 'var(--chatbot-input-bg-color, #ffffff)';
@@ -39,21 +40,32 @@ const FeedbackContentDialog = (props: FeedbackContentDialogProps) => {
   const handleInput = (value: string) => {
     if (value.length <= MAX_TEXT_LENGTH) {
       setInputValue(value);
+      if (props.errorMessage && props.onErrorClear) {
+        props.onErrorClear();
+      }
     }
   };
 
   const handleReasonChange = (reason: string) => {
     setSelectedReason(reason);
+    if (props.errorMessage && props.onErrorClear) {
+      props.onErrorClear();
+    }
   };
 
-  // Используем createMemo для реактивности
+  const countWords = (text: string): number => {
+    return text.trim().split(/\s+/).filter(word => word.length > 0).length;
+  };
+
   const isSubmitDisabled = createMemo(() => {
     const reason = selectedReason();
-    // Если нет выбранной причины - disabled
     if (!reason) return true;
-    // Если выбрана "Другое" и поле пустое - disabled
-    if (reason === OTHER_REASON && !inputValue().trim()) return true;
-    // Во всех остальных случаях - активна
+    if (reason === OTHER_REASON) {
+      const trimmedValue = inputValue().trim();
+      if (!trimmedValue) return true;
+      const wordCount = countWords(trimmedValue);
+      if (wordCount !== 2) return true;
+    }
     return false;
   });
 
@@ -62,8 +74,6 @@ const FeedbackContentDialog = (props: FeedbackContentDialogProps) => {
       const reason = selectedReason();
       const text = reason === OTHER_REASON ? inputValue() : '';
       props.onSubmit(text, reason);
-      setInputValue('');
-      setSelectedReason('');
     }
   };
 
@@ -130,6 +140,9 @@ const FeedbackContentDialog = (props: FeedbackContentDialogProps) => {
 
             {/* Footer */}
             <div class="flex flex-col p-6 border-t border-solid border-gray-200 rounded-b-2xl space-y-3">
+              <Show when={props.errorMessage}>
+                <p class="text-red-500 text-sm text-center">{props.errorMessage}</p>
+              </Show>
               {/* Buttons */}
               <div class="flex items-center justify-end space-x-3">
                 <Button text="Отмена" type="button" onClick={onClose} class={'flex-1 bg-white'} />

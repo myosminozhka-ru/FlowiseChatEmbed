@@ -4,7 +4,6 @@ type ButtonProps = {
   text: string;
   class?: string;
   ariaLabel?: string;
-  // Цвета настраиваются через Tailwind классы в class prop
 } & JSX.ButtonHTMLAttributes<HTMLButtonElement>;
 
 export const Button = (props: ButtonProps) => {

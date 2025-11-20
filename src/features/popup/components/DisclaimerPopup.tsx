@@ -9,7 +9,6 @@ export type DisclaimerPopupProps = {
   message?: string;
   buttonText?: string;
   denyButtonText?: string;
-  // Цвета настраиваются через Tailwind классы
 };
 
 export const DisclaimerPopup = (props: DisclaimerPopupProps) => {

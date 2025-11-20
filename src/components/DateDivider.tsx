@@ -2,7 +2,6 @@ import { Show } from 'solid-js';
 
 type Props = {
   date?: string;
-  // Цвета настраиваются через Tailwind классы
 };
 
 const formatDate = (dateString?: string): string => {

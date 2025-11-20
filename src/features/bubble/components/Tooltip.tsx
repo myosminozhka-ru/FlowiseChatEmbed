@@ -10,8 +10,7 @@ type TooltipProps = {
   position: { bottom: number; right: number };
   buttonSize: number;
   tooltipMessage?: string;
-  tooltipFontSize?: number; // Add tooltipFontSize to props
-  // Цвета настраиваются через Tailwind классы
+  tooltipFontSize?: number;
 };
 
 const Tooltip = (props: TooltipProps) => {

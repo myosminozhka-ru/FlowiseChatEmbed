@@ -5,7 +5,6 @@ type FileUploadButtonProps = {
   isDisabled?: boolean;
   isLoading?: boolean;
   disableIcon?: boolean;
-  // Цвета настраиваются через Tailwind классы
 } & JSX.ButtonHTMLAttributes<HTMLButtonElement>;
 
 export const AttachmentUploadButton = (props: FileUploadButtonProps) => {

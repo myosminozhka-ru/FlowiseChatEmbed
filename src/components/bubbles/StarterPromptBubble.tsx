@@ -1,7 +1,6 @@
 type Props = {
   prompt: string;
   onPromptClick?: () => void;
-  // Цвета настраиваются через Tailwind классы
 };
 
 export const StarterPromptBubble = (props: Props) => (

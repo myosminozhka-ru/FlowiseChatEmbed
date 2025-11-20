@@ -8,7 +8,6 @@ type ShortTextInputProps = {
   disabled?: boolean;
   paddingX?: string;
   paddingY?: string;
-  // Цвета настраиваются через Tailwind классы
 } & Omit<JSX.TextareaHTMLAttributes<HTMLTextAreaElement>, 'onInput'>;
 
 const DEFAULT_HEIGHT = 56;

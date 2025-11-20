@@ -6,7 +6,6 @@ type DeleteButtonProps = {
   isLoading?: boolean;
   disableIcon?: boolean;
   text?: string;
-  // Цвета настраиваются через Tailwind классы
 } & JSX.ButtonHTMLAttributes<HTMLButtonElement>;
 
 export const DeleteButton = (props: DeleteButtonProps) => {

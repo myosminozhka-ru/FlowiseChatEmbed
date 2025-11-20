@@ -9,7 +9,6 @@ type WelcomeMessageProps = {
   showWelcomeImage?: boolean;
   starterPrompts?: string[];
   onPromptClick?: (prompt: string) => void;
-  // Цвета настраиваются через Tailwind классы
 };
 
 const defaultFontSize = 'var(--chatbot-font-size, 16px)';

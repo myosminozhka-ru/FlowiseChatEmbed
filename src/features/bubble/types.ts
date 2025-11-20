@@ -11,28 +11,23 @@ export type BubbleTheme = {
   form?: FormTheme;
 };
 
-export type FormTheme = {
-  // Цвета настраиваются через Tailwind классы в customCSS
-};
+export type FormTheme = Record<string, never>;
 
 export type TextInputTheme = {
   placeholder?: string;
   maxChars?: number;
   maxCharsWarningMessage?: string;
   autoFocus?: boolean;
-  // Цвета настраиваются через Tailwind классы в customCSS
 };
 
 export type UserMessageTheme = {
   showAvatar?: boolean;
   avatarSrc?: string;
-  // Цвета настраиваются через Tailwind классы в customCSS
 };
 
 export type BotMessageTheme = {
   showAvatar?: boolean;
   avatarSrc?: string;
-  // Цвета настраиваются через Tailwind классы в customCSS
 };
 
 export type FooterTheme = {
@@ -40,12 +35,10 @@ export type FooterTheme = {
   text?: string;
   company?: string;
   companyLink?: string;
-  // Цвета настраиваются через Tailwind классы в customCSS
 };
 
 export type FeedbackTheme = {
   reasons?: string[];
-  // Цвета настраиваются через Tailwind классы в customCSS
 };
 
 export type ChatWindowTheme = {
@@ -71,7 +64,6 @@ export type ChatWindowTheme = {
   clearChatOnReload?: boolean;
   dateTimeToggle?: DateTimeToggleTheme;
   renderHTML?: boolean;
-  // Цвета настраиваются через Tailwind классы в customCSS
 };
 
 export type ButtonTheme = {
@@ -81,14 +73,12 @@ export type ButtonTheme = {
   right?: number;
   dragAndDrop?: boolean; // parameter to enable drag and drop(true or false)
   autoWindowOpen?: autoWindowOpenTheme;
-  // Цвета настраиваются через Tailwind классы в customCSS
 };
 
 export type ToolTipTheme = {
   showTooltip?: boolean; // parameter to enable tooltip(true or false)
   tooltipMessage?: string;
   tooltipFontSize?: number;
-  // Цвета настраиваются через Tailwind классы в customCSS
 };
 
 export type autoWindowOpenTheme = {
@@ -102,7 +92,6 @@ export type DisclaimerPopUpTheme = {
   message?: string;
   buttonText?: string;
   denyButtonText?: string;
-  // Цвета настраиваются через Tailwind классы в customCSS
 };
 
 export type DateTimeToggleTheme = {

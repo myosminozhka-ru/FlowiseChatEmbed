@@ -6,6 +6,7 @@ import { FileUpload, IAction, MessageType } from '../Bot';
 import { CopyToClipboardButton, ThumbsDownButton, ThumbsUpButton } from '../buttons/FeedbackButtons';
 import FeedbackContentDialog from '../FeedbackContentDialog';
 import { AgentReasoningBubble } from './AgentReasoningBubble';
+import { SuccessAlert } from './SuccessAlert';
 import { TickIcon, XIcon } from '../icons';
 import { SourceBubble } from '../bubbles/SourceBubble';
 import { DateTimeToggleTheme } from '@/features/bubble/types';
@@ -55,6 +56,8 @@ export const BotBubble = (props: Props) => {
   const [copiedMessage, setCopiedMessage] = createSignal(false);
   const [thumbsUpColor, setThumbsUpColor] = createSignal(props.feedbackColor ?? defaultFeedbackColor); // default color
   const [thumbsDownColor, setThumbsDownColor] = createSignal(props.feedbackColor ?? defaultFeedbackColor); // default color
+  const [feedbackError, setFeedbackError] = createSignal('');
+  const [showSuccessAlert, setShowSuccessAlert] = createSignal(false);
 
   // Store a reference to the bot message element for the copyMessageToClipboard function
   const [botMessageElement, setBotMessageElement] = createSignal<HTMLElement | null>(null);
@@ -208,8 +211,6 @@ export const BotBubble = (props: Props) => {
         if (data && data.id) id = data.id;
         setRating('THUMBS_UP');
         setFeedbackId(id);
-        setShowFeedbackContentModal(true);
-        // update the thumbs up color state
         setThumbsUpColor('#006400');
         saveToLocalStorage('THUMBS_UP');
       }
@@ -239,16 +240,18 @@ export const BotBubble = (props: Props) => {
         setRating('THUMBS_DOWN');
         setFeedbackId(id);
         setShowFeedbackContentModal(true);
-        // update the thumbs down color state
         setThumbsDownColor('#8B0000');
         saveToLocalStorage('THUMBS_DOWN');
+      } else if (result.error) {
+        setFeedbackError('Произошла ошибка, попробуйте еще раз');
+        setShowFeedbackContentModal(true);
       }
     }
   };
 
   const submitFeedbackContent = async (text: string, reason?: string) => {
-    // API не принимает поле "reason", только "content"
-    // Если выбрана обычная причина (не "Другое"), включаем её label в content
+    setFeedbackError('');
+    
     let content = text;
     if (reason && reason !== 'Другое') {
       content = reason + (text ? `: ${text}` : '');
@@ -267,6 +270,9 @@ export const BotBubble = (props: Props) => {
     if (result.data) {
       setFeedbackId('');
       setShowFeedbackContentModal(false);
+      setShowSuccessAlert(true);
+    } else if (result.error) {
+      setFeedbackError('Произошла ошибка, попробуйте еще раз');
     }
   };
 
@@ -592,11 +598,22 @@ export const BotBubble = (props: Props) => {
       <Show when={showFeedbackContentDialog()}>
         <FeedbackContentDialog
           isOpen={showFeedbackContentDialog()}
-          onClose={() => setShowFeedbackContentModal(false)}
+          onClose={() => {
+            setShowFeedbackContentModal(false);
+            setFeedbackError('');
+          }}
           onSubmit={submitFeedbackContent}
           reasons={props.feedbackReasons}
+          errorMessage={feedbackError()}
+          onErrorClear={() => setFeedbackError('')}
         />
       </Show>
+      {/* Success Alert */}
+      <SuccessAlert
+        isOpen={showSuccessAlert()}
+        onClose={() => setShowSuccessAlert(false)}
+        message="Ваше сообщение отправлено."
+      />
     </div>
   );
 };

@@ -8,7 +8,6 @@ import { ChatInputHistory } from '@/utils/chatInputHistory';
 type SendAreaProps = {
   placeholder?: string;
   inputValue: string;
-  // Цвета настраиваются через Tailwind классы
   fontSize?: number;
   disabled?: boolean;
   onSubmit: (value: string) => void;
@@ -200,7 +199,7 @@ export const SendArea = (props: SendAreaProps) => {
         <textarea
           ref={textareaRef}
           value={props.inputValue}
-          placeholder={props.placeholder ?? 'Введите свой вопрос'}
+          placeholder={props.placeholder ?? 'Напишите свой вопрос...'}
           disabled={props.disabled}
           class={`focus:outline-none bg-transparent px-0 pt-[25px] pb-0 flex-1 w-full h-full min-h-[56px] max-h-[128px] text-input placeholder:text-gray-400 disabled:opacity-50 disabled:cursor-not-allowed disabled:brightness-100 ${'caret-[var(--chatbot-input-caret-color)]'}`}
           style={{

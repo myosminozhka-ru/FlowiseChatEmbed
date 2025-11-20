@@ -17,7 +17,6 @@ type WorkflowTreeViewProps = {
   indentationLevel?: number;
   initiallyExpanded?: boolean;
   title?: string;
-  // Цвета настраиваются через Tailwind классы
   fontSize?: number;
 };
 

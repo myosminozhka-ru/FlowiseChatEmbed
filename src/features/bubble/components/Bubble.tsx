@@ -54,7 +54,18 @@ export const Bubble = (props: BubbleProps) => {
   };
 
   const closeBot = () => {
-    setIsBotOpened(false);
+    if (isFullscreen()) {
+      setIsTransitioning(true);
+      setTimeout(() => {
+        setIsFullscreen(false);
+        setTimeout(() => {
+          setIsTransitioning(false);
+          setIsBotOpened(false);
+        }, 50);
+      }, 200);
+    } else {
+      setIsBotOpened(false);
+    }
   };
 
   const toggleBot = () => {
