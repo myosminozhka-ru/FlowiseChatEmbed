@@ -10,6 +10,10 @@ import axios from 'axios';
 import multer from 'multer';
 import FormData from 'form-data';
 import fs from 'fs';
+import { spawn } from 'child_process';
+import { createServer } from 'http';
+import { Server } from 'socket.io';
+import localtunnel from 'localtunnel';
 import { generateEmbedScript } from './src/utils/embedScript.js';
 
 dotenv.config();
@@ -33,8 +37,15 @@ const errorLog = (...args) => {
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
-const API_HOST = process.env.API_HOST;
+const PORT = process.env.PORT || 3001;
+const HOST = process.env.HOST || '0.0.0.0';
+const DEV_BASE_URL = `http://${HOST === '0.0.0.0' ? 'localhost' : HOST}:${PORT}`;
+
+const CHAT_API_HOST = process.env.CHAT_API_HOST; // Адрес внешнего Flowise API (https://app.osmi-it.ru)
 const API_KEY = process.env.API_KEY;
+
+// Глобальная переменная для хранения tunnel URL (для прокси)
+let tunnelUrl = null;
 
 // Парсинг конфигурации chatflows
 
@@ -49,7 +60,7 @@ const parseChatflows = () => {
         !key.startsWith('npm_') &&
         !key.startsWith('yarn_') &&
         !key.startsWith('VSCODE_') &&
-        key !== 'API_HOST' &&
+        key !== 'CHAT_API_HOST' &&
         key !== 'API_KEY' &&
         key !== 'PORT' &&
         key !== 'HOST' &&
@@ -181,98 +192,105 @@ app.use(
   }),
 );
 
-// Статические файлы
+// Создание HTTP сервера для socket.io (нужно до определения endpoints)
+const httpServer = createServer(app);
+
+// Настройка Socket.IO
+const io = new Server(httpServer, {
+  cors: {
+    origin: true,
+    credentials: true,
+    methods: ['GET', 'POST'],
+  },
+});
+
+// Обработка подключений WebSocket
+io.on('connection', (socket) => {
+  devLog('🔌 [WebSocket] Клиент подключился:', socket.id);
+
+  // Клиент присоединяется к комнате по clientId
+  socket.on('join', (clientId) => {
+    if (clientId) {
+      const room = `client-${clientId}`;
+      socket.join(room);
+      devLog(`🔌 [WebSocket] Клиент ${socket.id} присоединился к комнате: ${room}`);
+    }
+  });
+
+  // Клиент покидает комнату
+  socket.on('leave', (clientId) => {
+    if (clientId) {
+      const room = `client-${clientId}`;
+      socket.leave(room);
+      devLog(`🔌 [WebSocket] Клиент ${socket.id} покинул комнату: ${room}`);
+    }
+  });
+
+  socket.on('disconnect', () => {
+    devLog('🔌 [WebSocket] Клиент отключился:', socket.id);
+  });
+});
+
+// Endpoint для получения конфигурации из переменных окружения
+app.get('/api/config', (_, res) => {
+  const apiHost = CHAT_API_HOST || 'https://app.osmi-it.ru';
+  const chatflowId = process.env.CHATFLOW_ID || '416feeac-4a95-4f6e-a81d-73f8f48bc54f';
+  
+  res.json({
+    apiHost,
+    chatflowId,
+  });
+});
+
+// Динамическая генерация fullchat.html с встроенной конфигурацией
+app.get('/fullchat.html', (_, res) => {
+  const fullchatPath = path.join(__dirname, 'public', 'fullchat.html');
+  
+  // Читаем конфигурацию из переменных окружения
+  const apiHost = CHAT_API_HOST || 'https://app.osmi-it.ru';
+  const chatflowId = process.env.CHATFLOW_ID || '416feeac-4a95-4f6e-a81d-73f8f48bc54f';
+  
+  const config = {
+    apiHost,
+    chatflowId,
+  };
+  
+  // Читаем файл и встраиваем конфигурацию
+  fs.readFile(fullchatPath, 'utf8', (err, data) => {
+    if (err) {
+      errorLog('❌ [Fullchat] Ошибка чтения файла:', err);
+      return res.status(500).send('Ошибка загрузки файла');
+    }
+    
+    // Встраиваем конфигурацию в HTML перед основным скриптом
+    const configScript = `
+    <script>
+        // Конфигурация из переменных окружения сервера
+        window.__CHAT_CONFIG__ = ${JSON.stringify(config, null, 2)};
+    </script>`;
+    
+    // Вставляем скрипт с конфигурацией перед основным скриптом
+    const html = data.replace(
+      /<script type="module">/,
+      `${configScript}\n    <script type="module">`
+    );
+    
+    res.setHeader('Content-Type', 'text/html; charset=utf-8');
+    res.send(html);
+  });
+});
+
+
+// Статические файлы (после динамических роутов)
+app.use(express.static(path.join(__dirname, 'dist')));
+app.use(express.static(path.join(__dirname, 'public')));
 
 app.get('/', (_, res) => {
   res.sendFile(path.join(__dirname, 'public', 'index.html'));
 });
 
-// Обработка статических файлов из public (fullchat.html, index.html и т.д.)
-app.get(/^\/[^/]+\.html$/, (req, res, next) => {
-  const fileName = req.path.substring(1); // Убираем ведущий слэш
-  const filePath = path.join(__dirname, 'public', fileName);
-
-  // Проверяем, существует ли файл в public
-  fs.access(filePath, fs.constants.F_OK, (err) => {
-    if (err) {
-      // Если файл не найден, передаем управление дальше
-      return next();
-    }
-    // Отправляем файл
-    res.sendFile(filePath);
-  });
-});
-
-// Обработка favicon.ico и других статических файлов
 app.get('/favicon.ico', (_, res) => {
   res.status(204).end();
-});
-
-// Обработка /dist/web.js (прямой доступ к файлу)
-app.get('/dist/web.js', (req, res) => {
-  const origin = req.headers.origin;
-  const host = req.headers.host;
-
-  // Разрешаем доступ для localhost в dev режиме
-  const isLocalhost = host && (host.includes('localhost') || host.includes('127.0.0.1'));
-
-  if (isDev && isLocalhost) {
-    res.set({
-      'Content-Type': 'application/javascript',
-      'Cache-Control': 'no-store, no-cache, must-revalidate, proxy-revalidate',
-      Pragma: 'no-cache',
-      Expires: '0',
-    });
-    return res.sendFile(path.join(__dirname, 'dist', 'web.js'));
-  }
-
-  const allAllowedDomains = Array.from(chatflows.values()).flatMap((config) => config.domains);
-
-  // Разрешаем доступ, если origin совпадает с host или отсутствует
-  if (!isValidDomain(origin, allAllowedDomains, host)) {
-    return res.status(403).send('Access Denied');
-  }
-
-  res.set({
-    'Content-Type': 'application/javascript',
-    'Cache-Control': 'no-store, no-cache, must-revalidate, proxy-revalidate',
-    Pragma: 'no-cache',
-    Expires: '0',
-  });
-  res.sendFile(path.join(__dirname, 'dist', 'web.js'));
-});
-
-app.get('/web.js', (req, res) => {
-  const origin = req.headers.origin;
-  const host = req.headers.host;
-
-  // Разрешаем доступ для localhost в dev режиме
-  const isLocalhost = host && (host.includes('localhost') || host.includes('127.0.0.1'));
-
-  if (isDev && isLocalhost) {
-    res.set({
-      'Content-Type': 'application/javascript',
-      'Cache-Control': 'no-store, no-cache, must-revalidate, proxy-revalidate',
-      Pragma: 'no-cache',
-      Expires: '0',
-    });
-    return res.sendFile(path.join(__dirname, 'dist', 'web.js'));
-  }
-
-  const allAllowedDomains = Array.from(chatflows.values()).flatMap((config) => config.domains);
-
-  // Разрешаем доступ, если origin совпадает с host или отсутствует
-  if (!isValidDomain(origin, allAllowedDomains, host)) {
-    return res.status(403).send('Access Denied');
-  }
-
-  res.set({
-    'Content-Type': 'application/javascript',
-    'Cache-Control': 'no-store, no-cache, must-revalidate, proxy-revalidate',
-    Pragma: 'no-cache',
-    Expires: '0',
-  });
-  res.sendFile(path.join(__dirname, 'dist', 'web.js'));
 });
 
 // Middleware для проверки доступа (домены и API ключ)
@@ -284,6 +302,7 @@ const validateApiKey = (req, res, next) => {
     req.path === '/dist/web.js' ||
     req.path === '/' ||
     req.path === '/favicon.ico' ||
+    req.path === '/api/config' || // Endpoint для получения конфигурации
     req.path.startsWith('/dist/') ||
     req.path.startsWith('/public/') ||
     req.path.endsWith('.html') || // Разрешаем все HTML файлы (fullchat.html и т.д.)
@@ -293,11 +312,6 @@ const validateApiKey = (req, res, next) => {
   }
 
   if (req.path.includes('/get-upload-file')) {
-    return next();
-  }
-
-  // Разрешаем запросы к прокси AutoFAQ (только в dev)
-  if (isDev && (req.path === '/api/v1/autofaq-proxy' || req.path.startsWith('/api/v1/autofaq-proxy/'))) {
     return next();
   }
 
@@ -319,7 +333,12 @@ const validateApiKey = (req, res, next) => {
     chatflow = getChatflowDetails(identifier);
     req.chatflow = chatflow;
   } catch (error) {
+    if (isDev) {
+      chatflow = { chatflowId: identifier, domains: [DEV_BASE_URL] };
+      req.chatflow = chatflow;
+    } else {
     return res.status(404).json({ error: 'Not Found' });
+    }
   }
 
   const origin = req.headers.origin;
@@ -343,279 +362,24 @@ const validateApiKey = (req, res, next) => {
     }
   }
 
-  const authHeader = req.headers.authorization;
-  if (API_KEY && authHeader && authHeader.startsWith('Bearer ') && authHeader.split(' ')[1] === API_KEY) {
-    return next();
-  }
-
   return res.status(401).json({ error: 'Unauthorized' });
 };
 
 app.use(validateApiKey);
-
-// Прокси для API
-
-const proxyEndpoints = {
-  prediction: {
-    method: 'POST',
-    path: '/api/v1/prediction/:identifier',
-    target: '/api/v1/prediction',
-  },
-  config: {
-    method: 'GET',
-    path: '/api/v1/public-chatbotConfig/:identifier',
-    target: '/api/v1/public-chatbotConfig',
-  },
-  streaming: {
-    method: 'GET',
-    path: '/api/v1/chatflows-streaming/:identifier',
-    target: '/api/v1/chatflows-streaming',
-  },
-  files: {
-    method: 'GET',
-    path: '/api/v1/get-upload-file',
-    target: '/api/v1/get-upload-file',
-  },
-};
-
-const handleProxy = async (req, res, targetPath) => {
-  try {
-    if (!API_HOST) {
-      return res.status(500).json({ error: 'API_HOST is not configured. Proxy functionality is disabled.' });
-    }
-
-    let identifier = req.query.chatflowId?.split('/')[0] || req.path.split('/').pop() || null;
-
-    if (!identifier) {
-      return res.status(400).json({ error: 'Bad Request' });
-    }
-
-    const chatflow = getChatflowDetails(identifier);
-    if (!chatflow) {
-      return res.status(404).json({ error: 'Not Found' });
-    }
-
-    if (req.query.chatId && req.query.fileName) {
-      const url = `${API_HOST}${targetPath}?chatflowId=${chatflow.chatflowId}&chatId=${req.query.chatId}&fileName=${req.query.fileName}`;
-
-      const headers = {};
-      if (API_KEY) {
-        headers.Authorization = `Bearer ${API_KEY}`;
-      }
-      const response = await fetch(url, {
-        method: req.method,
-        headers,
-      });
-
-      if (!response.ok) {
-        console.error(`File proxy error: ${response.status} ${response.statusText}`);
-        return res.status(response.status).json({ error: `File proxy error: ${response.statusText}` });
-      }
-
-      const contentType = response.headers.get('content-type');
-      if (contentType) {
-        res.setHeader('Content-Type', contentType);
-      }
-
-      return response.body.pipe(res);
-    }
-
-    let finalPath = `${targetPath}/${chatflow.chatflowId}`;
-    const url = `${API_HOST}${finalPath}`;
-
-    const headers = {
-      ...(req.method !== 'GET' && { 'Content-Type': 'application/json' }),
-    };
-    if (API_KEY) {
-      headers.Authorization = `Bearer ${API_KEY}`;
-    }
-    const response = await fetch(url, {
-      method: req.method,
-      headers,
-      body: req.method !== 'GET' ? JSON.stringify(req.body) : undefined,
-    });
-
-    if (!response.ok) {
-      console.error(`Proxy error: ${response.status} ${response.statusText}`);
-      return res.status(response.status).json({ error: `Proxy error: ${response.statusText}` });
-    }
-
-    const contentType = response.headers.get('content-type');
-
-    if (contentType?.includes('image/') || contentType?.includes('audio/') || contentType?.includes('application/octet-stream')) {
-      res.setHeader('Content-Type', contentType);
-      return response.body.pipe(res);
-    }
-
-    if (contentType?.includes('text/event-stream')) {
-      res.setHeader('Content-Type', 'text/event-stream');
-      res.setHeader('Cache-Control', 'no-cache');
-      res.setHeader('Connection', 'keep-alive');
-      return response.body.pipe(res);
-    }
-
-    if (contentType?.includes('application/json')) {
-      const data = await response.json();
-      return res.json(data);
-    }
-
-    return response.body.pipe(res);
-  } catch (error) {
-    console.error('Proxy error:', error);
-    res.status(500).json({ error: 'Internal Server Error' });
-  }
-};
-
-Object.values(proxyEndpoints).forEach(({ method, path, target }) => {
-  app[method.toLowerCase()](path, (req, res) => {
-    return handleProxy(req, res, target);
-  });
-});
-
-// Загрузка файлов
-
-const storage = multer.memoryStorage();
-const upload = multer({ storage: storage });
-
-app.post('/api/v1/attachments/:identifier/:chatId', upload.array('files'), async (req, res) => {
-  try {
-    if (!API_HOST) {
-      return res.status(500).json({ error: 'API_HOST is not configured. Proxy functionality is disabled.' });
-    }
-
-    const chatId = req.params.chatId;
-    if (!chatId) {
-      return res.status(400).json({ error: 'Bad Request' });
-    }
-
-    if (!req.files || req.files.length === 0) {
-      return res.status(400).json({ error: 'Bad Request' });
-    }
-
-    const form = new FormData();
-    req.files.forEach((file) => {
-      form.append('files', file.buffer, {
-        filename: file.originalname,
-        contentType: file.mimetype,
-      });
-    });
-
-    const chatflow = req.chatflow;
-    const targetUrl = `${API_HOST}/api/v1/attachments/${chatflow.chatflowId}/${chatId}`;
-
-    const headers = {
-      ...form.getHeaders(),
-    };
-    if (API_KEY) {
-      headers.Authorization = `Bearer ${API_KEY}`;
-    }
-    const response = await axios.post(targetUrl, form, {
-      headers,
-    });
-
-    res.json(response.data);
-  } catch (error) {
-    console.error('Attachment upload error:', error);
-    res.status(500).json({ error: 'Internal Server Error' });
-  }
-});
-
-// Прокси для AutoFAQ API (только для dev - обход CORS на localhost)
-
-if (isDev) {
-  app.all('/api/v1/autofaq-proxy', async (req, res) => {
-  devLog('🔵 [AutoFAQ Proxy] Запрос получен:', {
-    method: req.method,
-    path: req.path,
-    hasAuth: !!req.headers.authorization,
-  });
-  
-  try {
-    const targetUrl = req.query.targetUrl;
-    if (!targetUrl) {
-      errorLog('❌ [AutoFAQ Proxy] targetUrl отсутствует');
-      return res.status(400).json({ error: 'Bad Request', message: 'targetUrl parameter is required' });
-    }
-
-    const decodedUrl = decodeURIComponent(targetUrl);
-    const method = req.method;
-    const headers = { 'Content-Type': 'application/json' };
-
-    // Копируем Authorization заголовок
-    const authHeader = req.headers.authorization || req.headers['authorization'];
-    if (authHeader) {
-      headers.Authorization = authHeader;
-      devLog('🔵 [AutoFAQ Proxy] Authorization заголовок найден');
-    } else {
-      devLog('⚠️ [AutoFAQ Proxy] Authorization заголовок отсутствует');
-    }
-
-    const fetchOptions = { method, headers };
-    if (['POST', 'PUT', 'PATCH'].includes(method) && req.body) {
-      fetchOptions.body = JSON.stringify(req.body);
-    }
-
-    devLog('📤 [AutoFAQ Proxy] Отправка запроса к AutoFAQ:', {
-      method,
-      url: decodedUrl,
-      hasAuth: !!headers.Authorization,
-    });
-
-    const response = await fetch(decodedUrl, fetchOptions);
-    
-    const contentType = response.headers.get('content-type');
-    let data = contentType?.includes('application/json') 
-      ? await response.json() 
-      : await response.text();
-    
-    if (!response.ok) {
-      errorLog('❌ [AutoFAQ Proxy] Ошибка от AutoFAQ API:', {
-        status: response.status,
-        body: data,
-      });
-    } else {
-      devLog('📥 [AutoFAQ Proxy] Ответ от AutoFAQ:', { status: response.status });
-    }
-
-    // Устанавливаем статус ответа
-    res.status(response.status);
-
-    // Устанавливаем Content-Type
-    if (contentType) {
-      res.setHeader('Content-Type', contentType);
-    }
-
-    // Отправляем ответ
-    if (contentType && contentType.includes('application/json')) {
-      return res.json(data);
-    } else {
-      return res.send(data);
-    }
-  } catch (error) {
-    errorLog('AutoFAQ proxy error:', error);
-    res.status(500).json({ error: 'Internal Server Error', message: error.message });
-  }
-  });
-}
 
 app.use((_req, res) => {
   res.status(404).json({ error: 'Not Found' });
 });
 
 // Запуск сервера
-
-const PORT = process.env.PORT || 3001;
-const HOST = process.env.HOST || '0.0.0.0';
-
-const server = app.listen(PORT, HOST, () => {
-  const addr = server.address();
+httpServer.listen(PORT, HOST, () => {
+  const addr = httpServer.address();
   if (!addr || typeof addr === 'string') return;
 
   let baseUrl;
   if (process.env.BASE_URL) {
     baseUrl = process.env.BASE_URL;
   } else if (process.env.NODE_ENV === 'production') {
-    // В продакшене используем HOST из переменных окружения или формируем из HOST
     const host = process.env.HOST;
     if (host && !host.includes('localhost') && !host.includes('0.0.0.0')) {
       baseUrl = host.startsWith('http') ? host : `https://${host}`;
@@ -623,8 +387,79 @@ const server = app.listen(PORT, HOST, () => {
       baseUrl = `https://${process.env.HOST || 'localhost'}`;
     }
   } else {
-    // В development используем localhost с портом
     baseUrl = `http://${HOST === '0.0.0.0' ? 'localhost' : HOST}:${addr.port}`;
+  }
+
+  if (isDev) {
+    // Запуск Rollup в watch режиме после запуска сервера
+    const rollupProcess = spawn('yarn', ['dev:build'], {
+      stdio: 'inherit',
+      shell: true,
+    });
+
+    rollupProcess.on('error', (error) => {
+      errorLog('Ошибка запуска Rollup:', error);
+    });
+
+    // Запуск localtunnel для публичного доступа (не требует токена)
+    let tunnel = null;
+    (async () => {
+      try {
+        tunnel = await localtunnel({ 
+          port: PORT,
+          subdomain: 'sk-assist-chatwidget' // Кастомный subdomain
+        });
+        
+        console.log(`\n🌐 [LocalTunnel] Публичный URL: ${tunnel.url}`);
+        console.log(`\n📝 [Важно] Использование:`);
+        console.log(`   - Браузер: работайте на localhost (http://localhost:${PORT}/fullchat.html)\n`);
+        
+        // Сохраняем URL для использования (для прокси)
+        process.env.TUNNEL_URL = tunnel.url;
+        tunnelUrl = tunnel.url; // Сохраняем в глобальную переменную для прокси
+
+        // Обработка закрытия туннеля
+        tunnel.on('close', () => {
+          console.warn('\n⚠️ [LocalTunnel] Туннель закрыт');
+        });
+
+        tunnel.on('error', (err) => {
+          errorLog('❌ [LocalTunnel] Ошибка туннеля:', err);
+        });
+      } catch (error) {
+        errorLog('❌ [LocalTunnel] Не удалось запустить туннель:', error);
+        console.warn('💡 [LocalTunnel] Запустите вручную: npx localtunnel --port 3001');
+        console.warn('💡 [LocalTunnel] После запуска скопируйте URL\n');
+      }
+    })();
+
+    process.on('SIGINT', async () => {
+      rollupProcess.kill();
+      if (tunnel) {
+        try {
+          tunnel.close();
+        } catch (e) {
+          // Игнорируем ошибки при закрытии туннеля
+        }
+      }
+      process.exit();
+    });
+
+    process.on('SIGTERM', async () => {
+      rollupProcess.kill();
+      if (tunnel) {
+        try {
+          tunnel.close();
+        } catch (e) {
+          // Игнорируем ошибки при закрытии туннеля
+        }
+      }
+      process.exit();
+    });
+
+    console.log(`\n✅ Dev сервер запущен: ${baseUrl}`);
+    console.log(`📄 Откройте: ${baseUrl}/fullchat.html`);
+    console.log(`🔌 WebSocket сервер готов на: ${baseUrl}`);
   }
 
   generateEmbedScript(baseUrl);

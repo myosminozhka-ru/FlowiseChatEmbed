@@ -225,19 +225,6 @@ npm run build
 
 **Примечание:** Все цвета настраиваются через Tailwind классы в `customCSS` или через CSS переменные.
 
-### Конфигурация AutoFAQ
-
-| Параметр      | Тип        | Описание                                       |
-| ------------- | ---------- | ---------------------------------------------- |
-| `enabled`     | `boolean`  | Включить/выключить интеграцию AutoFAQ          |
-| `apiBaseUrl`  | `string`   | Базовый URL API AutoFAQ                        |
-| `serviceId`   | `string`   | ID сервиса в AutoFAQ                           |
-| `channelId`   | `string`   | ID канала (по умолчанию: 'web')                |
-| `apiToken`    | `string`   | API токен для авторизации в AutoFAQ            |
-| `webhookUrl`  | `string`   | URL для webhook (опционально)                  |
-| `getClientId` | `function` | Функция для получения clientId (опционально)   |
-| `getMetadata` | `function` | Функция для получения метаданных (опционально) |
-
 ---
 
 ## Примеры
@@ -316,26 +303,6 @@ Chatbot.initFull({
         time: true,
       },
     },
-  },
-});
-```
-
-### С AutoFAQ
-
-```javascript
-import Chatbot from 'https://your-cdn.com/web.js';
-
-Chatbot.init({
-  chatflowid: 'your-chatflow-id',
-  apiHost: 'https://ai-platform.example.com',
-  apiKey: 'your-api-key',
-  autofaqConfig: {
-    enabled: true,
-    apiBaseUrl: 'https://api.autofaq.ai',
-    serviceId: 'your-service-id',
-    channelId: 'web',
-    apiToken: 'your-api-token',
-    webhookUrl: 'https://your-domain.com/api/autofaq/webhook',
   },
 });
 ```

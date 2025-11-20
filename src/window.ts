@@ -10,17 +10,6 @@ type BotProps = {
   chatflowConfig?: Record<string, unknown>;
   observersConfig?: observersConfigType;
   theme?: BubbleTheme;
-  // Конфигурация AutoFAQ
-  autofaqConfig?: {
-    enabled?: boolean;
-    apiBaseUrl?: string;
-    serviceId?: string;
-    channelId?: string;
-    apiToken?: string;
-    webhookUrl?: string;
-    getClientId?: (chatflowid: string, chatId: string) => string;
-    getMetadata?: (chatflowid: string, chatId: string, chatHistory: any[]) => Record<string, unknown>;
-  };
 };
 
 let elementUsed: Element | undefined;
@@ -47,39 +36,27 @@ const createOnRequestWithApiKey = (apiKey?: string, customOnRequest?: (request: 
 
 export const initFull = (props: BotProps & { id?: string }) => {
   destroy();
-  const { apiKey, onRequest, autofaqConfig, ...restProps } = props;
+  const { apiKey, onRequest, ...restProps } = props;
   const finalOnRequest = createOnRequestWithApiKey(apiKey, onRequest);
 
   let fullElement = props.id ? document.getElementById(props.id) : document.querySelector('start-ai-fullchatbot');
   if (!fullElement) {
     fullElement = document.createElement('start-ai-fullchatbot');
     Object.assign(fullElement, { ...restProps, onRequest: finalOnRequest });
-    // Устанавливаем autofaqConfig напрямую, чтобы гарантировать правильную передачу объекта
-    if (autofaqConfig) {
-      (fullElement as any).autofaqConfig = autofaqConfig;
-    }
     document.body.appendChild(fullElement);
   } else {
     Object.assign(fullElement, { ...restProps, onRequest: finalOnRequest });
-    // Устанавливаем autofaqConfig напрямую, чтобы гарантировать правильную передачу объекта
-    if (autofaqConfig) {
-      (fullElement as any).autofaqConfig = autofaqConfig;
-    }
   }
   elementUsed = fullElement;
 };
 
 export const init = (props: BotProps) => {
   destroy();
-  const { apiKey, onRequest, autofaqConfig, ...restProps } = props;
+  const { apiKey, onRequest, ...restProps } = props;
   const finalOnRequest = createOnRequestWithApiKey(apiKey, onRequest);
 
   const element = document.createElement('osmi-ai-chatbot');
   Object.assign(element, { ...restProps, onRequest: finalOnRequest });
-  // Устанавливаем autofaqConfig напрямую, чтобы гарантировать правильную передачу объекта
-  if (autofaqConfig) {
-    (element as any).autofaqConfig = autofaqConfig;
-  }
   document.body.appendChild(element);
   elementUsed = element;
 };

@@ -9,9 +9,6 @@ type FeedbackContentDialogProps = {
   onSubmit: (text: string, reason?: string) => void;
   reasons?: string[];
   // Цвета настраиваются через Tailwind классы
-  // Добавьте новые props для AutoFAQ интеграции:
-  onTransferToOperator?: () => void;
-  showTransferButton?: boolean; // Показывать ли кнопку переключения
 };
 
 const defaultBackgroundColor = 'var(--chatbot-input-bg-color, #ffffff)';
@@ -144,27 +141,6 @@ const FeedbackContentDialog = (props: FeedbackContentDialogProps) => {
                   class={`flex-1 disabled:bg-gray-100 disabled:text-gray-400 bg-[var(--primary-color)]`}
                 />
               </div>
-
-              {/* Contact operator button */}
-              <Show when={props.showTransferButton !== false}>
-                <div class="flex justify-center">
-                  <Button
-                    text="Связаться с оператором"
-                    type="button"
-                    onClick={() => {
-                      console.log('🔵 [FeedbackDialog] Кнопка "Связаться с оператором" нажата');
-                      console.log('🔵 [FeedbackDialog] onTransferToOperator:', typeof props.onTransferToOperator);
-                      if (props.onTransferToOperator) {
-                        console.log('🔵 [FeedbackDialog] Вызываем onTransferToOperator');
-                        props.onTransferToOperator();
-                      } else {
-                        console.warn('⚠️ [FeedbackDialog] onTransferToOperator не передан');
-                      }
-                    }}
-                    class={'flex-1 bg-white'}
-                  />
-                </div>
-              </Show>
             </div>
           </div>
         </div>

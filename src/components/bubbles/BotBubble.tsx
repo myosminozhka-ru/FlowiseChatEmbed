@@ -11,7 +11,6 @@ import { SourceBubble } from '../bubbles/SourceBubble';
 import { DateTimeToggleTheme } from '@/features/bubble/types';
 import { WorkflowTreeView } from '../treeview/WorkflowTreeView';
 import { TypingBubble } from '../TypingBubble';
-import { transferToOperator, AutoFAQConfig } from '@/queries/autofaqQuery';
 import { getLocalStorageChatflow, setLocalStorageChatflow } from '@/utils';
 
 type Props = {
@@ -41,16 +40,6 @@ type Props = {
   isFullscreen?: boolean;
   isPopup?: boolean;
   feedbackReasons?: string[];
-  autofaqConfig?: {
-    enabled?: boolean; // Включить/выключить интеграцию
-    apiBaseUrl?: string;
-    serviceId?: string;
-    channelId?: string;
-    apiToken?: string;
-    webhookUrl?: string;
-    getClientId?: (chatflowid: string, chatId: string) => string;
-    getMetadata?: (chatflowid: string, chatId: string, chatHistory: MessageType[]) => Record<string, unknown>;
-  };
 };
 
 const defaultBackgroundColor = 'var(--chatbot-host-bubble-bg-color, #f7f8ff)';
@@ -284,148 +273,6 @@ export const BotBubble = (props: Props) => {
     if (result.data) {
       setFeedbackId('');
       setShowFeedbackContentModal(false);
-    }
-  };
-
-  // Функция переключения на оператора AutoFAQ
-  const handleTransferToOperator = async () => {
-    console.log('🔵 [AutoFAQ] handleTransferToOperator вызвана');
-    console.log('🔵 [AutoFAQ] autofaqConfig:', props.autofaqConfig);
-
-    // Проверяем, включена ли интеграция AutoFAQ
-    if (!props.autofaqConfig?.enabled) {
-      console.warn('⚠️ [AutoFAQ] Интеграция не включена');
-      return;
-    }
-
-    // Проверяем наличие обязательных параметров (кроме токена - попробуем без него)
-    if (!props.autofaqConfig.apiBaseUrl || !props.autofaqConfig.serviceId || !props.autofaqConfig.channelId) {
-      alert('Ошибка: Не все параметры AutoFAQ настроены. Проверьте конфигурацию.');
-      console.error('AutoFAQ configuration is incomplete');
-      return;
-    }
-
-    // Предупреждение, если токена нет (но попробуем отправить запрос)
-    if (!props.autofaqConfig.apiToken) {
-      console.warn('AutoFAQ API token is missing - attempting request without token. If it fails, you may need to add AUTOFAQ_API_TOKEN.');
-    }
-
-    try {
-      // Получаем историю чата из localStorage
-      const chatDetails = getLocalStorageChatflow(props.chatflowid);
-      const chatHistory = chatDetails.chatHistory || [];
-
-      // Формируем конфигурацию AutoFAQ
-      const autofaqConfig: AutoFAQConfig = {
-        apiBaseUrl: props.autofaqConfig.apiBaseUrl || '',
-        serviceId: props.autofaqConfig.serviceId || '',
-        channelId: props.autofaqConfig.channelId || 'web',
-        apiToken: props.autofaqConfig.apiToken || '',
-        webhookUrl: props.autofaqConfig.webhookUrl,
-      };
-
-      // Получаем clientId (используем кастомную функцию или дефолтную)
-      const getClientId = props.autofaqConfig.getClientId || ((chatflowid: string, chatId: string) => `${chatflowid}_${chatId}`);
-      const clientId = getClientId(props.chatflowid, props.chatId);
-
-      // Получаем метаданные (используем кастомную функцию или дефолтную)
-      const getMetadata =
-        props.autofaqConfig.getMetadata ||
-        ((chatflowid: string, chatId: string, history: MessageType[]) => ({
-          chatflowid,
-          chatId,
-          messageCount: history.length,
-        }));
-      const metadata = getMetadata(props.chatflowid, props.chatId, chatHistory);
-
-      // Формируем сообщение для оператора с историей диалога
-      const message = `Пользователь запросил связь с оператором. История диалога:\n\n${chatHistory
-        .map((msg: MessageType, idx: number) => {
-          if (msg.type === 'userMessage') {
-            return `Вопрос ${idx + 1}: ${msg.message}`;
-          } else if (msg.type === 'apiMessage') {
-            return `Ответ ${idx + 1}: ${msg.message}`;
-          }
-          return '';
-        })
-        .filter(Boolean)
-        .join('\n\n')}`;
-
-      // Логируем данные запроса для отладки
-      console.log('🔵 [AutoFAQ] Отправка запроса на переключение на оператора:', {
-        url: `${autofaqConfig.apiBaseUrl}/api/ext/v2/services/${autofaqConfig.serviceId}/${autofaqConfig.channelId}/questionsAsync`,
-        serviceId: autofaqConfig.serviceId,
-        channelId: autofaqConfig.channelId,
-        clientId,
-        hasToken: !!autofaqConfig.apiToken,
-        messageLength: message.length,
-        metadata,
-      });
-
-      // Переключаем на оператора через AutoFAQ API
-      const result = await transferToOperator({
-        config: autofaqConfig,
-        chatflowid: props.chatflowid,
-        chatId: props.chatId,
-        message,
-        metadata: {
-          clientId,
-          channel: 'web',
-          segmentationAttributes: metadata,
-          additionalParams: {
-            feedbackRating: rating(),
-            feedbackId: feedbackId(),
-          },
-        },
-        onRequest: props.onRequest,
-      });
-
-      // Логируем ответ от AutoFAQ
-      console.log('🟢 [AutoFAQ] Ответ от API:', {
-        hasData: !!result.data,
-        hasError: !!result.error,
-        data: result.data,
-        error: result.error,
-        fullResponse: result,
-      });
-
-      if (result.data) {
-        // Сохраняем dialogId в localStorage для дальнейшей работы
-        const dialogId = (result.data as any)?.dialogId;
-        console.log('✅ [AutoFAQ] Успешно переключено на оператора. DialogId:', dialogId);
-
-        if (dialogId) {
-          setLocalStorageChatflow(props.chatflowid, props.chatId, {
-            autofaqDialogId: dialogId,
-            transferredToOperator: true,
-          });
-        }
-
-        // Показываем сообщение пользователю
-        alert('Ваш запрос передан оператору. Он свяжется с вами в ближайшее время.');
-
-        // Закрываем диалог обратной связи
-        setShowFeedbackContentModal(false);
-      } else if (result.error) {
-        console.error('❌ [AutoFAQ] Ошибка при переключении на оператора:', {
-          error: result.error,
-          errorMessage: result.error?.message,
-          errorString: String(result.error),
-          errorType: typeof result.error,
-        });
-
-        // Проверяем, может быть это ошибка авторизации
-        const errorMessage = result.error?.message || String(result.error);
-        if (errorMessage.includes('401') || errorMessage.includes('Unauthorized') || errorMessage.includes('авторизац')) {
-          console.warn('⚠️ [AutoFAQ] Ошибка авторизации - требуется токен');
-          alert('Ошибка авторизации: требуется API токен AutoFAQ. Пожалуйста, добавьте AUTOFAQ_API_TOKEN в конфигурацию.');
-        } else {
-          alert('Произошла ошибка при переключении на оператора. Пожалуйста, попробуйте позже.');
-        }
-      }
-    } catch (error) {
-      console.error('Error in handleTransferToOperator:', error);
-      alert('Произошла ошибка при переключении на оператора. Пожалуйста, попробуйте позже.');
     }
   };
 
@@ -760,9 +607,6 @@ export const BotBubble = (props: Props) => {
           onClose={() => setShowFeedbackContentModal(false)}
           onSubmit={submitFeedbackContent}
           reasons={props.feedbackReasons}
-          // Добавьте новые props для AutoFAQ интеграции:
-          onTransferToOperator={handleTransferToOperator}
-          showTransferButton={props.autofaqConfig?.enabled}
         />
       </Show>
     </div>

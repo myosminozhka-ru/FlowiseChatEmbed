@@ -172,19 +172,6 @@ export type BotProps = {
   showBadge?: boolean;
   toggleFullscreen?: () => void;
   isFullscreen?: boolean;
-  // Конфигурация AutoFAQ
-  autofaqConfig?: {
-    enabled?: boolean; // Включить/выключить интеграцию
-    apiBaseUrl?: string;
-    serviceId?: string;
-    channelId?: string;
-    apiToken?: string;
-    webhookUrl?: string;
-    // Функция для получения clientId (опционально)
-    getClientId?: (chatflowid: string, chatId: string) => string;
-    // Функция для получения метаданных (опционально)
-    getMetadata?: (chatflowid: string, chatId: string, chatHistory: MessageType[]) => Record<string, unknown>;
-  };
 };
 
 export type LeadsConfig = {
@@ -1858,7 +1845,6 @@ export const Bot = (botProps: BotProps & { class?: string }) => {
                             isFullscreen={props.isFullscreen}
                             isPopup={!props.isFullPage}
                             feedbackReasons={props.feedback?.reasons}
-                            autofaqConfig={props.autofaqConfig}
                           />
                         )}
                         {message.type === 'leadCaptureMessage' && leadsConfig()?.status && !getLocalStorageChatflow(props.chatflowid)?.lead && (

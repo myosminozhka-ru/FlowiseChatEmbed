@@ -51,7 +51,14 @@ export const sendRequest = async <ResponseData>(
 
     // Логируем заголовки для отладки (скрываем токены)
     if (typeof params !== 'string' && requestInfo.headers) {
-      const logHeaders = { ...requestInfo.headers };
+      // Преобразуем headers в объект для безопасного доступа
+      const logHeaders: Record<string, string> = 
+        requestInfo.headers instanceof Headers
+          ? Object.fromEntries(requestInfo.headers.entries())
+          : Array.isArray(requestInfo.headers)
+          ? Object.fromEntries(requestInfo.headers)
+          : { ...requestInfo.headers };
+      
       if (logHeaders.Authorization) {
         logHeaders.Authorization = logHeaders.Authorization.substring(0, 20) + '...';
       }

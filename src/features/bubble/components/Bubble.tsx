@@ -182,7 +182,6 @@ export const Bubble = (props: BubbleProps) => {
               isFullPage={false}
               toggleFullscreen={toggleFullscreen}
               isFullscreen={isFullscreen()}
-              autofaqConfig={props.autofaqConfig}
             />
           </div>
         </Show>
