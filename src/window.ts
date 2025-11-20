@@ -55,7 +55,7 @@ export const init = (props: BotProps) => {
   const { apiKey, onRequest, ...restProps } = props;
   const finalOnRequest = createOnRequestWithApiKey(apiKey, onRequest);
 
-  const element = document.createElement('osmi-ai-chatbot');
+  const element = document.createElement('start-ai-chatbot');
   Object.assign(element, { ...restProps, onRequest: finalOnRequest });
   document.body.appendChild(element);
   elementUsed = element;

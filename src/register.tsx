@@ -7,5 +7,5 @@ export const registerWebComponents = () => {
   if (typeof window === 'undefined') return;
   // @ts-expect-error element incorect type
   customElement('start-ai-fullchatbot', defaultBotProps, Full);
-  customElement('osmi-ai-chatbot', defaultBotProps, Bubble);
+  customElement('start-ai-chatbot', defaultBotProps, Bubble);
 };
