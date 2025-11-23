@@ -144,7 +144,7 @@ const FeedbackContentDialog = (props: FeedbackContentDialogProps) => {
                 <p class="text-red-500 text-sm text-center">{props.errorMessage}</p>
               </Show>
               {/* Buttons */}
-              <div class="flex items-center justify-end space-x-3">
+              <div class="flex flex-wrap items-center justify-end gap-3">
                 <Button text="Отмена" type="button" onClick={onClose} class={'flex-1 bg-white'} />
                 <Button
                   text="Отправить"
@@ -152,6 +152,16 @@ const FeedbackContentDialog = (props: FeedbackContentDialogProps) => {
                   onClick={submit}
                   disabled={isSubmitDisabled()}
                   class={`flex-1 disabled:bg-gray-100 disabled:text-gray-400 bg-[var(--primary-color)]`}
+                />
+                {/* Contact operator button */}
+                <Button
+                    text="Связаться с оператором"
+                    type="button"
+                    disabled={isSubmitDisabled()}
+                    onClick={() => {
+                      console.log('🔵 [FeedbackDialog] Кнопка "Связаться с оператором" нажата');
+                    }}
+                    class={'min-w-full flex-1 bg-white'}
                 />
               </div>
             </div>
