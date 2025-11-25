@@ -419,7 +419,7 @@ export const Bot = (botProps: BotProps & { class?: string }) => {
   onMount(async () => {
     // Загружаем данные пользователя при монтировании компонента
     // URL для auth запроса фиксированный (https://sk.ru/auth/user_info/), не зависит от apiHost
-    const data = await getUserDataWithAuth(props.apiHost, props.onRequest);
+    const data = await getUserDataWithAuth(props.onRequest);
     setUserData(data);
 
     if (botProps?.observersConfig) {
@@ -952,14 +952,9 @@ export const Bot = (botProps: BotProps & { class?: string }) => {
 
     if (uploads && uploads.length > 0) body.uploads = uploads;
 
-    // Получаем актуальные данные пользователя (с кэшированием)
-    // Если данные уже загружены, используем их, иначе делаем запрос
-    // URL для auth запроса фиксированный, не зависит от apiHost
-    let currentUserData = userData();
-    if (!currentUserData.fio && !currentUserData.user_name) {
-      currentUserData = await getUserDataWithAuth(props.apiHost, props.onRequest);
-      setUserData(currentUserData);
-    }
+    // Используем данные пользователя, которые уже загружены в onMount
+    // Если данные еще не загрузились, используем то, что есть (или значения по умолчанию)
+    const currentUserData = userData();
 
     // Формируем userData для отправки в AI платформу
     // Передаем только user_id (id из ответа auth или guest_id для гостя)
