@@ -200,9 +200,7 @@ export const getTokenFromCookies = (): string => {
  * @returns Объект с токеном sk_auth или guest_id
  */
 export const getUserDataFromCookies = (): UserData => {
-  // ВРЕМЕННО: используем хардкодный токен
-  const token = '65d8b7956bc114f60ea7987cca961fbb';
-  // const token = getTokenFromCookies(); // Читаем sk_auth из cookies
+  const token = getTokenFromCookies(); // Читаем sk_auth из cookies
 
   // Если токена нет, используем значения по умолчанию
   if (!token) {
@@ -236,60 +234,38 @@ export const getUserDataFromCookies = (): UserData => {
  * @returns Данные пользователя (user_id и user_name из ответа auth или данные гостя)
  */
 export const getUserDataWithAuth = async (onRequest?: (request: RequestInit) => Promise<void>): Promise<UserData> => {
-  console.log('[getUserDataWithAuth] Начало получения данных пользователя');
-
   const userData = getUserDataFromCookies();
-  console.log('[getUserDataWithAuth] Данные из cookies:', {
-    hasToken: !!userData.token,
-    user_id: userData.user_id,
-    user_name: userData.user_name
-  });
 
   // Если токена sk_auth нет, возвращаем данные гостя (не делаем запрос auth)
   if (!userData.token) {
-    console.log('[getUserDataWithAuth] Токен отсутствует, возвращаем данные гостя');
     const guestData = {
       user_id: userData.user_id || 'guest',
       user_name: userData.user_name || 'Гость',
       token: undefined,
     };
-    console.log('[getUserDataWithAuth] Возвращаем данные гостя:', guestData);
+    console.log('🔵 [Auth] Токен отсутствует → режим гостя', { user_id: guestData.user_id });
     return guestData;
   }
-
-  console.log('[getUserDataWithAuth] Токен найден, делаем запрос auth');
 
   // Делаем запрос auth для получения id и fio
   // GET {AUTH_API_URL}?sk_auth={sk_auth} (по умолчанию https://sk.ru/auth/user_info)
   try {
-    console.log('[getUserDataWithAuth] Импортируем authQuery');
     const { authQuery } = await import('@/queries/sendMessageQuery');
-
-    console.log('[getUserDataWithAuth] Вызываем authQuery с токеном');
     const result = await authQuery({
       token: userData.token,
       onRequest,
     });
 
-    console.log('[getUserDataWithAuth] Результат authQuery:', {
-      hasError: !!result.error,
-      hasData: !!result.data,
-      error: result.error
-    });
-
     // Если пришла ошибка от auth запроса, возвращаем данные гостя
     if (result.error || !result.data) {
-      console.error('[getUserDataWithAuth] Ошибка auth запроса:', result.error);
+      console.error('❌ [Auth] Ошибка получения данных пользователя:', result.error);
       const guestData = {
         user_id: userData.user_id || 'guest',
         user_name: userData.user_name || 'Гость',
         token: undefined,
       };
-      console.log('[getUserDataWithAuth] Возвращаем данные гостя из-за ошибки:', guestData);
       return guestData;
     }
-
-    console.log('[getUserDataWithAuth] Данные из ответа auth:', result.data);
 
     // Получаем id и fio из ответа
     // id -> user_id, fio -> user_name
@@ -300,17 +276,19 @@ export const getUserDataWithAuth = async (onRequest?: (request: RequestInit) => 
       fio: result.data.fio, // Сохраняем fio для справки
     };
 
-    console.log('[getUserDataWithAuth] Итоговые данные пользователя:', userDataResult);
+    console.log('✅ [Auth] Пользователь авторизован', {
+      user_id: userDataResult.user_id,
+      user_name: userDataResult.user_name,
+    });
     return userDataResult;
   } catch (error) {
-    console.error('[getUserDataWithAuth] Исключение при получении данных:', error);
+    console.error('❌ [Auth] Исключение при получении данных:', error);
     // В случае ошибки возвращаем данные гостя
     const guestData = {
       user_id: userData.user_id || 'guest',
       user_name: userData.user_name || 'Гость',
       token: undefined,
     };
-    console.log('[getUserDataWithAuth] Возвращаем данные гостя из-за исключения:', guestData);
     return guestData;
   }
 };

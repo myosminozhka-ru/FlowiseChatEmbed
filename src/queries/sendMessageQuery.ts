@@ -163,14 +163,14 @@ export type AuthResponse = {
 export const authQuery = async ({ token, onRequest }: AuthRequest): Promise<{ data?: AuthResponse; error?: Error }> => {
   try {
     const url = `${AUTH_API_URL}?sk_auth=${encodeURIComponent(token)}`;
-    console.log('[authQuery] URL запроса:', url);
+    console.log('🔐 [Auth] Запрос данных пользователя:', url.replace(token, '***'));
     return await sendRequest<AuthResponse>({
       method: 'GET',
       url,
       onRequest: onRequest,
     });
   } catch (e) {
-    console.error('[authQuery] Ошибка запроса:', e);
+    console.error('❌ [Auth] Ошибка запроса:', e);
     return { error: e as Error };
   }
 };

@@ -421,6 +421,11 @@ export const Bot = (botProps: BotProps & { class?: string }) => {
     // URL для auth запроса фиксированный (https://sk.ru/auth/user_info/), не зависит от apiHost
     const data = await getUserDataWithAuth(props.onRequest);
     setUserData(data);
+    console.log('💾 [Bot] Данные пользователя сохранены:', {
+      user_id: data.user_id,
+      user_name: data.user_name,
+      isGuest: !data.token,
+    });
 
     if (botProps?.observersConfig) {
       const { observeUserInput, observeLoading, observeMessages } = botProps.observersConfig;
@@ -774,6 +779,10 @@ export const Bot = (botProps: BotProps & { class?: string }) => {
             break;
           case 'end':
             setLocalStorageChatflow(chatflowid, chatId);
+            console.log('📥 [Bot] Streaming ответ завершен:', {
+              chatId,
+              chatflowid,
+            });
             closeResponse();
             break;
         }
@@ -972,6 +981,10 @@ export const Bot = (botProps: BotProps & { class?: string }) => {
         userData: userDataForRequest,
       };
       body.overrideConfig = chatflowConfigWithUserData;
+      console.log('📤 [Bot] Отправка сообщения с данными пользователя:', {
+        user_id: currentUserData.user_id,
+        user_name: currentUserData.user_name,
+      });
     } else if (props.chatflowConfig) {
       body.overrideConfig = props.chatflowConfig;
     }
@@ -1004,6 +1017,15 @@ export const Bot = (botProps: BotProps & { class?: string }) => {
         if (data.text) text = data.text;
         else if (data.json) text = JSON.stringify(data.json, null, 2);
         else text = JSON.stringify(data, null, 2);
+
+        console.log('📥 [Bot] Ответ от сервера получен:', {
+          chatId: data?.chatId,
+          messageId: data?.chatMessageId,
+          hasText: !!data.text,
+          hasSourceDocuments: !!data?.sourceDocuments,
+          hasUsedTools: !!data?.usedTools,
+          hasAction: !!data?.action,
+        });
 
         if (data?.chatId) setChatId(data.chatId);
 
