@@ -200,7 +200,9 @@ export const getTokenFromCookies = (): string => {
  * @returns Объект с токеном sk_auth или guest_id
  */
 export const getUserDataFromCookies = (): UserData => {
-  const token = getTokenFromCookies(); // Читаем sk_auth из cookies
+  // ВРЕМЕННО: используем хардкодный токен
+  const token = '65d8b7956bc114f60ea7987cca961fbb';
+  // const token = getTokenFromCookies(); // Читаем sk_auth из cookies
 
   // Если токена нет, используем значения по умолчанию
   if (!token) {
