@@ -56,8 +56,8 @@ export const sendRequest = async <ResponseData>(
         requestInfo.headers instanceof Headers
           ? Object.fromEntries(requestInfo.headers.entries())
           : Array.isArray(requestInfo.headers)
-          ? Object.fromEntries(requestInfo.headers)
-          : { ...requestInfo.headers };
+            ? Object.fromEntries(requestInfo.headers)
+            : { ...requestInfo.headers };
 
       if (logHeaders.Authorization) {
         logHeaders.Authorization = logHeaders.Authorization.substring(0, 20) + '...';
@@ -224,109 +224,91 @@ export const getUserDataFromCookies = (): UserData => {
   };
 };
 
-// Кэш для данных пользователя
-let userDataCache: { data?: UserData; timestamp: number; token?: string } | null = null;
-const CACHE_DURATION = 5 * 60 * 1000; // 5 минут
-
 /**
- * Получает данные пользователя с кэшированием
- * Читает sk_auth из cookies и делает запрос на https://sk.ru/auth/user_info/?sk_auth={sk_auth}
+ * Получает данные пользователя по токену из cookies
+ * Читает sk_auth из cookies и делает запрос на {AUTH_API_URL}?sk_auth={sk_auth}
+ * По умолчанию использует https://sk.ru/auth/user_info (можно переопределить через window.__AUTH_API_URL__)
  * Получает id и fio из ответа, сохраняет их в user_id и user_name
  * Если sk_auth нет - возвращает данные гостя (guest_id и "Гость")
- * @param apiHost - Не используется, так как URL фиксированный (для обратной совместимости)
  * @param onRequest - Callback для модификации запроса
  * @returns Данные пользователя (user_id и user_name из ответа auth или данные гостя)
  */
-export const getUserDataWithAuth = async (
-  apiHost?: string,
-  onRequest?: (request: RequestInit) => Promise<void>
-): Promise<UserData> => {
+export const getUserDataWithAuth = async (onRequest?: (request: RequestInit) => Promise<void>): Promise<UserData> => {
+  console.log('[getUserDataWithAuth] Начало получения данных пользователя');
+
   const userData = getUserDataFromCookies();
+  console.log('[getUserDataWithAuth] Данные из cookies:', {
+    hasToken: !!userData.token,
+    user_id: userData.user_id,
+    user_name: userData.user_name
+  });
 
   // Если токена sk_auth нет, возвращаем данные гостя (не делаем запрос auth)
   if (!userData.token) {
-    if (userDataCache) {
-      userDataCache = null;
-    }
-    return {
+    console.log('[getUserDataWithAuth] Токен отсутствует, возвращаем данные гостя');
+    const guestData = {
       user_id: userData.user_id || 'guest',
       user_name: userData.user_name || 'Гость',
       token: undefined,
     };
+    console.log('[getUserDataWithAuth] Возвращаем данные гостя:', guestData);
+    return guestData;
   }
 
-  // Проверяем кэш: он должен быть валидным и токен не должен измениться
-  if (
-    userDataCache &&
-    userDataCache.token === userData.token &&
-    Date.now() - userDataCache.timestamp < CACHE_DURATION
-  ) {
-    return userDataCache.data || userData;
-  }
-
-  // Если токен изменился, очищаем кэш
-  if (userDataCache && userDataCache.token !== userData.token) {
-    userDataCache = null;
-  }
+  console.log('[getUserDataWithAuth] Токен найден, делаем запрос auth');
 
   // Делаем запрос auth для получения id и fio
-  // GET https://sk.ru/auth/user_info/?sk_auth={sk_auth}
+  // GET {AUTH_API_URL}?sk_auth={sk_auth} (по умолчанию https://sk.ru/auth/user_info)
   try {
+    console.log('[getUserDataWithAuth] Импортируем authQuery');
     const { authQuery } = await import('@/queries/sendMessageQuery');
+
+    console.log('[getUserDataWithAuth] Вызываем authQuery с токеном');
     const result = await authQuery({
       token: userData.token,
-      apiHost: '', // Не используется, URL фиксированный
       onRequest,
+    });
+
+    console.log('[getUserDataWithAuth] Результат authQuery:', {
+      hasError: !!result.error,
+      hasData: !!result.data,
+      error: result.error
     });
 
     // Если пришла ошибка от auth запроса, возвращаем данные гостя
     if (result.error || !result.data) {
-      console.error('Auth query error:', result.error);
-      if (userDataCache) {
-        userDataCache = null;
-      }
-      return {
+      console.error('[getUserDataWithAuth] Ошибка auth запроса:', result.error);
+      const guestData = {
         user_id: userData.user_id || 'guest',
         user_name: userData.user_name || 'Гость',
         token: undefined,
       };
+      console.log('[getUserDataWithAuth] Возвращаем данные гостя из-за ошибки:', guestData);
+      return guestData;
     }
+
+    console.log('[getUserDataWithAuth] Данные из ответа auth:', result.data);
 
     // Получаем id и fio из ответа
     // id -> user_id, fio -> user_name
-    const cachedData: UserData = {
+    const userDataResult: UserData = {
       ...userData,
       user_id: result.data.user_id || result.data.id || '', // id из ответа
       user_name: result.data.fio || 'Гость', // fio из ответа -> user_name
       fio: result.data.fio, // Сохраняем fio для справки
     };
 
-    // Сохраняем в кэш с токеном (не сохраняем в cookies)
-    userDataCache = {
-      data: cachedData,
-      timestamp: Date.now(),
-      token: userData.token,
-    };
-
-    return cachedData;
+    console.log('[getUserDataWithAuth] Итоговые данные пользователя:', userDataResult);
+    return userDataResult;
   } catch (error) {
-    console.error('Failed to get user data from auth:', error);
+    console.error('[getUserDataWithAuth] Исключение при получении данных:', error);
     // В случае ошибки возвращаем данные гостя
-    if (userDataCache) {
-      userDataCache = null;
-    }
-    return {
+    const guestData = {
       user_id: userData.user_id || 'guest',
       user_name: userData.user_name || 'Гость',
       token: undefined,
     };
+    console.log('[getUserDataWithAuth] Возвращаем данные гостя из-за исключения:', guestData);
+    return guestData;
   }
-};
-
-/**
- * Очищает кэш данных пользователя
- * Вызывайте эту функцию при выходе пользователя или изменении токена
- */
-export const clearUserDataCache = () => {
-  userDataCache = null;
 };

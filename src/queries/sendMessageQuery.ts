@@ -138,8 +138,14 @@ export const addLeadQuery = ({ apiHost = 'http://localhost:3000', body, onReques
     onRequest: onRequest,
   });
 
-export type AuthRequest = BaseRequest & {
+// URL для auth API, можно переопределить через window.__AUTH_API_URL__
+const AUTH_API_URL = typeof window !== 'undefined' && (window as any).__AUTH_API_URL__ 
+  ? (window as any).__AUTH_API_URL__ 
+  : 'https://sk.ru/auth/user_info';
+
+export type AuthRequest = {
   token: string;
+  onRequest?: (request: RequestInit) => Promise<void>;
 };
 
 export type AuthResponse = {
@@ -152,20 +158,20 @@ export type AuthResponse = {
 /**
  * Запрос для получения ФИО пользователя по токену sk_auth
  * @param token - Токен sk_auth из cookies
- * @param apiHost - Базовый URL API (не используется, так как endpoint фиксированный)
  * @param onRequest - Callback для модификации запроса
  * @returns Данные пользователя (fio и другие данные)
  */
-export const authQuery = async ({ token, apiHost, onRequest }: AuthRequest): Promise<{ data?: AuthResponse; error?: Error }> => {
+export const authQuery = async ({ token, onRequest }: AuthRequest): Promise<{ data?: AuthResponse; error?: Error }> => {
   try {
-    const url = `https://sk.ru/auth/user_info/?sk_auth=${encodeURIComponent(token)}`;
+    const url = `${AUTH_API_URL}?sk_auth=${encodeURIComponent(token)}`;
+    console.log('[authQuery] URL запроса:', url);
     return await sendRequest<AuthResponse>({
       method: 'GET',
       url,
       onRequest: onRequest,
     });
   } catch (e) {
-    console.error('Auth query error:', e);
+    console.error('[authQuery] Ошибка запроса:', e);
     return { error: e as Error };
   }
 };
