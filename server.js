@@ -235,7 +235,7 @@ io.on('connection', (socket) => {
 app.get('/api/config', (_, res) => {
   const apiHost = CHAT_API_HOST || 'https://app.osmi-it.ru';
   const chatflowId = process.env.CHATFLOW_ID || '416feeac-4a95-4f6e-a81d-73f8f48bc54f';
-  
+
   res.json({
     apiHost,
     chatflowId,
@@ -245,41 +245,37 @@ app.get('/api/config', (_, res) => {
 // Динамическая генерация fullchat.html с встроенной конфигурацией
 app.get('/fullchat.html', (_, res) => {
   const fullchatPath = path.join(__dirname, 'public', 'fullchat.html');
-  
+
   // Читаем конфигурацию из переменных окружения
   const apiHost = CHAT_API_HOST || 'https://app.osmi-it.ru';
   const chatflowId = process.env.CHATFLOW_ID || '416feeac-4a95-4f6e-a81d-73f8f48bc54f';
-  
+
   const config = {
     apiHost,
     chatflowId,
   };
-  
+
   // Читаем файл и встраиваем конфигурацию
   fs.readFile(fullchatPath, 'utf8', (err, data) => {
     if (err) {
       errorLog('❌ [Fullchat] Ошибка чтения файла:', err);
       return res.status(500).send('Ошибка загрузки файла');
     }
-    
+
     // Встраиваем конфигурацию в HTML перед основным скриптом
     const configScript = `
     <script>
         // Конфигурация из переменных окружения сервера
         window.__CHAT_CONFIG__ = ${JSON.stringify(config, null, 2)};
     </script>`;
-    
+
     // Вставляем скрипт с конфигурацией перед основным скриптом
-    const html = data.replace(
-      /<script type="module">/,
-      `${configScript}\n    <script type="module">`
-    );
-    
+    const html = data.replace(/<script type="module">/, `${configScript}\n    <script type="module">`);
+
     res.setHeader('Content-Type', 'text/html; charset=utf-8');
     res.send(html);
   });
 });
-
 
 // Статические файлы (после динамических роутов)
 app.use(express.static(path.join(__dirname, 'dist')));
@@ -337,7 +333,7 @@ const validateApiKey = (req, res, next) => {
       chatflow = { chatflowId: identifier, domains: [DEV_BASE_URL] };
       req.chatflow = chatflow;
     } else {
-    return res.status(404).json({ error: 'Not Found' });
+      return res.status(404).json({ error: 'Not Found' });
     }
   }
 
@@ -405,15 +401,15 @@ httpServer.listen(PORT, HOST, () => {
     let tunnel = null;
     (async () => {
       try {
-        tunnel = await localtunnel({ 
+        tunnel = await localtunnel({
           port: PORT,
-          subdomain: 'sk-assist-chatwidget' // Кастомный subdomain
+          subdomain: 'sk-assist-chatwidget', // Кастомный subdomain
         });
-        
+
         console.log(`\n🌐 [LocalTunnel] Публичный URL: ${tunnel.url}`);
         console.log(`\n📝 [Важно] Использование:`);
         console.log(`   - Браузер: работайте на localhost (http://localhost:${PORT}/fullchat.html)\n`);
-        
+
         // Сохраняем URL для использования (для прокси)
         process.env.TUNNEL_URL = tunnel.url;
         tunnelUrl = tunnel.url; // Сохраняем в глобальную переменную для прокси
