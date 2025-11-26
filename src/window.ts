@@ -39,9 +39,9 @@ export const initFull = (props: BotProps & { id?: string }) => {
   const { apiKey, onRequest, ...restProps } = props;
   const finalOnRequest = createOnRequestWithApiKey(apiKey, onRequest);
 
-  let fullElement = props.id ? document.getElementById(props.id) : document.querySelector('start-ai-fullchatbot');
+  let fullElement = props.id ? document.getElementById(props.id) : document.querySelector('osmi-ai-fullchatbot');
   if (!fullElement) {
-    fullElement = document.createElement('start-ai-fullchatbot');
+    fullElement = document.createElement('osmi-ai-fullchatbot');
     Object.assign(fullElement, { ...restProps, onRequest: finalOnRequest });
     document.body.appendChild(fullElement);
   } else {
@@ -55,7 +55,7 @@ export const init = (props: BotProps) => {
   const { apiKey, onRequest, ...restProps } = props;
   const finalOnRequest = createOnRequestWithApiKey(apiKey, onRequest);
 
-  const element = document.createElement('start-ai-chatbot');
+  const element = document.createElement('osmi-ai-chatbot');
   Object.assign(element, { ...restProps, onRequest: finalOnRequest });
   document.body.appendChild(element);
   elementUsed = element;

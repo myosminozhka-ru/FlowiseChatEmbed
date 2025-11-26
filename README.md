@@ -84,7 +84,7 @@ npm run build
 ### Полноэкранный чат
 
 ```html
-<start-ai-fullchatbot></start-ai-fullchatbot>
+<osmi-ai-fullchatbot></osmi-ai-fullchatbot>
 
 <script type="module">
   import Chatbot from 'https://your-cdn.com/web.js';
