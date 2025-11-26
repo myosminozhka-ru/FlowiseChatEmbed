@@ -31,6 +31,8 @@ export type FeedbackInput = {
   messageId: string;
   rating: FeedbackRatingType;
   content?: string;
+  fio?: string;
+  email?: string;
 };
 
 export type CreateFeedbackRequest = BaseRequest & {
@@ -147,6 +149,8 @@ export type TransferToAutoFAQRequest = BaseRequest & {
   body: {
     chatId: string;
     userMessage?: string;
+    fio?: string;
+    email?: string;
   };
 };
 

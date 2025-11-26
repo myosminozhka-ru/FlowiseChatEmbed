@@ -2159,6 +2159,7 @@ export const Bot = (botProps: BotProps & { class?: string }) => {
                             isFullscreen={props.isFullscreen}
                             isPopup={!props.isFullPage}
                             feedbackReasons={props.feedback?.reasons}
+                            userData={{ fio: userData().fio, email: userData().email }}
                           />
                         )}
                         {message.type === 'leadCaptureMessage' && leadsConfig()?.status && !getLocalStorageChatflow(props.chatflowid)?.lead && (

@@ -40,9 +40,9 @@ type Props = {
   isFullscreen?: boolean;
   isPopup?: boolean;
   feedbackReasons?: string[];
+  userData?: { fio?: string; email?: string };
 };
 
-const defaultBackgroundColor = 'var(--chatbot-host-bubble-bg-color, #f7f8ff)';
 const defaultFontSize = 'var(--chatbot-font-size, 16px)';
 const defaultFeedbackColor = 'rgba(11, 17, 19, 0.5)'; // gray-500
 
@@ -216,6 +216,8 @@ export const BotBubble = (props: Props) => {
         messageId: messageId,
         rating: 'THUMBS_UP' as FeedbackRatingType,
         content: '',
+        ...(props.userData?.fio && { fio: props.userData.fio }),
+        ...(props.userData?.email && { email: props.userData.email }),
       };
       const result = await sendFeedbackQuery({
         chatflowid: props.chatflowid,
@@ -245,6 +247,8 @@ export const BotBubble = (props: Props) => {
         messageId: messageId,
         rating: 'THUMBS_DOWN' as FeedbackRatingType,
         content: '',
+        ...(props.userData?.fio && { fio: props.userData.fio }),
+        ...(props.userData?.email && { email: props.userData.email }),
       };
       const result = await sendFeedbackQuery({
         chatflowid: props.chatflowid,
@@ -279,6 +283,8 @@ export const BotBubble = (props: Props) => {
 
     const body = {
       content: content,
+      ...(props.userData?.fio && { fio: props.userData.fio }),
+      ...(props.userData?.email && { email: props.userData.email }),
     };
     const result = await updateFeedbackQuery({
       id: feedbackId(),
@@ -680,6 +686,7 @@ export const BotBubble = (props: Props) => {
           apiHost={props.apiHost}
           onRequest={props.onRequest}
           onMessageAdd={props.onMessageAdd}
+          userData={props.userData}
         />
       </Show>
       {/* Success Alert */}
