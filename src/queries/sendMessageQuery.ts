@@ -142,7 +142,23 @@ export const addLeadQuery = ({ apiHost = 'http://localhost:3000', body, onReques
 const AUTH_API_URL =
   typeof window !== 'undefined' && (window as any).__AUTH_API_URL__ ? (window as any).__AUTH_API_URL__ : 'https://sk.ru/auth/user_info';
 
-export type AuthRequest = {
+export type TransferToAutoFAQRequest = BaseRequest & {
+  chatflowid: string;
+  body: {
+    chatId: string;
+    userMessage?: string;
+  };
+};
+
+export const transferChatHistoryToAutoFAQ = ({ chatflowid, apiHost = 'http://localhost:3000', body, onRequest }: TransferToAutoFAQRequest) =>
+  sendRequest<any>({
+    method: 'POST',
+    url: `${apiHost}/api/v1/autofaq/${chatflowid}/transfer`,
+    body,
+    onRequest: onRequest,
+  });
+
+export type AuthRequest = BaseRequest & {
   token: string;
   onRequest?: (request: RequestInit) => Promise<void>;
 };
@@ -174,3 +190,22 @@ export const authQuery = async ({ token, onRequest }: AuthRequest): Promise<{ da
     return { error: e as Error };
   }
 };
+
+export type GetChatMessagesRequest = BaseRequest & {
+  chatflowid: string;
+  chatId: string;
+  lastMessageId?: string; // Для polling новых сообщений
+};
+
+/**
+ * Получение сообщений чата
+ * Если передан lastMessageId, возвращаются только новые сообщения после этого ID
+ */
+export const getChatMessagesQuery = ({ chatflowid, apiHost = 'http://localhost:3000', chatId, lastMessageId, onRequest }: GetChatMessagesRequest) =>
+  sendRequest<any>({
+    method: 'GET',
+    url: `${apiHost}/api/v1/internal-chatmessage/${chatflowid}${
+      lastMessageId ? `?chatId=${chatId}&lastMessageId=${lastMessageId}` : `?chatId=${chatId}`
+    }`,
+    onRequest: onRequest,
+  });

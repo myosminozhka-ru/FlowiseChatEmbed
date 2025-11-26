@@ -11,8 +11,6 @@ import multer from 'multer';
 import FormData from 'form-data';
 import fs from 'fs';
 import { spawn } from 'child_process';
-import { createServer } from 'http';
-import { Server } from 'socket.io';
 import localtunnel from 'localtunnel';
 import { generateEmbedScript } from './src/utils/embedScript.js';
 
@@ -192,45 +190,6 @@ app.use(
   }),
 );
 
-// Создание HTTP сервера для socket.io (нужно до определения endpoints)
-const httpServer = createServer(app);
-
-// Настройка Socket.IO
-const io = new Server(httpServer, {
-  cors: {
-    origin: true,
-    credentials: true,
-    methods: ['GET', 'POST'],
-  },
-});
-
-// Обработка подключений WebSocket
-io.on('connection', (socket) => {
-  devLog('🔌 [WebSocket] Клиент подключился:', socket.id);
-
-  // Клиент присоединяется к комнате по clientId
-  socket.on('join', (clientId) => {
-    if (clientId) {
-      const room = `client-${clientId}`;
-      socket.join(room);
-      devLog(`🔌 [WebSocket] Клиент ${socket.id} присоединился к комнате: ${room}`);
-    }
-  });
-
-  // Клиент покидает комнату
-  socket.on('leave', (clientId) => {
-    if (clientId) {
-      const room = `client-${clientId}`;
-      socket.leave(room);
-      devLog(`🔌 [WebSocket] Клиент ${socket.id} покинул комнату: ${room}`);
-    }
-  });
-
-  socket.on('disconnect', () => {
-    devLog('🔌 [WebSocket] Клиент отключился:', socket.id);
-  });
-});
-
 // Endpoint для получения конфигурации из переменных окружения
 app.get('/api/config', (_, res) => {
   const apiHost = CHAT_API_HOST || 'https://app.osmi-it.ru';
@@ -289,6 +248,39 @@ app.get('/favicon.ico', (_, res) => {
   res.status(204).end();
 });
 
+// Endpoint для передачи истории чата в AutoFAQ
+app.post('/api/v1/autofaq/:chatflowId/transfer', async (req, res) => {
+  try {
+    const chatflowId = req.params.chatflowId;
+    const { chatId, userMessage } = req.body;
+
+    if (!chatId) {
+      return res.status(400).json({ error: 'chatId не указан' });
+    }
+
+    // Проксируем запрос к основному API
+    const apiHost = CHAT_API_HOST || 'https://app.osmi-it.ru';
+    const apiUrl = `${apiHost}/api/v1/autofaq/${chatflowId}/transfer`;
+
+    const headers = {
+      'Content-Type': 'application/json',
+    };
+
+    if (API_KEY) {
+      headers['Authorization'] = `Bearer ${API_KEY}`;
+    }
+
+    const response = await axios.post(apiUrl, { chatId, userMessage }, { headers });
+
+    res.status(200).json(response.data);
+  } catch (error) {
+    errorLog('❌ [AutoFAQ] Ошибка передачи истории:', error);
+    const statusCode = error.response?.status || 500;
+    const errorMessage = error.response?.data?.message || error.message || 'Ошибка передачи истории в AutoFAQ';
+    res.status(statusCode).json({ error: errorMessage });
+  }
+});
+
 // Middleware для проверки доступа (домены и API ключ)
 
 const validateApiKey = (req, res, next) => {
@@ -299,6 +291,7 @@ const validateApiKey = (req, res, next) => {
     req.path === '/' ||
     req.path === '/favicon.ico' ||
     req.path === '/api/config' || // Endpoint для получения конфигурации
+    req.path.startsWith('/api/v1/autofaq/') || // Endpoint для AutoFAQ
     req.path.startsWith('/dist/') ||
     req.path.startsWith('/public/') ||
     req.path.endsWith('.html') || // Разрешаем все HTML файлы (fullchat.html и т.д.)
@@ -368,8 +361,8 @@ app.use((_req, res) => {
 });
 
 // Запуск сервера
-httpServer.listen(PORT, HOST, () => {
-  const addr = httpServer.address();
+const server = app.listen(PORT, HOST, () => {
+  const addr = server.address();
   if (!addr || typeof addr === 'string') return;
 
   let baseUrl;
@@ -455,7 +448,6 @@ httpServer.listen(PORT, HOST, () => {
 
     console.log(`\n✅ Dev сервер запущен: ${baseUrl}`);
     console.log(`📄 Откройте: ${baseUrl}/fullchat.html`);
-    console.log(`🔌 WebSocket сервер готов на: ${baseUrl}`);
   }
 
   generateEmbedScript(baseUrl);

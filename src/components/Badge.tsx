@@ -46,12 +46,10 @@ export const Badge = (props: Props) => {
             color: defaultTextColor,
             'background-color': '#ffffff',
           }}
-        ></span>
+        />
       </Show>
       <Show when={props.footer?.showFooter === false}>
-        <span
-          class="w-full text-center bg-white px-[10px] pt-[6px] pb-[10px] m-auto text-[13px]"
-        />
+        <span class="w-full text-center bg-white px-[10px] pt-[6px] pb-[10px] m-auto text-[13px]" />
       </Show>
     </Show>
   );

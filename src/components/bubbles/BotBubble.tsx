@@ -34,6 +34,7 @@ type Props = {
   botTitle?: string;
   enableCopyMessage?: boolean;
   handleActionClick: (elem: any, action: IAction | undefined | null) => void;
+  onMessageAdd?: (message: MessageType) => void;
   handleSourceDocumentsClick: (src: any) => void;
   isFullPage?: boolean;
   isFullscreen?: boolean;
@@ -47,6 +48,23 @@ const defaultFeedbackColor = 'rgba(11, 17, 19, 0.5)'; // gray-500
 
 export const BotBubble = (props: Props) => {
   let botDetailsEl: HTMLDetailsElement | undefined;
+
+  // Функция для определения, является ли сообщение от оператора
+  const isOperatorMessage = () => {
+    if (!props.message.fileAnnotations) return false;
+    try {
+      const fileAnnotations =
+        typeof props.message.fileAnnotations === 'string' ? JSON.parse(props.message.fileAnnotations) : props.message.fileAnnotations;
+      const operatorInfo = Array.isArray(fileAnnotations)
+        ? fileAnnotations.find((fa: any) => fa.sender === 'operator')
+        : fileAnnotations?.sender === 'operator'
+          ? fileAnnotations
+          : null;
+      return operatorInfo && (operatorInfo.operatorName || operatorInfo.operatorInitials);
+    } catch (e) {
+      return false;
+    }
+  };
 
   Marked.setOptions({ isNoP: true, sanitize: props.renderHTML !== undefined ? !props.renderHTML : true });
 
@@ -191,10 +209,11 @@ export const BotBubble = (props: Props) => {
 
   const onThumbsUpClick = async () => {
     if (rating() === '') {
+      const messageId = props.message?.messageId || props.message?.id || '';
       const body = {
         chatflowid: props.chatflowid,
         chatId: props.chatId,
-        messageId: props.message?.messageId as string,
+        messageId: messageId,
         rating: 'THUMBS_UP' as FeedbackRatingType,
         content: '',
       };
@@ -219,10 +238,11 @@ export const BotBubble = (props: Props) => {
 
   const onThumbsDownClick = async () => {
     if (rating() === '') {
+      const messageId = props.message?.messageId || props.message?.id || '';
       const body = {
         chatflowid: props.chatflowid,
         chatId: props.chatId,
-        messageId: props.message?.messageId as string,
+        messageId: messageId,
         rating: 'THUMBS_DOWN' as FeedbackRatingType,
         content: '',
       };
@@ -251,7 +271,7 @@ export const BotBubble = (props: Props) => {
 
   const submitFeedbackContent = async (text: string, reason?: string) => {
     setFeedbackError('');
-    
+
     let content = text;
     if (reason && reason !== 'Другое') {
       content = reason + (text ? `: ${text}` : '');
@@ -415,7 +435,13 @@ export const BotBubble = (props: Props) => {
             props.isLoading && !props.message.message ? 'w-[72px]' : 'w-full'
           }`}
           style={{
-            'font-size': props.fontSize ? `${props.fontSize}px` : defaultFontSize,
+            'font-size': isOperatorMessage()
+              ? props.fontSize
+                ? `${Math.max(props.fontSize * 0.85, 12)}px`
+                : '13.6px' // Уменьшаем шрифт на 15% для оператора, минимум 12px
+              : props.fontSize
+                ? `${props.fontSize}px`
+                : defaultFontSize,
           }}
         >
           {/* Верхняя строка: Аватар, название бота и Feedback кнопки - показываем только когда есть текст сообщения */}
@@ -425,37 +451,74 @@ export const BotBubble = (props: Props) => {
                 <Show when={props.showAvatar}>
                   <Avatar initialAvatarSrc={props.avatarSrc} />
                 </Show>
-                <span class="font-semibold text-gray-880">{props.botTitle || 'Умный помощник'}</span>
+                <Show
+                  when={
+                    props.message.fileAnnotations &&
+                    (() => {
+                      try {
+                        const fileAnnotations =
+                          typeof props.message.fileAnnotations === 'string'
+                            ? JSON.parse(props.message.fileAnnotations)
+                            : props.message.fileAnnotations;
+                        const operatorInfo = Array.isArray(fileAnnotations)
+                          ? fileAnnotations.find((fa: any) => fa.sender === 'operator')
+                          : fileAnnotations?.sender === 'operator'
+                            ? fileAnnotations
+                            : null;
+                        return operatorInfo && (operatorInfo.operatorName || operatorInfo.operatorInitials);
+                      } catch (e) {
+                        return false;
+                      }
+                    })()
+                  }
+                  fallback={<span class="font-semibold text-gray-880">{props.botTitle || 'Умный помощник'}</span>}
+                >
+                  {(() => {
+                    try {
+                      const fileAnnotations =
+                        typeof props.message.fileAnnotations === 'string' ? JSON.parse(props.message.fileAnnotations) : props.message.fileAnnotations;
+                      const operatorInfo = Array.isArray(fileAnnotations)
+                        ? fileAnnotations.find((fa: any) => fa.sender === 'operator')
+                        : fileAnnotations?.sender === 'operator'
+                          ? fileAnnotations
+                          : null;
+
+                      if (operatorInfo && (operatorInfo.operatorName || operatorInfo.operatorInitials)) {
+                        const operatorText = operatorInfo.operatorInitials
+                          ? `Оператор ${operatorInfo.operatorInitials}${operatorInfo.operatorName ? ` (${operatorInfo.operatorName})` : ''}`
+                          : operatorInfo.operatorName
+                            ? `Оператор ${operatorInfo.operatorName}`
+                            : 'Оператор';
+                        return <span class="font-semibold text-gray-880 text-sm">{operatorText}</span>;
+                      }
+                      return <span class="font-semibold text-gray-880">{props.botTitle || 'Умный помощник'}</span>;
+                    } catch (e) {
+                      return <span class="font-semibold text-gray-880">{props.botTitle || 'Умный помощник'}</span>;
+                    }
+                  })()}
+                </Show>
               </div>
-              {/* Feedback кнопки справа */}
-              <Show when={props.chatFeedbackStatus && props.message.messageId}>
-                <div class="flex items-center gap-2">
-                  <Show when={props.enableCopyMessage}>
-                    <CopyToClipboardButton feedbackColor={props.feedbackColor} onClick={() => copyMessageToClipboard()} />
-                    <Show when={copiedMessage()}>
-                      <div class={`copied-message text-xs ${props.feedbackColor ? `text-[${props.feedbackColor}]` : 'text-gray-500'}`}>
-                        Скопировано
-                      </div>
-                    </Show>
+              {/* Feedback кнопки справа - показываем для всех сообщений */}
+              <div class="flex items-center gap-2">
+                <Show when={props.enableCopyMessage}>
+                  <CopyToClipboardButton feedbackColor={props.feedbackColor} onClick={() => copyMessageToClipboard()} />
+                  <Show when={copiedMessage()}>
+                    <div class={`copied-message text-xs ${props.feedbackColor ? `text-[${props.feedbackColor}]` : 'text-gray-500'}`}>Скопировано</div>
                   </Show>
-                  {rating() === '' || rating() === 'THUMBS_UP' ? (
-                    <ThumbsUpButton
-                      feedbackColor={thumbsUpColor()}
-                      isDisabled={rating() === 'THUMBS_UP'}
-                      rating={rating()}
-                      onClick={onThumbsUpClick}
-                    />
-                  ) : null}
-                  {rating() === '' || rating() === 'THUMBS_DOWN' ? (
-                    <ThumbsDownButton
-                      feedbackColor={thumbsDownColor()}
-                      isDisabled={rating() === 'THUMBS_DOWN'}
-                      rating={rating()}
-                      onClick={onThumbsDownClick}
-                    />
-                  ) : null}
-                </div>
-              </Show>
+                </Show>
+                {/* Кнопки фидбека - показываем всегда для всех сообщений */}
+                {rating() === '' || rating() === 'THUMBS_UP' ? (
+                  <ThumbsUpButton feedbackColor={thumbsUpColor()} isDisabled={rating() === 'THUMBS_UP'} rating={rating()} onClick={onThumbsUpClick} />
+                ) : null}
+                {rating() === '' || rating() === 'THUMBS_DOWN' ? (
+                  <ThumbsDownButton
+                    feedbackColor={thumbsDownColor()}
+                    isDisabled={rating() === 'THUMBS_DOWN'}
+                    rating={rating()}
+                    onClick={onThumbsDownClick}
+                  />
+                ) : null}
+              </div>
             </div>
           </Show>
           {/* Agent Flow Executed Data блок */}
@@ -512,7 +575,13 @@ export const BotBubble = (props: Props) => {
               class="mt-3 max-w-full prose"
               data-testid="host-bubble"
               style={{
-                'font-size': props.fontSize ? `${props.fontSize}px` : defaultFontSize,
+                'font-size': isOperatorMessage()
+                  ? props.fontSize
+                    ? `${Math.max(props.fontSize * 0.85, 12)}px`
+                    : '13.6px' // Уменьшаем шрифт на 15% для оператора, минимум 12px
+                  : props.fontSize
+                    ? `${props.fontSize}px`
+                    : defaultFontSize,
               }}
             />
           ) : props.isLoading ? (
@@ -606,14 +675,15 @@ export const BotBubble = (props: Props) => {
           reasons={props.feedbackReasons}
           errorMessage={feedbackError()}
           onErrorClear={() => setFeedbackError('')}
+          chatflowid={props.chatflowid}
+          chatId={props.chatId}
+          apiHost={props.apiHost}
+          onRequest={props.onRequest}
+          onMessageAdd={props.onMessageAdd}
         />
       </Show>
       {/* Success Alert */}
-      <SuccessAlert
-        isOpen={showSuccessAlert()}
-        onClose={() => setShowSuccessAlert(false)}
-        message="Ваше сообщение отправлено."
-      />
+      <SuccessAlert isOpen={showSuccessAlert()} onClose={() => setShowSuccessAlert(false)} message="Ваше сообщение отправлено." />
     </div>
   );
 };

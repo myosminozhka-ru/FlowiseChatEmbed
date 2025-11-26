@@ -8,6 +8,8 @@ import {
   getChatbotConfig,
   FeedbackRatingType,
   createAttachmentWithFormData,
+  transferChatHistoryToAutoFAQ,
+  getChatMessagesQuery,
 } from '@/queries/sendMessageQuery';
 import { SendArea } from './SendArea';
 import { GuestBubble } from './bubbles/GuestBubble';
@@ -374,6 +376,11 @@ export const Bot = (botProps: BotProps & { class?: string }) => {
   const [isChatFlowAvailableToStream, setIsChatFlowAvailableToStream] = createSignal(false);
   const [chatId, setChatId] = createSignal('');
   const [isMessageStopping, setIsMessageStopping] = createSignal(false);
+
+  // Глобальное состояние для polling AutoFAQ
+  let autofaqPollingInterval: NodeJS.Timeout | null = null;
+  let autofaqLastMessageId: string | undefined = undefined;
+  let isPollingActive = false;
   const [starterPrompts, setStarterPrompts] = createSignal<string[]>([], { equals: false });
   const [chatFeedbackStatus, setChatFeedbackStatus] = createSignal<boolean>(false);
   const [fullFileUpload, setFullFileUpload] = createSignal<boolean>(false);
@@ -451,6 +458,204 @@ export const Bot = (botProps: BotProps & { class?: string }) => {
       chatContainer?.scrollTo(0, chatContainer.scrollHeight);
     }, 50);
   });
+
+  // Функция для запуска polling AutoFAQ
+  const startAutoFAQPolling = () => {
+    if (isPollingActive) {
+      console.log('[Bot] ⚠️ Polling уже активен, пропускаем запуск');
+      return;
+    }
+
+    console.log('[Bot] 🚀 Запуск polling для получения сообщений от оператора...');
+    isPollingActive = true;
+
+    const pollForNewMessages = async () => {
+      try {
+        const currentChatId = chatId();
+        if (!currentChatId) {
+          console.error('[Bot] ❌ chatId не найден для polling');
+          return;
+        }
+
+        console.log('[Bot] 🔍 Polling: используем chatId из виджета:', currentChatId);
+
+        // Получаем последнее сообщение с реальным ID для использования как lastMessageId
+        const currentMessages = messages();
+        const lastMessageWithId = [...currentMessages]
+          .reverse()
+          .find((msg) => (msg.messageId || msg.id) && !String(msg.messageId || msg.id).startsWith('transfer-'));
+        const newLastMessageId = lastMessageWithId?.messageId || lastMessageWithId?.id;
+
+        // Если lastMessageId изменился, обновляем его
+        if (newLastMessageId && newLastMessageId !== autofaqLastMessageId) {
+          autofaqLastMessageId = newLastMessageId;
+          console.log('[Bot] 🔄 Обновлен lastMessageId для polling:', autofaqLastMessageId);
+        }
+
+        const pollingLastMessageId = autofaqLastMessageId || undefined;
+        console.log('[Bot] 🔍 Polling новых сообщений:', {
+          chatId: currentChatId,
+          lastMessageId: pollingLastMessageId,
+          chatflowid: props.chatflowid,
+          apiHost: props.apiHost,
+        });
+
+        const result = await getChatMessagesQuery({
+          chatflowid: props.chatflowid,
+          apiHost: props.apiHost,
+          chatId: currentChatId,
+          lastMessageId: pollingLastMessageId,
+          onRequest: props.onRequest,
+        });
+
+        console.log('[Bot] 📥 Получен ответ от polling:', {
+          hasError: !!result.error,
+          hasData: !!result.data,
+          dataType: typeof result.data,
+          isArray: Array.isArray(result.data),
+        });
+
+        if (result.error) {
+          console.error('[Bot] ❌ Ошибка при получении сообщений:', result.error);
+          return;
+        }
+
+        let messagesData = result.data;
+        if (messagesData && !Array.isArray(messagesData) && typeof messagesData === 'object') {
+          if ('data' in messagesData && Array.isArray(messagesData.data)) {
+            messagesData = messagesData.data;
+          } else if ('messages' in messagesData && Array.isArray(messagesData.messages)) {
+            messagesData = messagesData.messages;
+          } else {
+            messagesData = [messagesData];
+          }
+        }
+
+        if (messagesData && Array.isArray(messagesData) && messagesData.length > 0) {
+          const currentMessageIds = new Set(
+            messages()
+              .map((m) => m.messageId || m.id)
+              .filter(Boolean),
+          );
+
+          const newMessages = messagesData
+            .filter((msg: any) => {
+              const msgId = msg.id || msg.messageId;
+              return msgId && !currentMessageIds.has(msgId);
+            })
+            .map((message: any) => {
+              let fileAnnotations = message.fileAnnotations;
+              if (fileAnnotations && typeof fileAnnotations === 'string') {
+                try {
+                  fileAnnotations = JSON.parse(fileAnnotations);
+                } catch (e) {
+                  console.error('[Bot] Ошибка парсинга fileAnnotations:', e);
+                }
+              }
+
+              let sourceDocuments = message.sourceDocuments;
+              if (sourceDocuments && typeof sourceDocuments === 'string') {
+                try {
+                  sourceDocuments = JSON.parse(sourceDocuments);
+                } catch (e) {
+                  // Игнорируем ошибки
+                }
+              }
+
+              let action = message.action;
+              if (action && typeof action === 'string') {
+                try {
+                  action = JSON.parse(action);
+                } catch (e) {
+                  // Игнорируем ошибки
+                }
+              }
+
+              return {
+                message: message.content || message.message || '',
+                type: (message.role || 'apiMessage') as 'apiMessage' | 'userMessage',
+                messageId: message.id,
+                id: message.id,
+                dateTime: message.createdDate || new Date().toISOString(),
+                sourceDocuments: sourceDocuments,
+                usedTools: message.usedTools,
+                fileAnnotations: fileAnnotations,
+                agentReasoning: message.agentReasoning,
+                action: action,
+                artifacts: message.artifacts,
+                feedback: message.feedback,
+              };
+            });
+
+          if (newMessages.length > 0) {
+            console.log(
+              `[Bot] ✅ Получено ${newMessages.length} новых сообщений от оператора:`,
+              newMessages.map((m) => ({
+                id: m.id,
+                message: m.message.substring(0, 50),
+              })),
+            );
+
+            // Проверяем, есть ли сообщение о завершении чата
+            const closingMessage = newMessages.find((msg) => {
+              const messageText = (msg.message || '').toLowerCase().trim();
+              return (
+                messageText.includes('спасибо, что воспользовались нашим сервисом') ||
+                messageText.includes('спасибо что воспользовались нашим сервисом') ||
+                messageText.includes('благодарим за обращение') ||
+                messageText.includes('чат завершен') ||
+                messageText.includes('чат закрыт')
+              );
+            });
+
+            if (closingMessage) {
+              console.log('[Bot] 🔚 Обнаружено сообщение о завершении чата от оператора, останавливаем polling и возвращаемся к LLM режиму');
+              // Останавливаем polling перед добавлением сообщений
+              stopAutoFAQPolling();
+            }
+
+            setMessages((prevMessages) => {
+              const updated = [...prevMessages, ...newMessages];
+              addChatMessage(updated);
+
+              const lastNewMessage = newMessages[newMessages.length - 1];
+              if (lastNewMessage && (lastNewMessage.messageId || lastNewMessage.id)) {
+                autofaqLastMessageId = lastNewMessage.messageId || lastNewMessage.id;
+                console.log('[Bot] 🔄 lastMessageId обновлен после получения новых сообщений:', autofaqLastMessageId);
+              }
+
+              return updated;
+            });
+
+            scrollToBottom();
+          } else {
+            console.log('[Bot] ℹ️ Новых сообщений нет');
+          }
+        } else {
+          console.log('[Bot] ℹ️ Сообщений в ответе нет или пустой массив');
+        }
+      } catch (error) {
+        console.error('[Bot] ❌ Ошибка при polling сообщений:', error);
+      }
+    };
+
+    // Запускаем polling каждые 2 секунды
+    autofaqPollingInterval = setInterval(pollForNewMessages, 2000);
+    console.log('[Bot] ✅ Polling запущен для получения сообщений от оператора');
+
+    // Выполняем первый запрос сразу
+    pollForNewMessages();
+  };
+
+  // Функция для остановки polling
+  const stopAutoFAQPolling = () => {
+    if (autofaqPollingInterval) {
+      clearInterval(autofaqPollingInterval);
+      autofaqPollingInterval = null;
+      isPollingActive = false;
+      console.log('[Bot] 🛑 Polling остановлен');
+    }
+  };
 
   const scrollToBottom = () => {
     setTimeout(() => {
@@ -590,7 +795,25 @@ export const Bot = (botProps: BotProps & { class?: string }) => {
     setMessages((data) => {
       const updated = data.map((item, i) => {
         if (i === data.length - 1) {
-          return { ...item, action: typeof action === 'string' ? JSON.parse(action) : action };
+          let normalizedAction = typeof action === 'string' ? JSON.parse(action) : action;
+
+          // Нормализация формата кнопок от AutoFAQ
+          // AutoFAQ может отправлять кнопки в формате { type: "buttons", buttons: [...] }
+          // Преобразуем в формат { elements: [...] }
+          if (normalizedAction && normalizedAction.type === 'buttons' && Array.isArray(normalizedAction.buttons)) {
+            normalizedAction = {
+              ...normalizedAction,
+              elements: normalizedAction.buttons.map((btn: any) => ({
+                type: btn.type || 'button',
+                label: btn.text || btn.label || btn.value || 'Кнопка',
+                value: btn.value,
+              })),
+            };
+            // Удаляем старый формат buttons, оставляем только elements
+            delete normalizedAction.buttons;
+          }
+
+          return { ...item, action: normalizedAction };
         }
         return item;
       });
@@ -785,6 +1008,8 @@ export const Bot = (botProps: BotProps & { class?: string }) => {
             });
             closeResponse();
             break;
+          // Событие autofaqMessage больше не используется - используем polling вместо SSE
+          // case 'autofaqMessage': - удалено, сообщения получаются через polling
         }
       },
       async onclose() {
@@ -949,9 +1174,16 @@ export const Bot = (botProps: BotProps & { class?: string }) => {
       return messages;
     });
 
+    const currentChatId = chatId();
+    console.log('[Bot] 📤 Отправка сообщения пользователя:', {
+      chatId: currentChatId,
+      message: typeof value === 'string' ? value.substring(0, 50) : 'object',
+      chatflowid: props.chatflowid,
+    });
+
     const body: IncomingInput = {
       question: value,
-      chatId: chatId(),
+      chatId: currentChatId,
     };
 
     if (startInputType() === 'formInput') {
@@ -1012,6 +1244,7 @@ export const Bot = (botProps: BotProps & { class?: string }) => {
 
       if (result.data) {
         const data = result.data;
+        console.log('[Bot] transferChatHistoryToAutoFAQ успешно, данные:', data);
 
         let text = '';
         if (data.text) text = data.text;
@@ -1132,6 +1365,78 @@ export const Bot = (botProps: BotProps & { class?: string }) => {
   };
 
   const handleActionClick = async (elem: any, action: IAction | undefined | null) => {
+    // Проверяем, является ли это кнопкой связи с оператором (AutoFAQ)
+    const isOperatorHandoff =
+      elem.type === 'operator-handoff' ||
+      elem.value === 'operator_handoff' ||
+      elem.type === 'operator' ||
+      (elem.label && (elem.label.toLowerCase().includes('оператор') || elem.label.toLowerCase().includes('operator')));
+
+    if (isOperatorHandoff) {
+      try {
+        console.log('🔵 [Bot] Передача истории чата в AutoFAQ через кнопку оператора...');
+
+        const result = await transferChatHistoryToAutoFAQ({
+          chatflowid: props.chatflowid,
+          apiHost: props.apiHost,
+          body: {
+            chatId: chatId(),
+            userMessage: elem.label || 'Пользователь запросил связь с оператором',
+          },
+          onRequest: props.onRequest,
+        });
+
+        if (result.data) {
+          console.log('✅ [Bot] История чата успешно передана в AutoFAQ:', result.data);
+
+          // Убираем кнопку из сообщения
+          setMessages((data) => {
+            const updated = data.map((item, i) => {
+              if (i === data.length - 1) {
+                return { ...item, action: null };
+              }
+              return item;
+            });
+            addChatMessage(updated);
+            return [...updated];
+          });
+
+          // Показываем сообщение пользователю о передаче оператору
+          // НЕ добавляем messageId, чтобы использовать ID последнего реального сообщения для polling
+          const transferMessage = {
+            message: 'Чат передан оператору. Ожидайте ответа...',
+            type: 'apiMessage' as const,
+            dateTime: new Date().toISOString(),
+            // НЕ добавляем messageId и id, чтобы polling использовал ID предыдущего сообщения
+          };
+          setMessages((prevMessages) => {
+            const updated = [...prevMessages, transferMessage];
+            addChatMessage(updated);
+            return updated;
+          });
+
+          console.log('[Bot] Сообщение о передаче оператору добавлено. Запускаем polling для получения сообщений от оператора...');
+
+          // Запускаем polling для получения новых сообщений от AutoFAQ оператора
+          setTimeout(() => {
+            startAutoFAQPolling();
+          }, 1000);
+
+          scrollToBottom();
+          return;
+        } else if (result.error) {
+          console.error('❌ [Bot] Ошибка передачи истории:', result.error);
+          handleError('Не удалось передать запрос оператору. Попробуйте еще раз.');
+          return;
+        }
+      } catch (error) {
+        console.error('❌ [Bot] Ошибка при передаче истории в AutoFAQ:', error);
+        handleError('Не удалось передать запрос оператору. Попробуйте еще раз.');
+        return;
+      }
+    }
+
+    // Обычная обработка кнопок
     setUserInput(elem.label);
     setMessages((data) => {
       const updated = data.map((item, i) => {
@@ -1143,6 +1448,7 @@ export const Bot = (botProps: BotProps & { class?: string }) => {
       addChatMessage(updated);
       return [...updated];
     });
+
     if (elem.type.includes('agentflowv2')) {
       const type = elem.type.includes('approve') ? 'proceed' : 'reject';
       setFeedbackType(type);
@@ -1160,6 +1466,9 @@ export const Bot = (botProps: BotProps & { class?: string }) => {
 
   const clearChat = () => {
     try {
+      // Останавливаем polling при очистке чата
+      stopAutoFAQPolling();
+
       removeLocalStorageChatHistory(props.chatflowid);
       setChatId(
         (props.chatflowConfig?.vars as any)?.customerId ? `${(props.chatflowConfig?.vars as any).customerId.toString()}+${uuidv4()}` : uuidv4(),
@@ -1806,6 +2115,29 @@ export const Bot = (botProps: BotProps & { class?: string }) => {
                             showAgentMessages={props.showAgentMessages}
                             botTitle={props.title}
                             handleActionClick={(elem, action) => handleActionClick(elem, action)}
+                            onMessageAdd={(newMessage) => {
+                              setMessages((prevMessages) => {
+                                const updated = [...prevMessages, newMessage];
+                                addChatMessage(updated);
+
+                                // Если это сообщение о передаче оператору, запускаем polling
+                                if (
+                                  newMessage.message &&
+                                  typeof newMessage.message === 'string' &&
+                                  (newMessage.message.includes('Чат передан оператору') || newMessage.message.includes('оператору'))
+                                ) {
+                                  console.log('[Bot] Обнаружено сообщение о передаче оператору через onMessageAdd, запускаем polling...');
+
+                                  // Запускаем polling через небольшую задержку
+                                  setTimeout(() => {
+                                    startAutoFAQPolling();
+                                  }, 1000);
+                                }
+
+                                return updated;
+                              });
+                              scrollToBottom();
+                            }}
                             sourceDocsTitle={props.sourceDocsTitle}
                             handleSourceDocumentsClick={(sourceDocuments) => {
                               setSourcePopupSrc(sourceDocuments);

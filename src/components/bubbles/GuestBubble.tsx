@@ -164,37 +164,37 @@ export const GuestBubble = (props: Props) => {
           class="max-w-full flex flex-col justify-center items-start chatbot-guest-bubble min-h-[52px] px-4 py-2 gap-2 rounded-lg rounded-br-none bg-[var(--chatbot-guest-bubble-bg-color)] text-[var(--chatbot-guest-bubble-text-color)]"
           data-testid="guest-bubble"
         >
-        {props.message.fileUploads && props.message.fileUploads.length > 0 && (
-          <div class="flex flex-col items-start flex-wrap w-full gap-2">
-            <For each={props.message.fileUploads}>
-              {(item) => {
-                return renderFileUploads(item);
-              }}
-            </For>
-          </div>
-        )}
-        {props.message.message && (
-          <span
-            ref={userMessageEl}
-            class="mr-2 whitespace-pre-wrap"
-            style={{ 'font-size': props.fontSize ? `${props.fontSize}px` : `${defaultFontSize}px` }}
-          />
-        )}
-        {/* Кнопка копирования */}
-        <Show when={props.enableCopyMessage}>
-          <div class="flex items-center gap-2 mt-2">
-            <CopyToClipboardButton feedbackColor="rgba(11, 17, 19, 0.5)" onClick={() => copyMessageToClipboard()} />
-            <Show when={copiedMessage()}>
-              <div class="copied-message text-xs text-gray-500">Скопировано</div>
-            </Show>
-          </div>
-        </Show>
-        {/* Время */}
-        {props.message.dateTime && (
-          <div class="text-xs text-gray-500 opacity-70 w-full">
-            {formatDateTime(props.message.dateTime, props?.dateTimeToggle?.date, props?.dateTimeToggle?.time)}
-          </div>
-        )}
+          {props.message.fileUploads && props.message.fileUploads.length > 0 && (
+            <div class="flex flex-col items-start flex-wrap w-full gap-2">
+              <For each={props.message.fileUploads}>
+                {(item) => {
+                  return renderFileUploads(item);
+                }}
+              </For>
+            </div>
+          )}
+          {props.message.message && (
+            <span
+              ref={userMessageEl}
+              class="mr-2 whitespace-pre-wrap"
+              style={{ 'font-size': props.fontSize ? `${props.fontSize}px` : `${defaultFontSize}px` }}
+            />
+          )}
+          {/* Кнопка копирования */}
+          <Show when={props.enableCopyMessage}>
+            <div class="flex items-center gap-2 mt-2">
+              <CopyToClipboardButton feedbackColor="rgba(11, 17, 19, 0.5)" onClick={() => copyMessageToClipboard()} />
+              <Show when={copiedMessage()}>
+                <div class="copied-message text-xs text-gray-500">Скопировано</div>
+              </Show>
+            </div>
+          </Show>
+          {/* Время */}
+          {props.message.dateTime && (
+            <div class="text-xs text-gray-500 opacity-70 w-full">
+              {formatDateTime(props.message.dateTime, props?.dateTimeToggle?.date, props?.dateTimeToggle?.time)}
+            </div>
+          )}
         </div>
       </div>
       <Show when={props.showAvatar}>

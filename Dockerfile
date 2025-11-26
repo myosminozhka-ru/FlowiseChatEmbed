@@ -2,10 +2,12 @@ FROM node:20-alpine
 
 WORKDIR /app
 
+# Копируем файлы зависимостей
 COPY package*.json ./
 COPY yarn.lock ./
 
-RUN yarn install --frozen-lockfile
+# Установка зависимостей с оптимизацией
+RUN yarn install --ignore-engines --network-timeout 100000
 
 COPY . .
 

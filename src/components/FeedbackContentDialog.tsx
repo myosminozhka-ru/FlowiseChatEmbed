@@ -2,6 +2,8 @@ import { createSignal, createMemo, For, Show } from 'solid-js';
 import { IconButton } from './buttons/IconButton';
 import { Button } from './buttons/Button';
 import { XIcon } from './icons';
+import { transferChatHistoryToAutoFAQ } from '@/queries/sendMessageQuery';
+import { MessageType } from './Bot';
 
 type FeedbackContentDialogProps = {
   isOpen: boolean;
@@ -10,6 +12,11 @@ type FeedbackContentDialogProps = {
   reasons?: string[];
   errorMessage?: string;
   onErrorClear?: () => void;
+  chatflowid?: string;
+  chatId?: string;
+  apiHost?: string;
+  onRequest?: (request: RequestInit) => Promise<void>;
+  onMessageAdd?: (message: MessageType) => void;
 };
 
 const defaultBackgroundColor = 'var(--chatbot-input-bg-color, #ffffff)';
@@ -54,7 +61,10 @@ const FeedbackContentDialog = (props: FeedbackContentDialogProps) => {
   };
 
   const countWords = (text: string): number => {
-    return text.trim().split(/\s+/).filter(word => word.length > 0).length;
+    return text
+      .trim()
+      .split(/\s+/)
+      .filter((word) => word.length > 0).length;
   };
 
   const isSubmitDisabled = createMemo(() => {
@@ -155,13 +165,49 @@ const FeedbackContentDialog = (props: FeedbackContentDialogProps) => {
                 />
                 {/* Contact operator button */}
                 <Button
-                    text="Связаться с оператором"
-                    type="button"
-                    disabled={isSubmitDisabled()}
-                    onClick={() => {
-                      console.log('🔵 [FeedbackDialog] Кнопка "Связаться с оператором" нажата');
-                    }}
-                    class={'min-w-full flex-1 bg-white'}
+                  text="Связаться с оператором"
+                  type="button"
+                  onClick={async () => {
+                    if (!props.chatflowid || !props.chatId) {
+                      console.error('🔴 [FeedbackDialog] chatflowid или chatId не указаны');
+                      return;
+                    }
+
+                    try {
+                      console.log('🔵 [FeedbackDialog] Передача истории чата в AutoFAQ...');
+                      const result = await transferChatHistoryToAutoFAQ({
+                        chatflowid: props.chatflowid,
+                        apiHost: props.apiHost,
+                        body: {
+                          chatId: props.chatId,
+                          userMessage: inputValue() || selectedReason() || undefined,
+                        },
+                        onRequest: props.onRequest,
+                      });
+
+                      if (result.data) {
+                        console.log('✅ [FeedbackDialog] История чата успешно передана в AutoFAQ:', result.data);
+
+                        // Добавляем сообщение о передаче оператору
+                        if (props.onMessageAdd) {
+                          const transferMessage: MessageType = {
+                            message: 'Чат передан оператору. Ожидайте ответа...',
+                            type: 'apiMessage',
+                            dateTime: new Date().toISOString(),
+                          };
+                          props.onMessageAdd(transferMessage);
+                          console.log('[FeedbackDialog] Сообщение о передаче оператору добавлено через callback');
+                        }
+
+                        props.onClose();
+                      } else if (result.error) {
+                        console.error('❌ [FeedbackDialog] Ошибка передачи истории:', result.error);
+                      }
+                    } catch (error) {
+                      console.error('❌ [FeedbackDialog] Ошибка при передаче истории в AutoFAQ:', error);
+                    }
+                  }}
+                  class={'min-w-full flex-1 bg-white'}
                 />
               </div>
             </div>
