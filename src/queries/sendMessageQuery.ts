@@ -167,6 +167,7 @@ export type AuthResponse = {
   fio?: string; // ФИО пользователя
   id?: string; // ID пользователя из ответа
   user_id?: string; // Альтернативное имя для id
+  email?: string; // Email пользователя
   [key: string]: unknown;
 };
 

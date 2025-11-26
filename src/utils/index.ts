@@ -182,6 +182,7 @@ export type UserData = {
   user_id?: string;
   user_name?: string;
   fio?: string; // ФИО пользователя
+  email?: string; // Email пользователя
   token?: string; // Токен из cookies
 };
 
@@ -259,26 +260,27 @@ export const getUserDataWithAuth = async (onRequest?: (request: RequestInit) => 
     // Если пришла ошибка от auth запроса, возвращаем данные гостя
     if (result.error || !result.data) {
       console.error('❌ [Auth] Ошибка получения данных пользователя:', result.error);
-      const guestData = {
+      return {
         user_id: userData.user_id || 'guest',
         user_name: userData.user_name || 'Гость',
         token: undefined,
       };
-      return guestData;
     }
 
-    // Получаем id и fio из ответа
+    // Получаем id, fio и email из ответа
     // id -> user_id, fio -> user_name
     const userDataResult: UserData = {
       ...userData,
       user_id: result.data.user_id || result.data.id || '', // id из ответа
       user_name: result.data.fio || 'Гость', // fio из ответа -> user_name
       fio: result.data.fio, // Сохраняем fio для справки
+      email: result.data.email, // Сохраняем email из ответа
     };
 
     console.log('✅ [Auth] Пользователь авторизован', {
       user_id: userDataResult.user_id,
       user_name: userDataResult.user_name,
+      email: userDataResult.email,
     });
     return userDataResult;
   } catch (error) {

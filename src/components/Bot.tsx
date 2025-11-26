@@ -403,7 +403,7 @@ export const Bot = (botProps: BotProps & { class?: string }) => {
   const [formInputParams, setFormInputParams] = createSignal([]);
 
   // Данные пользователя (ФИО и другие данные)
-  const [userData, setUserData] = createSignal<{ fio?: string; user_id?: string; user_name?: string; token?: string }>({});
+  const [userData, setUserData] = createSignal<{ fio?: string; user_id?: string; user_name?: string; email?: string; token?: string }>({});
 
   // drag & drop file input
   // TODO: fix this type
@@ -1198,12 +1198,19 @@ export const Bot = (botProps: BotProps & { class?: string }) => {
     const currentUserData = userData();
 
     // Формируем userData для отправки в AI платформу
-    // Передаем только user_id (id из ответа auth или guest_id для гостя)
-    // user_name (fio) используем только для отображения в bubble, не передаем в AI
+    // Передаем user_id (id из ответа auth или guest_id для гостя), fio и email
     const userDataForRequest: Record<string, unknown> = {};
     // Передаем user_id только если он есть (для авторизованных) или guest_id (для гостей)
     if (currentUserData.user_id) {
       userDataForRequest.user_id = currentUserData.user_id;
+    }
+    // Передаем fio (ФИО) если оно есть
+    if (currentUserData.fio) {
+      userDataForRequest.fio = currentUserData.fio;
+    }
+    // Передаем email если он есть
+    if (currentUserData.email) {
+      userDataForRequest.email = currentUserData.email;
     }
 
     // Если есть хотя бы одно поле, добавляем userData в overrideConfig
@@ -1216,6 +1223,8 @@ export const Bot = (botProps: BotProps & { class?: string }) => {
       console.log('📤 [Bot] Отправка сообщения с данными пользователя:', {
         user_id: currentUserData.user_id,
         user_name: currentUserData.user_name,
+        fio: currentUserData.fio,
+        email: currentUserData.email,
       });
     } else if (props.chatflowConfig) {
       body.overrideConfig = props.chatflowConfig;
