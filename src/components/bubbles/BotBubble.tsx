@@ -504,7 +504,7 @@ export const BotBubble = (props: Props) => {
                   })()}
                 </Show>
               </div>
-              {/* Feedback кнопки справа - показываем для всех сообщений */}
+              {/* Feedback кнопки справа - показываем только если chatFeedbackStatus === true */}
               <div class="flex items-center gap-2">
                 <Show when={props.enableCopyMessage}>
                   <CopyToClipboardButton feedbackColor={props.feedbackColor} onClick={() => copyMessageToClipboard()} />
@@ -512,18 +512,20 @@ export const BotBubble = (props: Props) => {
                     <div class={`copied-message text-xs ${props.feedbackColor ? `text-[${props.feedbackColor}]` : 'text-gray-500'}`}>Скопировано</div>
                   </Show>
                 </Show>
-                {/* Кнопки фидбека - показываем всегда для всех сообщений */}
-                {rating() === '' || rating() === 'THUMBS_UP' ? (
-                  <ThumbsUpButton feedbackColor={thumbsUpColor()} isDisabled={rating() === 'THUMBS_UP'} rating={rating()} onClick={onThumbsUpClick} />
-                ) : null}
-                {rating() === '' || rating() === 'THUMBS_DOWN' ? (
-                  <ThumbsDownButton
-                    feedbackColor={thumbsDownColor()}
-                    isDisabled={rating() === 'THUMBS_DOWN'}
-                    rating={rating()}
-                    onClick={onThumbsDownClick}
-                  />
-                ) : null}
+                {/* Кнопки фидбека - показываем только если chatFeedbackStatus === true */}
+                <Show when={props.chatFeedbackStatus}>
+                  {rating() === '' || rating() === 'THUMBS_UP' ? (
+                    <ThumbsUpButton feedbackColor={thumbsUpColor()} isDisabled={rating() === 'THUMBS_UP'} rating={rating()} onClick={onThumbsUpClick} />
+                  ) : null}
+                  {rating() === '' || rating() === 'THUMBS_DOWN' ? (
+                    <ThumbsDownButton
+                      feedbackColor={thumbsDownColor()}
+                      isDisabled={rating() === 'THUMBS_DOWN'}
+                      rating={rating()}
+                      onClick={onThumbsDownClick}
+                    />
+                  ) : null}
+                </Show>
               </div>
             </div>
           </Show>

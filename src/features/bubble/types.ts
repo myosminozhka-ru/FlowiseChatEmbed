@@ -48,6 +48,7 @@ export type ChatWindowTheme = {
   titleAvatarSrc?: string;
   welcomeTitle?: string;
   welcomeText?: string;
+  assistantGreeting?: string; // Приветствие ассистента (например: "Я ваш AI-ассистент Сколково. Чем могу помочь?")
   showWelcomeImage?: boolean;
   errorMessage?: string;
   backgroundImage?: string;

@@ -124,7 +124,8 @@ npm run build
 | `title`             | `string`   | Текст заголовка                              |
 | `titleAvatarSrc`    | `string`   | URL аватара в заголовке                      |
 | `welcomeTitle`      | `string`   | Заголовок приветственного сообщения          |
-| `welcomeText`       | `string`   | Текст приветственного сообщения              |
+| `welcomeText`       | `string`   | Текст приветственного сообщения. По умолчанию: "Задавайте мне вопросы так, будто общаетесь с реальным человеком" |
+| `assistantGreeting` | `string`   | Приветствие ассистента для первого bubble. Если не указано, используется значение по умолчанию: "Я ваш AI-ассистент. Чем могу помочь?" |
 | `showWelcomeImage`  | `boolean`  | Показывать изображение приветствия           |
 | `errorMessage`      | `string`   | Сообщение об ошибке                          |
 | `backgroundImage`   | `string`   | URL фонового изображения                     |
@@ -254,6 +255,8 @@ Chatbot.init({
     chatWindow: {
       showTitle: true,
       title: 'Умный помощник',
+      welcomeText: 'Задавайте мне вопросы так, будто общаетесь с реальным человеком',
+      assistantGreeting: 'Я ваш AI-ассистент Сколково. Чем могу помочь?',
       botMessage: {
         showAvatar: true,
       },
@@ -295,6 +298,8 @@ Chatbot.initFull({
     chatWindow: {
       showTitle: true,
       title: 'Умный помощник',
+      welcomeText: 'Задавайте мне вопросы так, будто общаетесь с реальным человеком',
+      assistantGreeting: 'Я ваш AI-ассистент Сколково. Чем могу помочь?',
       botMessage: {
         showAvatar: true,
       },

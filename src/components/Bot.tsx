@@ -147,6 +147,7 @@ export type BotProps = {
   chatflowConfig?: Record<string, unknown>;
   welcomeTitle?: string;
   welcomeText?: string;
+  assistantGreeting?: string;
   showWelcomeImage?: boolean;
   errorMessage?: string;
   botMessage?: BotMessageTheme;
@@ -189,6 +190,7 @@ const defaultTitleBackgroundColor = 'var(--chatbot-title-bg-color)';
 
 const defaultWelcomeTitle = 'Я – оператор';
 const defaultWelcomeText = 'Задавайте мне вопросы так, будто общаетесь с реальным человеком';
+const defaultAssistantGreeting = 'Я ваш AI-ассистент. Чем могу помочь?';
 
 /* FeedbackDialog component - for collecting user feedback */
 const FeedbackDialog = (props: {
@@ -382,7 +384,7 @@ export const Bot = (botProps: BotProps & { class?: string }) => {
   let autofaqLastMessageId: string | undefined = undefined;
   let isPollingActive = false;
   const [starterPrompts, setStarterPrompts] = createSignal<string[]>([], { equals: false });
-  const [chatFeedbackStatus, setChatFeedbackStatus] = createSignal<boolean>(false);
+  const [chatFeedbackStatus, setChatFeedbackStatus] = createSignal<boolean>(true); // По умолчанию фидбэк включен
   const [fullFileUpload, setFullFileUpload] = createSignal<boolean>(false);
   const [uploadsConfig, setUploadsConfig] = createSignal<UploadsConfig>();
   const [leadsConfig, setLeadsConfig] = createSignal<LeadsConfig>();
@@ -423,18 +425,9 @@ export const Bot = (botProps: BotProps & { class?: string }) => {
     setChatId(customerId ? `${customerId.toString()}+${uuidv4()}` : uuidv4());
   });
 
-  // Формируем welcomeText с приветствием и ФИО пользователя
+  // Формируем welcomeText (только текст, без приветствия)
   const formattedWelcomeText = createMemo(() => {
-    const baseText = props.welcomeText ?? defaultWelcomeText;
-    const fio = userData().fio || userData().user_name;
-
-    let welcomePrefix = 'Здравствуйте';
-    if (fio && fio !== 'Гость') {
-      welcomePrefix = `Здравствуйте, ${fio}`;
-    }
-
-    // Склеиваем: приветствие + текст из темы
-    return baseText ? `${welcomePrefix}! ${baseText}` : welcomePrefix;
+    return props.welcomeText ?? defaultWelcomeText;
   });
 
   onMount(async () => {
@@ -447,6 +440,7 @@ export const Bot = (botProps: BotProps & { class?: string }) => {
       user_name: data.user_name,
       isGuest: !data.token,
     });
+
 
     if (botProps?.observersConfig) {
       const { observeUserInput, observeLoading, observeMessages } = botProps.observersConfig;
@@ -1813,6 +1807,34 @@ export const Bot = (botProps: BotProps & { class?: string }) => {
     }
   });
 
+  // Создаем первый bubble с приветствием, если сообщений нет
+  createEffect(() => {
+    const currentMessages = messages();
+    const currentUserData = userData();
+    
+    // Проверяем, что userData загружен и сообщений нет
+    // assistantGreeting всегда есть (либо из props, либо значение по умолчанию)
+    if (
+      currentMessages.length === 0 &&
+      Object.keys(currentUserData).length > 0 // userData загружен (не пустой объект)
+    ) {
+      const fio = currentUserData.fio || currentUserData.user_name;
+      const assistantGreeting = props.assistantGreeting ?? defaultAssistantGreeting;
+      
+      let greeting = 'Здравствуйте';
+      if (fio && fio !== 'Гость') {
+        greeting = `Здравствуйте, ${fio}`;
+      }
+      
+      const greetingMessage: MessageType = {
+        message: `${greeting}! ${assistantGreeting}`,
+        type: 'apiMessage',
+        dateTime: new Date().toISOString(),
+      };
+      setMessages([greetingMessage]);
+    }
+  });
+
   // Auto scroll chat to bottom
   createEffect(() => {
     if (messages()) {
@@ -2410,7 +2432,7 @@ export const Bot = (botProps: BotProps & { class?: string }) => {
                             apiHost={props.apiHost}
                             showAvatar={props.botMessage?.showAvatar ?? true}
                             avatarSrc={props.botMessage?.avatarSrc ?? props.titleAvatarSrc}
-                            chatFeedbackStatus={chatFeedbackStatus()}
+                            chatFeedbackStatus={index() > 0 ? chatFeedbackStatus() : false}
                             fontSize={props.fontSize}
                             isLoading={loading() && index() === messages().length - 1}
                             showAgentMessages={props.showAgentMessages}

@@ -170,6 +170,7 @@ export const Bubble = (props: BubbleProps) => {
               titleAvatarSrc={bubbleProps.theme?.chatWindow?.titleAvatarSrc}
               welcomeTitle={bubbleProps.theme?.chatWindow?.welcomeTitle}
               welcomeText={bubbleProps.theme?.chatWindow?.welcomeText}
+              assistantGreeting={bubbleProps.theme?.chatWindow?.assistantGreeting}
               showWelcomeImage={bubbleProps.theme?.chatWindow?.showWelcomeImage}
               errorMessage={bubbleProps.theme?.chatWindow?.errorMessage}
               textInput={bubbleProps.theme?.chatWindow?.textInput}
