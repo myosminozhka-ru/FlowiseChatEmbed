@@ -228,9 +228,10 @@ export const getUserDataFromCookies = (): UserData => {
 /**
  * Получает данные пользователя по токену из cookies
  * Читает sk_auth из cookies и делает запрос на {AUTH_API_URL}?sk_auth={sk_auth}
- * По умолчанию использует https://sk.ru/auth/user_info (можно переопределить через window.__AUTH_API_URL__)
+ * По умолчанию использует https://uat.sk.ru/auth/user_info/ (можно переопределить через window.__AUTH_API_URL__)
  * Получает id и fio из ответа, сохраняет их в user_id и user_name
  * Если sk_auth нет - возвращает данные гостя (guest_id и "Гость")
+ * 
  * @param onRequest - Callback для модификации запроса
  * @returns Данные пользователя (user_id и user_name из ответа auth или данные гостя)
  */
@@ -249,7 +250,7 @@ export const getUserDataWithAuth = async (onRequest?: (request: RequestInit) => 
   }
 
   // Делаем запрос auth для получения id и fio
-  // GET {AUTH_API_URL}?sk_auth={sk_auth} (по умолчанию https://sk.ru/auth/user_info)
+  // GET {AUTH_API_URL}?sk_auth={sk_auth} (по умолчанию https://uat.sk.ru/auth/user_info/)
   try {
     const { authQuery } = await import('@/queries/sendMessageQuery');
     const result = await authQuery({

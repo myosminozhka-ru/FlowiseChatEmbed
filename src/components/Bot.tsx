@@ -187,7 +187,7 @@ const defaultBackgroundColor = 'var(--chatbot-container-bg-color)';
 const defaultTextColor = 'var(--chatbot-text-bg-color)';
 const defaultTitleBackgroundColor = 'var(--chatbot-title-bg-color)';
 
-const defaultWelcomeTitle = 'Я – умный помощник';
+const defaultWelcomeTitle = 'Я – оператор';
 const defaultWelcomeText = 'Задавайте мне вопросы так, будто общаетесь с реальным человеком';
 
 /* FeedbackDialog component - for collecting user feedback */
@@ -500,6 +500,14 @@ export const Bot = (botProps: BotProps & { class?: string }) => {
           apiHost: props.apiHost,
         });
 
+        console.log('[Bot] 🔄 Polling запрос:', {
+          chatId: currentChatId,
+          chatflowid: props.chatflowid,
+          lastMessageId: pollingLastMessageId,
+          currentMessagesCount: messages().length,
+          timestamp: new Date().toISOString(),
+        });
+
         const result = await getChatMessagesQuery({
           chatflowid: props.chatflowid,
           apiHost: props.apiHost,
@@ -513,6 +521,11 @@ export const Bot = (botProps: BotProps & { class?: string }) => {
           hasData: !!result.data,
           dataType: typeof result.data,
           isArray: Array.isArray(result.data),
+          errorMessage: result.error?.message || result.error,
+          dataLength: Array.isArray(result.data) ? result.data.length : 'not array',
+          dataPreview: Array.isArray(result.data) 
+            ? result.data.slice(0, 3).map((m: any) => ({ id: m.id, content: m.content?.substring(0, 30), chatType: m.chatType, role: m.role }))
+            : result.data,
         });
 
         if (result.error) {
@@ -571,7 +584,7 @@ export const Bot = (botProps: BotProps & { class?: string }) => {
                 }
               }
 
-              return {
+              const mappedMessage = {
                 message: message.content || message.message || '',
                 type: (message.role || 'apiMessage') as 'apiMessage' | 'userMessage',
                 messageId: message.id,
@@ -585,6 +598,17 @@ export const Bot = (botProps: BotProps & { class?: string }) => {
                 artifacts: message.artifacts,
                 feedback: message.feedback,
               };
+              
+              console.log('[Bot] 📝 Обработка сообщения от polling:', {
+                id: mappedMessage.id,
+                type: mappedMessage.type,
+                messagePreview: mappedMessage.message.substring(0, 50),
+                chatType: message.chatType,
+                role: message.role,
+                hasContent: !!mappedMessage.message,
+              });
+              
+              return mappedMessage;
             });
 
           if (newMessages.length > 0) {
@@ -931,30 +955,129 @@ export const Bot = (botProps: BotProps & { class?: string }) => {
       }
     }
 
+    // ВАЖНО: EventSource (SSE) имеет ограничения по CORS:
+    // 1. Не поддерживает кастомные заголовки (кроме Content-Type)
+    // 2. Не поддерживает credentials так же хорошо, как fetch
+    // 3. Браузер может блокировать запрос до установки CORS заголовков сервером
+    // Поэтому используем только минимальные заголовки для SSE
+    const sseHeaders: Record<string, string> = {
+      'Content-Type': 'application/json',
+    };
+    
+    // Убираем Authorization и другие кастомные заголовки для SSE, чтобы избежать CORS ошибок
+    // Если нужна авторизация, она должна быть через cookies или query параметры
+    console.log('[Bot] 🔵 SSE запрос:', {
+      url: `${props.apiHost}/api/v1/prediction/${chatflowid}`,
+      headers: sseHeaders,
+      chatId,
+    });
+
+    // ВАЖНО: fetchEventSource использует fetch API, который требует правильной настройки CORS
+    // Используем 'same-origin' для credentials, чтобы избежать проблем с CORS
     fetchEventSource(`${props.apiHost}/api/v1/prediction/${chatflowid}`, {
       openWhenHidden: true,
       method: 'POST',
       body: JSON.stringify(params),
-      headers,
+      headers: sseHeaders,
+      credentials: 'include', // Используем include для cross-origin запросов
+      // ВАЖНО: При credentials: 'include' сервер должен устанавливать Access-Control-Allow-Credentials: true
+      // и Access-Control-Allow-Origin должен быть конкретным origin (не '*')
       async onopen(response) {
-        if (response.ok && response.headers.get('content-type')?.startsWith(EventStreamContentType)) {
-          return; // everything's good
-        } else if (response.status === 429) {
-          const errMessage = (await response.text()) ?? 'Too many requests. Please try again later.';
+        // Проверяем, является ли ответ SSE потоком
+        const contentType = response.headers.get('content-type') || '';
+        const isEventStream = contentType.startsWith(EventStreamContentType);
+        
+        console.log('[Bot] 🔵 onopen вызван:', {
+          status: response.status,
+          statusText: response.statusText,
+          contentType,
+          isEventStream,
+          ok: response.ok,
+        });
+        
+        if (response.ok && isEventStream) {
+          console.log('[Bot] ✅ SSE поток успешно открыт');
+          return; // everything's good - это SSE поток
+        }
+        
+        // Если ответ не SSE, проверяем, не является ли это JSON ответом с autofaqMode
+        // ВАЖНО: response.text() можно вызвать только один раз, поэтому клонируем response
+        if (response.ok && (contentType.includes('application/json') || contentType.includes('text/json'))) {
+          try {
+            // Клонируем response, чтобы можно было прочитать его несколько раз
+            const clonedResponse = response.clone();
+            const responseText = await clonedResponse.text();
+            console.log('[Bot] 📥 Получен JSON ответ (не SSE):', {
+              text: responseText.substring(0, 200),
+              contentType,
+            });
+            
+            const jsonData = JSON.parse(responseText);
+            
+            // Если это ответ от AutoFAQ режима, обрабатываем его специально
+            if (jsonData.autofaqMode) {
+              console.log('[Bot] ✅ Получен JSON ответ от AutoFAQ режима:', {
+                chatId: jsonData.chatId,
+                conversationId: jsonData.conversationId,
+                message: jsonData.message,
+              });
+              
+              // Для AutoFAQ режима не добавляем сообщение в чат
+              // Сообщения от оператора придут через polling
+              setLoading(false);
+              setUserInput('');
+              setUploadedFiles([]);
+              
+              // Закрываем SSE соединение, т.к. это не SSE поток
+              closeResponse();
+              
+              // Не бросаем ошибку, просто завершаем обработку
+              // Используем AbortController для корректного закрытия
+              throw new Error('AutoFAQ mode - closing SSE connection');
+            }
+          } catch (parseError: any) {
+            // Если это наша ошибка для закрытия соединения, просто пробрасываем её
+            if (parseError.message === 'AutoFAQ mode - closing SSE connection') {
+              throw parseError;
+            }
+            // Если не удалось распарсить JSON, продолжаем обычную обработку ошибки
+            console.error('[Bot] Ошибка парсинга JSON ответа:', parseError);
+          }
+        }
+        
+        // Обработка ошибок
+        if (response.status === 429) {
+          const clonedResponse = response.clone();
+          const errMessage = (await clonedResponse.text()) ?? 'Too many requests. Please try again later.';
           handleError(errMessage, true, { status: 429, response });
           throw new Error(errMessage);
         } else if (response.status === 403) {
-          const errMessage = (await response.text()) ?? 'Unauthorized';
+          const clonedResponse = response.clone();
+          const errMessage = (await clonedResponse.text()) ?? 'Unauthorized';
           handleError(errMessage, false, { status: 403, response });
           throw new Error(errMessage);
         } else if (response.status === 401) {
-          const errMessage = (await response.text()) ?? 'Unauthenticated';
+          const clonedResponse = response.clone();
+          const errMessage = (await clonedResponse.text()) ?? 'Unauthenticated';
           handleError(errMessage, false, { status: 401, response });
           throw new Error(errMessage);
         } else {
-          const errMessage = await response.text().catch(() => `HTTP ${response.status}: ${response.statusText}`);
+          // Для других статусов пытаемся прочитать текст ответа
+          try {
+            const clonedResponse = response.clone();
+            const errMessage = await clonedResponse.text();
+            console.error('[Bot] ❌ Ошибка SSE запроса:', {
+              status: response.status,
+              statusText: response.statusText,
+              message: errMessage.substring(0, 200),
+            });
+            handleError(errMessage, false, { status: response.status, statusText: response.statusText, response });
+            throw new Error(errMessage);
+          } catch (textError) {
+            const errMessage = `HTTP ${response.status}: ${response.statusText}`;
           handleError(errMessage, false, { status: response.status, statusText: response.statusText, response });
           throw new Error(errMessage);
+          }
         }
       },
       async onmessage(ev) {
@@ -1017,11 +1140,29 @@ export const Bot = (botProps: BotProps & { class?: string }) => {
       },
       onerror(err) {
         // Логируем полную информацию об ошибке в консоль
-        console.error('EventSource Error:', {
+        console.error('[Bot] ❌ EventSource Error:', {
           error: err,
+          errorType: err?.constructor?.name,
+          errorMessage: err?.message,
+          errorStack: err?.stack,
+          url: `${props.apiHost}/api/v1/prediction/${chatflowid}`,
           timestamp: new Date().toISOString(),
         });
+        
+        // Если это наша ошибка для закрытия соединения при AutoFAQ режиме, не показываем ошибку
+        if (err?.message === 'AutoFAQ mode - closing SSE connection') {
+          console.log('[Bot] ✅ SSE соединение закрыто для AutoFAQ режима - это нормально');
+          closeResponse();
+          return; // Не бросаем ошибку дальше
+        }
+        
+        // Если это CORS ошибка, показываем более понятное сообщение
+        if (err?.message?.includes('CORS') || err?.message?.includes('fetch')) {
+          console.error('[Bot] ❌ CORS ошибка при SSE запросе. Попробуйте использовать обычный запрос вместо SSE.');
+          handleError('Ошибка подключения к серверу. Проверьте настройки CORS на сервере.', false, err);
+        } else {
         setHasServiceError(true);
+        }
         closeResponse();
         throw err;
       },
@@ -1236,7 +1377,144 @@ export const Bot = (botProps: BotProps & { class?: string }) => {
 
     if (humanInput) body.humanInput = humanInput;
 
-    if (isChatFlowAvailableToStream()) {
+    // ВАЖНО: Проверяем AutoFAQ режим ТОЛЬКО если есть явные признаки передачи оператору
+    // По умолчанию чат НЕ в AutoFAQ режиме, поэтому SSE используется нормально
+    // AutoFAQ режим определяется только по явным признакам:
+    // 1. Наличие сообщения "Чат передан оператору" (точное совпадение)
+    // 2. Активность polling (это означает, что чат уже передан оператору)
+    
+    // Проверяем ТОЛЬКО точное сообщение о передаче оператору
+    const hasTransferMessage = messages().some(
+      (msg) => msg.message && typeof msg.message === 'string' && 
+        msg.message.includes('Чат передан оператору')
+    );
+    
+    // Проверяем активность polling - это самый надежный индикатор AutoFAQ режима
+    // Если polling активен, значит чат уже передан оператору
+    const isTransferredToOperator = hasTransferMessage || isPollingActive;
+
+    console.log('[Bot] 🔍 Проверка AutoFAQ режима:', {
+      hasTransferMessage,
+      isPollingActive,
+      isTransferredToOperator,
+      messagesCount: messages().length,
+      willUseSSE: !isTransferredToOperator && isChatFlowAvailableToStream(),
+    });
+
+    // КРИТИЧЕСКИ ВАЖНО: Для AutoFAQ режима ВСЕГДА используем обычный запрос, НЕ SSE
+    // Это предотвращает CORS ошибки и ошибки EventSource
+    if (isTransferredToOperator) {
+      // Чат в AutoFAQ режиме - используем только обычный запрос
+      console.log('[Bot] ✅ Чат в AutoFAQ режиме, используем обычный запрос вместо SSE. chatId=', currentChatId, 'chatflowid=', props.chatflowid);
+      // НЕ создаем пустое сообщение для AutoFAQ режима - сообщения придут через polling
+
+      try {
+        const result = await sendMessageQuery({
+          chatflowid: props.chatflowid,
+          apiHost: props.apiHost,
+          body,
+          onRequest: props.onRequest,
+        });
+
+        if (result.data) {
+          const data = result.data;
+          // Если это ответ от AutoFAQ режима, обрабатываем его специально
+          if (data.autofaqMode) {
+            // Для AutoFAQ режима не добавляем сообщение в чат
+            // Сообщения от оператора придут через polling
+            console.log('[Bot] ✅ Сообщение отправлено в AutoFAQ, ожидаем ответ через polling. conversationId=', data.conversationId);
+            setLoading(false);
+            setUserInput('');
+            setUploadedFiles([]);
+            // Убеждаемся, что polling запущен
+            if (!isPollingActive) {
+              console.log('[Bot] 🔄 Запускаем polling для получения сообщений от оператора');
+              startAutoFAQPolling();
+            }
+            return;
+          }
+          // Обрабатываем обычный ответ
+          let text = '';
+          if (data.text) text = data.text;
+          else if (data.json) text = JSON.stringify(data.json, null, 2);
+          else text = JSON.stringify(data, null, 2);
+
+          if (data?.chatId) setChatId(data.chatId);
+
+          setMessages((prevMessages) => {
+            const allMessages = [...cloneDeep(prevMessages)];
+            const lastMessage = allMessages[allMessages.length - 1];
+            if (lastMessage && lastMessage.type === 'apiMessage' && lastMessage.message === '') {
+              lastMessage.message = text;
+              lastMessage.id = data?.chatMessageId;
+              lastMessage.sourceDocuments = data?.sourceDocuments;
+              lastMessage.usedTools = data?.usedTools;
+              lastMessage.fileAnnotations = data?.fileAnnotations;
+              lastMessage.agentReasoning = data?.agentReasoning;
+              lastMessage.agentFlowExecutedData = data?.agentFlowExecutedData;
+              lastMessage.action = data?.action;
+              lastMessage.artifacts = data?.artifacts;
+              lastMessage.dateTime = data?.dateTime ?? new Date().toISOString();
+            } else {
+              const newMessage = {
+                message: text,
+                id: data?.chatMessageId,
+                sourceDocuments: data?.sourceDocuments,
+                usedTools: data?.usedTools,
+                fileAnnotations: data?.fileAnnotations,
+                agentReasoning: data?.agentReasoning,
+                agentFlowExecutedData: data?.agentFlowExecutedData,
+                action: data?.action,
+                artifacts: data?.artifacts,
+                type: 'apiMessage' as messageType,
+                dateTime: data?.dateTime ?? new Date().toISOString(),
+              };
+              allMessages.push(newMessage);
+            }
+            addChatMessage(allMessages);
+            return allMessages;
+          });
+
+          updateMetadata(data, value);
+          setLoading(false);
+          setUserInput('');
+          setUploadedFiles([]);
+          scrollToBottom();
+        }
+        if (result.error) {
+          const error = result.error;
+          if (typeof error === 'object') {
+            handleError(`Error: ${error?.message.replaceAll('Error:', ' ')}`, false, error);
+            return;
+          }
+          if (typeof error === 'string') {
+            handleError(error, false, { errorString: error });
+            return;
+          }
+          handleError('Unknown error occurred', false, { error });
+          return;
+        }
+      } catch (error) {
+        console.error('[Bot] ❌ Ошибка при отправке сообщения в AutoFAQ:', error);
+        // Если это ошибка от AutoFAQ режима, не показываем её как ошибку
+        if ((error as any)?.response?.data?.autofaqMode) {
+          setLoading(false);
+          setUserInput('');
+          setUploadedFiles([]);
+          return;
+        }
+        // Для других ошибок показываем сообщение об ошибке
+        if ((error as any)?.response?.data?.message) {
+          handleError((error as any).response.data.message, false, error);
+        } else {
+          handleError((error as any)?.message || 'Произошла ошибка при отправке сообщения в AutoFAQ', false, error);
+        }
+        return;
+      }
+    } else if (isChatFlowAvailableToStream() && !isTransferredToOperator) {
+      // ВАЖНО: SSE используется ТОЛЬКО если НЕ в AutoFAQ режиме
+      // Проверка isTransferredToOperator уже выполнена выше, поэтому здесь мы уверены, что НЕ в AutoFAQ режиме
+      console.log('[Bot] ✅ Используем SSE для обычного режима (не AutoFAQ)');
       // Создаем пустое сообщение сразу, чтобы показать индикатор загрузки
       setMessages((prevMessages) => [...prevMessages, { message: '', type: 'apiMessage', dateTime: new Date().toISOString() }]);
       fetchResponseFromEventStream(props.chatflowid, body);

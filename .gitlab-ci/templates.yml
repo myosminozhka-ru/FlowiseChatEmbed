@@ -1,0 +1,42 @@
+.build_template:
+  stage: build
+  variables:
+    SERVICE_NAME: service1
+    SERVICE_DOCKERFILE_PATH: "service1/Dockerfile"
+    SERVICE_DOCKER_BUILD_CONTEXT_PATH: "."
+  script:
+    - image_full_name=${UAT_REGISTRY}/${IMAGE_BASE_NAME}-${SERVICE_NAME}:${IMAGE_TAG}
+    - docker build -t ${image_full_name} --progress=plain -f ${SERVICE_DOCKERFILE_PATH} ${SERVICE_DOCKER_BUILD_CONTEXT_PATH}
+    - docker push ${image_full_name}
+    - echo BUILD NUMBER $CI_PIPELINE_IID
+  rules:
+    - when: manual
+
+.deploy_uat_template:
+  variables:
+    SERVICE_NAME: service1
+  script:
+    - sudo /home/gitlab-runner/update-component.v2.step-1.sh ${PROJECT_NAME} ${BRANCH_NAME}
+    - cd ${PROJECT_NAME}
+    - yq eval ".${SERVICE_NAME}.image.tag = \"${IMAGE_TAG}\"" -i values.yaml
+    - sudo /home/gitlab-runner/update-component.v2.step-2.sh ${PROJECT_NAME} ${BRANCH_NAME} "Обновление сервиса \"${SERVICE_NAME}\" до версии \"${IMAGE_TAG}\""
+  rules:
+    - when: manual
+      allow_failure: false
+
+.deploy_prod_template:
+  variables:
+    SERVICE_NAME: service1
+  script:
+    - uat_image_name=${UAT_REGISTRY}/${IMAGE_BASE_NAME}-${SERVICE_NAME}:${IMAGE_TAG}
+    - docker pull ${uat_image_name}
+    - prod_image_name=${PROD_REGISTRY}/${IMAGE_BASE_NAME}-${SERVICE_NAME}:${IMAGE_TAG}
+    - docker tag ${uat_image_name} ${prod_image_name}
+    - docker push ${prod_image_name}
+    - sudo /home/gitlab-runner/update-component.v2.step-1.sh ${PROJECT_NAME} ${BRANCH_NAME}
+    - cd ${PROJECT_NAME}
+    - yq eval ".${SERVICE_NAME}.image.tag = \"${IMAGE_TAG}\"" -i values.yaml
+    - sudo /home/gitlab-runner/update-component.v2.step-2.sh ${PROJECT_NAME} ${BRANCH_NAME} "Обновление сервиса \"${SERVICE_NAME}\" до версии \"${IMAGE_TAG}\""
+  rules:
+    - when: manual
+      allow_failure: false

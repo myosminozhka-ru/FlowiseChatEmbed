@@ -142,7 +142,7 @@ export const addLeadQuery = ({ apiHost = 'http://localhost:3000', body, onReques
 
 // URL для auth API, можно переопределить через window.__AUTH_API_URL__
 const AUTH_API_URL =
-  typeof window !== 'undefined' && (window as any).__AUTH_API_URL__ ? (window as any).__AUTH_API_URL__ : 'https://sk.ru/auth/user_info';
+  typeof window !== 'undefined' && (window as any).__AUTH_API_URL__ ? (window as any).__AUTH_API_URL__ : 'https://uat.sk.ru/auth/user_info/';
 
 export type TransferToAutoFAQRequest = BaseRequest & {
   chatflowid: string;

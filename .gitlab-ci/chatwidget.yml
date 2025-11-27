@@ -1,0 +1,37 @@
+build-chatwidget:
+  extends: .build_template
+  variables:
+    SERVICE_NAME: chatwidget
+    SERVICE_DOCKERFILE_PATH: Dockerfile
+  rules:
+#    - when: on_success
+    - when: manual
+  tags:
+    - uat
+
+deploy-uat-chatwidget:
+  extends: .deploy_uat_template
+  stage: deploy-uat
+  needs:
+    - build-chatwidget
+  variables:
+    SERVICE_NAME: chatwidget
+    BRANCH_NAME: uat
+  rules:
+#    - when: on_success
+    - when: manual
+  tags:
+    - uat
+
+# deploy-prod-chatwidget:
+#   extends: .deploy_prod_template
+#   stage: deploy-prod
+#   needs:
+#     - deploy-uat-chatwidget
+#   variables:
+#     SERVICE_NAME: chatwidget
+#     BRANCH_NAME: prod
+#   rules:
+#     - when: manual
+#   tags:
+#     - prod

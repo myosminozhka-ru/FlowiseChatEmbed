@@ -1,6 +1,65 @@
+# Git
 .git
-.github
-.vscode
-node_modules
 .gitignore
+.gitattributes
+
+# Python cache
+__pycache__
+*.py[cod]
+*$py.class
+*.so
+.Python
+.pytest_cache
+.mypy_cache
+.coverage
+htmlcov/
+dist/
+build/
+*.egg-info/
+
+# Virtual environments
+venv/
+env/
+ENV/
+.venv
+
+# IDE settings
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.DS_Store
+
+# Docker files
+Dockerfile
+docker-compose.yml
+.dockerignore
+
+# Environment variables (будет монтироваться как volume)
+.env
+.env.example
+.env.local
+
+# Logs (будут создаваться в volume)
+*.log
+logs/
+
+# Temporary files
+*.tmp
+*.temp
+tmp/
+temp/
+
+# Documentation
 README.md
+*.md
+docs/
+
+# CI/CD
+.github/
+.gitlab-ci.yml
+.gitlab-ci/
+
+# Other
+.editorconfig

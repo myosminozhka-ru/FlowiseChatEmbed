@@ -236,53 +236,7 @@ app.get('/fullchat.html', (_, res) => {
   });
 });
 
-// Статические файлы (после динамических роутов)
-app.use(express.static(path.join(__dirname, 'dist')));
-app.use(express.static(path.join(__dirname, 'public')));
-
-app.get('/', (_, res) => {
-  res.sendFile(path.join(__dirname, 'public', 'index.html'));
-});
-
-app.get('/favicon.ico', (_, res) => {
-  res.status(204).end();
-});
-
-// Endpoint для передачи истории чата в AutoFAQ
-app.post('/api/v1/autofaq/:chatflowId/transfer', async (req, res) => {
-  try {
-    const chatflowId = req.params.chatflowId;
-    const { chatId, userMessage } = req.body;
-
-    if (!chatId) {
-      return res.status(400).json({ error: 'chatId не указан' });
-    }
-
-    // Проксируем запрос к основному API
-    const apiHost = CHAT_API_HOST || 'https://app.osmi-it.ru';
-    const apiUrl = `${apiHost}/api/v1/autofaq/${chatflowId}/transfer`;
-
-    const headers = {
-      'Content-Type': 'application/json',
-    };
-
-    if (API_KEY) {
-      headers['Authorization'] = `Bearer ${API_KEY}`;
-    }
-
-    const response = await axios.post(apiUrl, { chatId, userMessage }, { headers });
-
-    res.status(200).json(response.data);
-  } catch (error) {
-    errorLog('❌ [AutoFAQ] Ошибка передачи истории:', error);
-    const statusCode = error.response?.status || 500;
-    const errorMessage = error.response?.data?.message || error.message || 'Ошибка передачи истории в AutoFAQ';
-    res.status(statusCode).json({ error: errorMessage });
-  }
-});
-
 // Middleware для проверки доступа (домены и API ключ)
-
 const validateApiKey = (req, res, next) => {
   // Разрешаем статические файлы и основные маршруты
   if (
@@ -354,6 +308,69 @@ const validateApiKey = (req, res, next) => {
   return res.status(401).json({ error: 'Unauthorized' });
 };
 
+// Статические файлы (должны быть ДО validateApiKey, чтобы обрабатываться первыми)
+const distPath = path.join(__dirname, 'dist');
+const publicPath = path.join(__dirname, 'public');
+
+// Явный маршрут для web.js файлов
+app.get('/dist/web.js', (req, res) => {
+  res.sendFile(path.join(distPath, 'web.js'));
+});
+
+app.get('/dist/web.umd.js', (req, res) => {
+  res.sendFile(path.join(distPath, 'web.umd.js'));
+});
+
+app.get('/web.js', (req, res) => {
+  res.sendFile(path.join(distPath, 'web.js'));
+});
+
+app.use('/dist', express.static(distPath));
+app.use(express.static(distPath));
+app.use(express.static(publicPath));
+
+app.get('/', (_, res) => {
+  res.sendFile(path.join(__dirname, 'public', 'index.html'));
+});
+
+app.get('/favicon.ico', (_, res) => {
+  res.status(204).end();
+});
+
+// Endpoint для передачи истории чата в AutoFAQ
+app.post('/api/v1/autofaq/:chatflowId/transfer', async (req, res) => {
+  try {
+    const chatflowId = req.params.chatflowId;
+    const { chatId, userMessage } = req.body;
+
+    if (!chatId) {
+      return res.status(400).json({ error: 'chatId не указан' });
+    }
+
+    // Проксируем запрос к основному API
+    const apiHost = CHAT_API_HOST || 'https://app.osmi-it.ru';
+    const apiUrl = `${apiHost}/api/v1/autofaq/${chatflowId}/transfer`;
+
+    const headers = {
+      'Content-Type': 'application/json',
+    };
+
+    if (API_KEY) {
+      headers['Authorization'] = `Bearer ${API_KEY}`;
+    }
+
+    const response = await axios.post(apiUrl, { chatId, userMessage }, { headers });
+
+    res.status(200).json(response.data);
+  } catch (error) {
+    errorLog('❌ [AutoFAQ] Ошибка передачи истории:', error);
+    const statusCode = error.response?.status || 500;
+    const errorMessage = error.response?.data?.message || error.message || 'Ошибка передачи истории в AutoFAQ';
+    res.status(statusCode).json({ error: errorMessage });
+  }
+});
+
+// Применяем валидацию только к API маршрутам, которые не являются статическими файлами
 app.use(validateApiKey);
 
 app.use((_req, res) => {

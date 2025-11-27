@@ -1,0 +1,14 @@
+stages:
+  - build
+  - deploy-uat
+  # - deploy-prod
+
+variables:
+  FF_TIMESTAMPS: "true"
+  PROJECT_NAME: ai-assist
+  IMAGE_BASE_NAME: ai-assist
+  IMAGE_TAG: build-$CI_PIPELINE_IID
+
+include:
+  - local: .gitlab-ci/templates.yml
+  - local: .gitlab-ci/chatwidget.yml

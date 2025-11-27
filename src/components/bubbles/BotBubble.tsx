@@ -477,7 +477,7 @@ export const BotBubble = (props: Props) => {
                       }
                     })()
                   }
-                  fallback={<span class="font-semibold text-gray-880">{props.botTitle || 'Умный помощник'}</span>}
+                  fallback={<span class="font-semibold text-gray-880">{props.botTitle || 'Оператор'}</span>}
                 >
                   {(() => {
                     try {
@@ -497,9 +497,9 @@ export const BotBubble = (props: Props) => {
                             : 'Оператор';
                         return <span class="font-semibold text-gray-880 text-sm">{operatorText}</span>;
                       }
-                      return <span class="font-semibold text-gray-880">{props.botTitle || 'Умный помощник'}</span>;
+                      return <span class="font-semibold text-gray-880">{props.botTitle || 'Оператор'}</span>;
                     } catch (e) {
-                      return <span class="font-semibold text-gray-880">{props.botTitle || 'Умный помощник'}</span>;
+                      return <span class="font-semibold text-gray-880">{props.botTitle || 'Оператор'}</span>;
                     }
                   })()}
                 </Show>
