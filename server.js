@@ -21,13 +21,6 @@ dotenv.config();
 const isDev = process.env.NODE_ENV === 'development';
 const isProd = process.env.NODE_ENV === 'production';
 
-// Условное логирование (только для dev)
-const devLog = (...args) => {
-  if (isDev) {
-    console.log(...args);
-  }
-};
-
 const errorLog = (...args) => {
   console.error(...args); // Ошибки всегда логируем
 };
@@ -201,39 +194,10 @@ app.get('/api/config', (_, res) => {
   });
 });
 
-// Динамическая генерация fullchat.html с встроенной конфигурацией
+// Отдача fullchat.html как статического файла
 app.get('/fullchat.html', (_, res) => {
   const fullchatPath = path.join(__dirname, 'public', 'fullchat.html');
-
-  // Читаем конфигурацию из переменных окружения
-  const apiHost = CHAT_API_HOST || 'https://app.osmi-it.ru';
-  const chatflowId = process.env.CHATFLOW_ID || '416feeac-4a95-4f6e-a81d-73f8f48bc54f';
-
-  const config = {
-    apiHost,
-    chatflowId,
-  };
-
-  // Читаем файл и встраиваем конфигурацию
-  fs.readFile(fullchatPath, 'utf8', (err, data) => {
-    if (err) {
-      errorLog('❌ [Fullchat] Ошибка чтения файла:', err);
-      return res.status(500).send('Ошибка загрузки файла');
-    }
-
-    // Встраиваем конфигурацию в HTML перед основным скриптом
-    const configScript = `
-    <script>
-        // Конфигурация из переменных окружения сервера
-        window.__CHAT_CONFIG__ = ${JSON.stringify(config, null, 2)};
-    </script>`;
-
-    // Вставляем скрипт с конфигурацией перед основным скриптом
-    const html = data.replace(/<script type="module">/, `${configScript}\n    <script type="module">`);
-
-    res.setHeader('Content-Type', 'text/html; charset=utf-8');
-    res.send(html);
-  });
+  res.sendFile(fullchatPath);
 });
 
 // Middleware для проверки доступа (домены и API ключ)

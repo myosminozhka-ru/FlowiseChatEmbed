@@ -423,6 +423,20 @@ export const Bot = (botProps: BotProps & { class?: string }) => {
     setChatId(customerId ? `${customerId.toString()}+${uuidv4()}` : uuidv4());
   });
 
+  // Формируем welcomeText с приветствием и ФИО пользователя
+  const formattedWelcomeText = createMemo(() => {
+    const baseText = props.welcomeText ?? defaultWelcomeText;
+    const fio = userData().fio || userData().user_name;
+
+    let welcomePrefix = 'Здравствуйте';
+    if (fio && fio !== 'Гость') {
+      welcomePrefix = `Здравствуйте, ${fio}`;
+    }
+
+    // Склеиваем: приветствие + текст из темы
+    return baseText ? `${welcomePrefix}! ${baseText}` : welcomePrefix;
+  });
+
   onMount(async () => {
     // Загружаем данные пользователя при монтировании компонента
     // URL для auth запроса фиксированный (https://sk.ru/auth/user_info/), не зависит от apiHost
@@ -523,7 +537,7 @@ export const Bot = (botProps: BotProps & { class?: string }) => {
           isArray: Array.isArray(result.data),
           errorMessage: result.error?.message || result.error,
           dataLength: Array.isArray(result.data) ? result.data.length : 'not array',
-          dataPreview: Array.isArray(result.data) 
+          dataPreview: Array.isArray(result.data)
             ? result.data.slice(0, 3).map((m: any) => ({ id: m.id, content: m.content?.substring(0, 30), chatType: m.chatType, role: m.role }))
             : result.data,
         });
@@ -598,7 +612,7 @@ export const Bot = (botProps: BotProps & { class?: string }) => {
                 artifacts: message.artifacts,
                 feedback: message.feedback,
               };
-              
+
               console.log('[Bot] 📝 Обработка сообщения от polling:', {
                 id: mappedMessage.id,
                 type: mappedMessage.type,
@@ -607,7 +621,7 @@ export const Bot = (botProps: BotProps & { class?: string }) => {
                 role: message.role,
                 hasContent: !!mappedMessage.message,
               });
-              
+
               return mappedMessage;
             });
 
@@ -963,7 +977,7 @@ export const Bot = (botProps: BotProps & { class?: string }) => {
     const sseHeaders: Record<string, string> = {
       'Content-Type': 'application/json',
     };
-    
+
     // Убираем Authorization и другие кастомные заголовки для SSE, чтобы избежать CORS ошибок
     // Если нужна авторизация, она должна быть через cookies или query параметры
     console.log('[Bot] 🔵 SSE запрос:', {
@@ -986,7 +1000,7 @@ export const Bot = (botProps: BotProps & { class?: string }) => {
         // Проверяем, является ли ответ SSE потоком
         const contentType = response.headers.get('content-type') || '';
         const isEventStream = contentType.startsWith(EventStreamContentType);
-        
+
         console.log('[Bot] 🔵 onopen вызван:', {
           status: response.status,
           statusText: response.statusText,
@@ -994,12 +1008,12 @@ export const Bot = (botProps: BotProps & { class?: string }) => {
           isEventStream,
           ok: response.ok,
         });
-        
+
         if (response.ok && isEventStream) {
           console.log('[Bot] ✅ SSE поток успешно открыт');
           return; // everything's good - это SSE поток
         }
-        
+
         // Если ответ не SSE, проверяем, не является ли это JSON ответом с autofaqMode
         // ВАЖНО: response.text() можно вызвать только один раз, поэтому клонируем response
         if (response.ok && (contentType.includes('application/json') || contentType.includes('text/json'))) {
@@ -1011,9 +1025,9 @@ export const Bot = (botProps: BotProps & { class?: string }) => {
               text: responseText.substring(0, 200),
               contentType,
             });
-            
+
             const jsonData = JSON.parse(responseText);
-            
+
             // Если это ответ от AutoFAQ режима, обрабатываем его специально
             if (jsonData.autofaqMode) {
               console.log('[Bot] ✅ Получен JSON ответ от AutoFAQ режима:', {
@@ -1021,16 +1035,16 @@ export const Bot = (botProps: BotProps & { class?: string }) => {
                 conversationId: jsonData.conversationId,
                 message: jsonData.message,
               });
-              
+
               // Для AutoFAQ режима не добавляем сообщение в чат
               // Сообщения от оператора придут через polling
               setLoading(false);
               setUserInput('');
               setUploadedFiles([]);
-              
+
               // Закрываем SSE соединение, т.к. это не SSE поток
               closeResponse();
-              
+
               // Не бросаем ошибку, просто завершаем обработку
               // Используем AbortController для корректного закрытия
               throw new Error('AutoFAQ mode - closing SSE connection');
@@ -1044,7 +1058,7 @@ export const Bot = (botProps: BotProps & { class?: string }) => {
             console.error('[Bot] Ошибка парсинга JSON ответа:', parseError);
           }
         }
-        
+
         // Обработка ошибок
         if (response.status === 429) {
           const clonedResponse = response.clone();
@@ -1148,14 +1162,14 @@ export const Bot = (botProps: BotProps & { class?: string }) => {
           url: `${props.apiHost}/api/v1/prediction/${chatflowid}`,
           timestamp: new Date().toISOString(),
         });
-        
+
         // Если это наша ошибка для закрытия соединения при AutoFAQ режиме, не показываем ошибку
         if (err?.message === 'AutoFAQ mode - closing SSE connection') {
           console.log('[Bot] ✅ SSE соединение закрыто для AutoFAQ режима - это нормально');
           closeResponse();
           return; // Не бросаем ошибку дальше
         }
-        
+
         // Если это CORS ошибка, показываем более понятное сообщение
         if (err?.message?.includes('CORS') || err?.message?.includes('fetch')) {
           console.error('[Bot] ❌ CORS ошибка при SSE запросе. Попробуйте использовать обычный запрос вместо SSE.');
@@ -1382,13 +1396,13 @@ export const Bot = (botProps: BotProps & { class?: string }) => {
     // AutoFAQ режим определяется только по явным признакам:
     // 1. Наличие сообщения "Чат передан оператору" (точное совпадение)
     // 2. Активность polling (это означает, что чат уже передан оператору)
-    
+
     // Проверяем ТОЛЬКО точное сообщение о передаче оператору
     const hasTransferMessage = messages().some(
-      (msg) => msg.message && typeof msg.message === 'string' && 
+      (msg) => msg.message && typeof msg.message === 'string' &&
         msg.message.includes('Чат передан оператору')
     );
-    
+
     // Проверяем активность polling - это самый надежный индикатор AutoFAQ режима
     // Если polling активен, значит чат уже передан оператору
     const isTransferredToOperator = hasTransferMessage || isPollingActive;
@@ -2331,7 +2345,7 @@ export const Bot = (botProps: BotProps & { class?: string }) => {
                 {/* Приветственное сообщение в начале чата */}
                 <WelcomeMessage
                   welcomeTitle={props.welcomeTitle ?? defaultWelcomeTitle}
-                  welcomeText={props.welcomeText ?? defaultWelcomeText}
+                  welcomeText={formattedWelcomeText()}
                   fontSize={props.fontSize}
                   showWelcomeImage={typeof props.showWelcomeImage === 'boolean' ? props.showWelcomeImage : true}
                   starterPrompts={starterPrompts()}
