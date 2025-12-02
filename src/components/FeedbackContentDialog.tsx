@@ -77,7 +77,7 @@ const FeedbackContentDialog = (props: FeedbackContentDialogProps) => {
       const trimmedValue = inputValue().trim();
       if (!trimmedValue) return true;
       const wordCount = countWords(trimmedValue);
-      if (wordCount < 2) return true;
+      if (wordCount <= 2) return true;
     }
     return false;
   });
