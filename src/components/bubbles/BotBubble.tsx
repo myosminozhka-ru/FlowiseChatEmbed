@@ -1,4 +1,4 @@
-import { createEffect, Show, createSignal, onMount, For } from 'solid-js';
+import { createEffect, Show, createSignal, onMount, For, createMemo } from 'solid-js';
 import { Avatar } from '../avatars/Avatar';
 import { Marked } from '@ts-stack/markdown';
 import { FeedbackRatingType, sendFeedbackQuery, sendFileDownloadQuery, updateFeedbackQuery } from '@/queries/sendMessageQuery';
@@ -13,6 +13,8 @@ import { DateTimeToggleTheme } from '@/features/bubble/types';
 import { WorkflowTreeView } from '../treeview/WorkflowTreeView';
 import { TypingBubble } from '../TypingBubble';
 import { getLocalStorageChatflow, setLocalStorageChatflow } from '@/utils';
+
+const operatorAvatar = '/operator-avatr.jpg';
 
 type Props = {
   message: MessageType;
@@ -60,11 +62,17 @@ export const BotBubble = (props: Props) => {
         : fileAnnotations?.sender === 'operator'
           ? fileAnnotations
           : null;
-      return operatorInfo && (operatorInfo.operatorName || operatorInfo.operatorInitials);
+      // Оператор подключен, если есть operatorInfo (независимо от наличия имени/инициалов)
+      return !!operatorInfo;
     } catch (e) {
       return false;
     }
   };
+
+  // Определяем, какой аватар использовать: оператора или бота
+  const avatarSrc = createMemo(() => {
+    return isOperatorMessage() ? operatorAvatar : props.avatarSrc;
+  });
 
   Marked.setOptions({ isNoP: true, sanitize: props.renderHTML !== undefined ? !props.renderHTML : true });
 
@@ -386,7 +394,6 @@ export const BotBubble = (props: Props) => {
 
       // Check if the date is valid
       if (isNaN(date.getTime())) {
-        console.error('Invalid ISO date string:', dateTimeString);
         return '';
       }
 
@@ -408,7 +415,6 @@ export const BotBubble = (props: Props) => {
 
       return formatted;
     } catch (error) {
-      console.error('Error formatting date:', error);
       return '';
     }
   };
@@ -455,29 +461,11 @@ export const BotBubble = (props: Props) => {
             <div class="flex flex-row items-center justify-between w-full mb-2">
               <div class="flex flex-row items-center gap-2">
                 <Show when={props.showAvatar}>
-                  <Avatar initialAvatarSrc={props.avatarSrc} />
+                  <Avatar initialAvatarSrc={avatarSrc()} />
                 </Show>
                 <Show
-                  when={
-                    props.message.fileAnnotations &&
-                    (() => {
-                      try {
-                        const fileAnnotations =
-                          typeof props.message.fileAnnotations === 'string'
-                            ? JSON.parse(props.message.fileAnnotations)
-                            : props.message.fileAnnotations;
-                        const operatorInfo = Array.isArray(fileAnnotations)
-                          ? fileAnnotations.find((fa: any) => fa.sender === 'operator')
-                          : fileAnnotations?.sender === 'operator'
-                            ? fileAnnotations
-                            : null;
-                        return operatorInfo && (operatorInfo.operatorName || operatorInfo.operatorInitials);
-                      } catch (e) {
-                        return false;
-                      }
-                    })()
-                  }
-                  fallback={<span class="font-semibold text-gray-880">{props.botTitle || 'Оператор'}</span>}
+                  when={isOperatorMessage()}
+                  fallback={<span class="font-semibold text-gray-880">{props.botTitle || 'Умный помощник'}</span>}
                 >
                   {(() => {
                     try {
@@ -489,7 +477,8 @@ export const BotBubble = (props: Props) => {
                           ? fileAnnotations
                           : null;
 
-                      if (operatorInfo && (operatorInfo.operatorName || operatorInfo.operatorInitials)) {
+                      // Если оператор подключен, показываем "Оператор" (с именем/инициалами если есть)
+                      if (operatorInfo) {
                         const operatorText = operatorInfo.operatorInitials
                           ? `Оператор ${operatorInfo.operatorInitials}${operatorInfo.operatorName ? ` (${operatorInfo.operatorName})` : ''}`
                           : operatorInfo.operatorName
@@ -497,9 +486,10 @@ export const BotBubble = (props: Props) => {
                             : 'Оператор';
                         return <span class="font-semibold text-gray-880 text-sm">{operatorText}</span>;
                       }
-                      return <span class="font-semibold text-gray-880">{props.botTitle || 'Оператор'}</span>;
+                      // Fallback на botTitle (не должно сюда попасть, т.к. isOperatorMessage() уже проверил)
+                      return <span class="font-semibold text-gray-880">{props.botTitle || 'Умный помощник'}</span>;
                     } catch (e) {
-                      return <span class="font-semibold text-gray-880">{props.botTitle || 'Оператор'}</span>;
+                      return <span class="font-semibold text-gray-880">{props.botTitle || 'Умный помощник'}</span>;
                     }
                   })()}
                 </Show>
@@ -582,15 +572,6 @@ export const BotBubble = (props: Props) => {
               ref={setBotMessageRef}
               class="mt-3 max-w-full prose"
               data-testid="host-bubble"
-              style={{
-                'font-size': isOperatorMessage()
-                  ? props.fontSize
-                    ? `${Math.max(props.fontSize * 0.85, 12)}px`
-                    : '13.6px' // Уменьшаем шрифт на 15% для оператора, минимум 12px
-                  : props.fontSize
-                    ? `${props.fontSize}px`
-                    : defaultFontSize,
-              }}
             />
           ) : props.isLoading ? (
             <div class="mt-3">
@@ -689,6 +670,7 @@ export const BotBubble = (props: Props) => {
           onRequest={props.onRequest}
           onMessageAdd={props.onMessageAdd}
           userData={props.userData}
+          isFullPage={props.isFullPage}
         />
       </Show>
       {/* Success Alert */}

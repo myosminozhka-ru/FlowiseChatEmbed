@@ -188,7 +188,7 @@ const defaultBackgroundColor = 'var(--chatbot-container-bg-color)';
 const defaultTextColor = 'var(--chatbot-text-bg-color)';
 const defaultTitleBackgroundColor = 'var(--chatbot-title-bg-color)';
 
-const defaultWelcomeTitle = 'Я – оператор';
+const defaultWelcomeTitle = 'Я – умный помощник';
 const defaultWelcomeText = 'Задавайте мне вопросы так, будто общаетесь с реальным человеком';
 const defaultAssistantGreeting = 'Я ваш AI-ассистент. Чем могу помочь?';
 
@@ -1811,7 +1811,7 @@ export const Bot = (botProps: BotProps & { class?: string }) => {
   createEffect(() => {
     const currentMessages = messages();
     const currentUserData = userData();
-    
+
     // Проверяем, что userData загружен и сообщений нет
     // assistantGreeting всегда есть (либо из props, либо значение по умолчанию)
     if (
@@ -1820,12 +1820,12 @@ export const Bot = (botProps: BotProps & { class?: string }) => {
     ) {
       const fio = currentUserData.fio || currentUserData.user_name;
       const assistantGreeting = props.assistantGreeting ?? defaultAssistantGreeting;
-      
+
       let greeting = 'Здравствуйте';
       if (fio && fio !== 'Гость') {
         greeting = `Здравствуйте, ${fio}`;
       }
-      
+
       const greetingMessage: MessageType = {
         message: `${greeting}! ${assistantGreeting}`,
         type: 'apiMessage',

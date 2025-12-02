@@ -4,6 +4,7 @@ import { Button } from './buttons/Button';
 import { XIcon } from './icons';
 import { transferChatHistoryToAutoFAQ } from '@/queries/sendMessageQuery';
 import { MessageType } from './Bot';
+import { getLocalStorageChatflow } from '@/utils';
 
 type FeedbackContentDialogProps = {
   isOpen: boolean;
@@ -18,6 +19,7 @@ type FeedbackContentDialogProps = {
   onRequest?: (request: RequestInit) => Promise<void>;
   onMessageAdd?: (message: MessageType) => void;
   userData?: { fio?: string; email?: string };
+  isFullPage?: boolean;
 };
 
 const defaultBackgroundColor = 'var(--chatbot-input-bg-color, #ffffff)';
@@ -75,12 +77,40 @@ const FeedbackContentDialog = (props: FeedbackContentDialogProps) => {
       const trimmedValue = inputValue().trim();
       if (!trimmedValue) return true;
       const wordCount = countWords(trimmedValue);
-      if (wordCount !== 2) return true;
+      if (wordCount < 2) return true;
     }
     return false;
   });
 
   const showOperatorButton = createMemo(() => !!props.userData?.email);
+
+  // Функция для проверки, подключен ли оператор в истории чата
+  const isOperatorConnected = createMemo(() => {
+    if (!props.chatflowid) return false;
+    try {
+      const chatDetails = getLocalStorageChatflow(props.chatflowid);
+      const messages: MessageType[] = chatDetails.chatHistory || [];
+
+      // Проверяем, есть ли в истории сообщения от оператора
+      return messages.some((message) => {
+        if (!message.fileAnnotations) return false;
+        try {
+          const fileAnnotations =
+            typeof message.fileAnnotations === 'string' ? JSON.parse(message.fileAnnotations) : message.fileAnnotations;
+          const operatorInfo = Array.isArray(fileAnnotations)
+            ? fileAnnotations.find((fa: any) => fa.sender === 'operator')
+            : fileAnnotations?.sender === 'operator'
+              ? fileAnnotations
+              : null;
+          return !!operatorInfo;
+        } catch (e) {
+          return false;
+        }
+      });
+    } catch (e) {
+      return false;
+    }
+  });
 
 
   const submit = () => {
@@ -157,7 +187,7 @@ const FeedbackContentDialog = (props: FeedbackContentDialogProps) => {
             </div>
 
             {/* Content */}
-            <div class="relative p-6 flex-auto">
+            <div class={`relative flex-auto ${props.isFullPage === false ? 'p-5' : 'p-6'}`}>
               {/* Radio buttons */}
               <div class="space-y-3 mb-6">
                 <For each={reasons()}>
@@ -181,7 +211,7 @@ const FeedbackContentDialog = (props: FeedbackContentDialogProps) => {
                 <textarea
                   onInput={(e) => handleInput(e.currentTarget.value)}
                   ref={inputRef}
-                  rows="4"
+                  rows={props.isFullPage === false ? 3 : 4}
                   disabled={selectedReason() !== OTHER_REASON}
                   class={`block p-3 rounded-lg border border-gray-200 focus:ring-2 focus:ring-gray-400 focus:border-gray-400 flex-1 w-full text-sm font-normal resize-none ${
                     selectedReason() !== OTHER_REASON ? 'bg-blue-50 opacity-50 cursor-not-allowed' : 'bg-blue-100'
@@ -196,7 +226,7 @@ const FeedbackContentDialog = (props: FeedbackContentDialogProps) => {
             </div>
 
             {/* Footer */}
-            <div class="flex flex-col p-6 border-t border-solid border-gray-200 rounded-b-2xl space-y-3">
+            <div class={`flex flex-col border-t border-solid border-gray-200 rounded-b-2xl space-y-3 ${props.isFullPage === false ? 'p-5' : 'p-6'}`}>
               <Show when={props.errorMessage}>
                 <p class="text-red-500 text-sm text-center">{props.errorMessage}</p>
               </Show>
@@ -213,10 +243,10 @@ const FeedbackContentDialog = (props: FeedbackContentDialogProps) => {
                 {/* Contact operator button */}
                 <Show when={showOperatorButton()}>
                   <Button
-                    text="Связаться с оператором"
+                    text={isOperatorConnected() ? 'Оператор уже вызван' : 'Связаться с оператором'}
                     type="button"
                     onClick={handleTransferToOperator}
-                    disabled={isSubmitDisabled()}
+                    disabled={isOperatorConnected() || isSubmitDisabled()}
                     class={'min-w-full flex-1 bg-white'}
                   />
                 </Show>
