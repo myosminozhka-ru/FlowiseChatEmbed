@@ -178,12 +178,60 @@ export const getCookie = (cname: string): string => {
   return '';
 };
 
+
+let skCompanyKeyCache: string | null = null;
+let skCompanyKeyLoading: Promise<string | null> | null = null;
+
+/**
+ * Получает SK Company Key (по аналогии с AUTH_API_URL)
+ * 1. Сначала проверяет window.__SK_COMPANY_KEY__ (для переопределения)
+ * 2. Если нет, загружает из /api/config (из переменной окружения на сервере, один раз, с кэшированием)
+ * 3. Если и там нет, использует значение по умолчанию
+ * @returns SK Company Key
+ */
+const getSkCompanyKey = async (): Promise<string> => {
+  if (typeof window !== 'undefined' && (window as any).__SK_COMPANY_KEY__) {
+    return (window as any).__SK_COMPANY_KEY__;
+  }
+
+  if (skCompanyKeyCache !== null) {
+    return skCompanyKeyCache;
+  }
+
+  if (skCompanyKeyLoading) {
+    const key = await skCompanyKeyLoading;
+    return key || 'XE4dZ1HOaOAKTCPn';
+  }
+
+  skCompanyKeyLoading = (async () => {
+    try {
+      const configResponse = await fetch('/api/config');
+      if (configResponse.ok) {
+        const config = await configResponse.json();
+        const key = config.skCompanyKey;
+        if (key) {
+          skCompanyKeyCache = key;
+          return key;
+        }
+      }
+    } catch (e) {
+      console.warn('⚠️ [Config] Не удалось загрузить SK Company Key из /api/config:', e);
+    }
+    return null;
+  })();
+
+  const key = await skCompanyKeyLoading;
+  return key || '';
+};
+
 export type UserData = {
   user_id?: string;
   user_name?: string;
   fio?: string; // ФИО пользователя
   email?: string; // Email пользователя
   token?: string; // Токен из cookies
+  shortname?: string; // Короткое название компании
+  orn?: string; // ОРН компании
 };
 
 /**
@@ -231,7 +279,7 @@ export const getUserDataFromCookies = (): UserData => {
  * По умолчанию использует https://uat.sk.ru/auth/user_info/ (можно переопределить через window.__AUTH_API_URL__)
  * Получает id и fio из ответа, сохраняет их в user_id и user_name
  * Если sk_auth нет - возвращает данные гостя (guest_id и "Гость")
- * 
+ *
  * @param onRequest - Callback для модификации запроса
  * @returns Данные пользователя (user_id и user_name из ответа auth или данные гостя)
  */
@@ -269,29 +317,69 @@ export const getUserDataWithAuth = async (onRequest?: (request: RequestInit) => 
     }
 
     // Получаем id, fio и email из ответа
-    // id -> user_id, fio -> user_name
+    const lowerEmail = result.data.lower_email || '';
+    
+    // Делаем второй запрос для получения данных компании
+    let shortname: string | undefined;
+    let orn: string | undefined;
+    
+    if (lowerEmail && typeof lowerEmail === 'string') {
+      try {
+        const companyUrl = `https://lk2.uat.sk.ru/apps/api/company/v0/internal/user/${encodeURIComponent(lowerEmail)}/companies`;
+        console.log('🔐 [Company] Запрос данных компании');
+        
+        // Получаем API ключ (по аналогии с AUTH_API_URL)
+        const apiKey = await getSkCompanyKey();
+        
+        const companyResult = await sendRequest<Array<{ shortname?: string; orn?: string }> | { shortname?: string; orn?: string }>({
+          method: 'GET',
+          url: companyUrl,
+          headers: {
+            'X-Sk-Connect-Api-Key': apiKey,
+          },
+          onRequest,
+        });
+
+        if (companyResult.data && !companyResult.error) {
+          // Обрабатываем случай, когда ответ - массив компаний (берем первую)
+          const companyData = Array.isArray(companyResult.data) ? companyResult.data[0] : companyResult.data;
+          if (companyData && typeof companyData === 'object') {
+            shortname = companyData.shortname;
+            orn = companyData.orn;
+          }
+        } else {
+          console.warn('⚠️ [Company] Ошибка получения данных компании:', companyResult.error);
+        }
+      } catch (error) {
+        console.error('❌ [Company] Исключение при получении данных компании:', error);
+      }
+    }
+
     const userDataResult: UserData = {
       ...userData,
       user_id: result.data.user_id || result.data.id || '', // id из ответа
       user_name: result.data.fio || 'Гость', // fio из ответа -> user_name
       fio: result.data.fio, // Сохраняем fio для справки
-      email: result.data.email, // Сохраняем email из ответа
+      email: result.data.email || lowerEmail, // Сохраняем email из ответа
+      shortname, // Короткое название компании
+      orn, // ОРН компании
     };
 
     console.log('✅ [Auth] Пользователь авторизован', {
       user_id: userDataResult.user_id,
       user_name: userDataResult.user_name,
       email: userDataResult.email,
+      shortname: userDataResult.shortname,
+      orn: userDataResult.orn,
     });
     return userDataResult;
   } catch (error) {
     console.error('❌ [Auth] Исключение при получении данных:', error);
     // В случае ошибки возвращаем данные гостя
-    const guestData = {
+    return {
       user_id: userData.user_id || 'guest',
       user_name: userData.user_name || 'Гость',
       token: undefined,
     };
-    return guestData;
   }
 };

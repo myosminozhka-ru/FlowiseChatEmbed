@@ -172,6 +172,12 @@ export type AuthResponse = {
   id?: string; // ID пользователя из ответа
   user_id?: string; // Альтернативное имя для id
   email?: string; // Email пользователя
+  lower_email?: string; // Email в нижнем регистре
+  telligent_id?: number; // ID пользователя из Telligent
+  sub?: string; // Subject (идентификатор пользователя)
+  username?: string; // Имя пользователя
+  avatar?: string; // URL аватара
+  groups?: string[]; // Группы пользователя
   [key: string]: unknown;
 };
 

@@ -32,8 +32,9 @@ const PORT = process.env.PORT || 3001;
 const HOST = process.env.HOST || '0.0.0.0';
 const DEV_BASE_URL = `http://${HOST === '0.0.0.0' ? 'localhost' : HOST}:${PORT}`;
 
-const CHAT_API_HOST = process.env.CHAT_API_HOST; // Адрес внешнего Flowise API (https://app.osmi-it.ru)
+const CHAT_API_HOST = process.env.CHAT_API_HOST; // Адрес внешнего API (https://app.osmi-it.ru)
 const API_KEY = process.env.API_KEY;
+const SK_COMPANY_KEY = process.env.SK_COMPANY_KEY; // API ключ для запросов к компании
 
 // Глобальная переменная для хранения tunnel URL (для прокси)
 let tunnelUrl = null;
@@ -131,7 +132,6 @@ const isValidChatflowConfig = (value) => {
   return isValidUUID(parts[0]);
 };
 
-console.info('\x1b[36m%s\x1b[0m', 'Configured chatflows:');
 chatflows.forEach((config, identifier) => {
   if (isValidChatflowConfig(config.chatflowId)) {
     console.info('\x1b[36m%s\x1b[0m', `  ${identifier}: ${config.chatflowId} (${config.domains.join(', ')})`);
@@ -191,6 +191,7 @@ app.get('/api/config', (_, res) => {
   res.json({
     apiHost,
     chatflowId,
+    skCompanyKey: SK_COMPANY_KEY,
   });
 });
 

@@ -95,8 +95,7 @@ const FeedbackContentDialog = (props: FeedbackContentDialogProps) => {
       return messages.some((message) => {
         if (!message.fileAnnotations) return false;
         try {
-          const fileAnnotations =
-            typeof message.fileAnnotations === 'string' ? JSON.parse(message.fileAnnotations) : message.fileAnnotations;
+          const fileAnnotations = typeof message.fileAnnotations === 'string' ? JSON.parse(message.fileAnnotations) : message.fileAnnotations;
           const operatorInfo = Array.isArray(fileAnnotations)
             ? fileAnnotations.find((fa: any) => fa.sender === 'operator')
             : fileAnnotations?.sender === 'operator'
@@ -111,7 +110,6 @@ const FeedbackContentDialog = (props: FeedbackContentDialogProps) => {
       return false;
     }
   });
-
 
   const submit = () => {
     if (!isSubmitDisabled()) {
@@ -250,7 +248,6 @@ const FeedbackContentDialog = (props: FeedbackContentDialogProps) => {
                     class={'min-w-full flex-1 bg-white'}
                   />
                 </Show>
-
               </div>
             </div>
           </div>

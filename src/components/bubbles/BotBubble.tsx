@@ -14,8 +14,6 @@ import { WorkflowTreeView } from '../treeview/WorkflowTreeView';
 import { TypingBubble } from '../TypingBubble';
 import { getLocalStorageChatflow, setLocalStorageChatflow } from '@/utils';
 
-const operatorAvatar = '/operator-avatr.jpg';
-
 type Props = {
   message: MessageType;
   chatflowid: string;
@@ -71,7 +69,7 @@ export const BotBubble = (props: Props) => {
 
   // Определяем, какой аватар использовать: оператора или бота
   const avatarSrc = createMemo(() => {
-    return isOperatorMessage() ? operatorAvatar : props.avatarSrc;
+    return isOperatorMessage() ? undefined : props.avatarSrc; // Для оператора используем OperatorAvatar компонент
   });
 
   Marked.setOptions({ isNoP: true, sanitize: props.renderHTML !== undefined ? !props.renderHTML : true });
@@ -461,7 +459,7 @@ export const BotBubble = (props: Props) => {
             <div class="flex flex-row items-center justify-between w-full mb-2">
               <div class="flex flex-row items-center gap-2">
                 <Show when={props.showAvatar}>
-                  <Avatar initialAvatarSrc={avatarSrc()} />
+                  <Avatar initialAvatarSrc={avatarSrc()} isOperator={isOperatorMessage()} />
                 </Show>
                 <Show
                   when={isOperatorMessage()}
