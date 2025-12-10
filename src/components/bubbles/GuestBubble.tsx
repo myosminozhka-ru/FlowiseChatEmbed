@@ -161,7 +161,7 @@ export const GuestBubble = (props: Props) => {
           </span>
         </Show>
         <div
-          class="max-w-full flex flex-col justify-center items-start chatbot-guest-bubble min-h-[52px] px-4 py-2 gap-2 rounded-lg rounded-br-none bg-[var(--chatbot-guest-bubble-bg-color)] text-[var(--chatbot-guest-bubble-text-color)]"
+          class="max-w-full flex flex-col justify-center items-start chatbot-guest-bubble min-h-[52px] px-4 py-2 gap-2 rounded-lg rounded-br-none bg-[var(--chatbot-guest-bubble-bg-color)] text-[var(--chatbot-guest-bubble-text-color)] overflow-hidden"
           data-testid="guest-bubble"
         >
           {props.message.fileUploads && props.message.fileUploads.length > 0 && (

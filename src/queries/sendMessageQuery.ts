@@ -151,6 +151,18 @@ export type TransferToAutoFAQRequest = BaseRequest & {
     userMessage?: string;
     fio?: string;
     email?: string;
+    overrideConfig?: {
+      userData?: {
+        email?: string;
+        fullName?: string;
+        fio?: string;
+        login?: string;
+        userId?: string;
+        shortname?: string;
+        orn?: string;
+        phone?: string;
+      };
+    };
   };
 };
 

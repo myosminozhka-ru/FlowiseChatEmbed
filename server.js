@@ -185,20 +185,38 @@ app.use(
 
 // Endpoint для получения конфигурации из переменных окружения
 app.get('/api/config', (_, res) => {
-  const apiHost = CHAT_API_HOST || 'https://app.osmi-it.ru';
+  const apiHost = process.env.API_HOST || CHAT_API_HOST || 'https://app.osmi-it.ru';
   const chatflowId = process.env.CHATFLOW_ID || '416feeac-4a95-4f6e-a81d-73f8f48bc54f';
+  const welcomeTitle = process.env.WELCOME_TITLE || 'Я – умный помощник';
+  const welcomeText = process.env.WELCOME_TEXT || 'Задавайте мне вопросы так, будто общаетесь с реальным человеком';
 
   res.json({
     apiHost,
     chatflowId,
+    welcomeTitle,
+    welcomeText,
     skCompanyKey: SK_COMPANY_KEY,
   });
 });
 
-// Отдача fullchat.html как статического файла
+// Отдача fullchat.html с встроенными переменными окружения
 app.get('/fullchat.html', (_, res) => {
   const fullchatPath = path.join(__dirname, 'public', 'fullchat.html');
-  res.sendFile(fullchatPath);
+  let html = fs.readFileSync(fullchatPath, 'utf8');
+
+  // Встраиваем конфигурацию напрямую из переменных окружения
+  const config = {
+    apiHost: process.env.API_HOST || CHAT_API_HOST || 'https://app.osmi-it.ru',
+    chatflowId: process.env.CHATFLOW_ID || '416feeac-4a95-4f6e-a81d-73f8f48bc54f',
+    welcomeTitle: process.env.WELCOME_TITLE || 'Я – умный помощник',
+    welcomeText: process.env.WELCOME_TEXT || 'Задавайте мне вопросы так, будто общаетесь с реальным человеком'
+  };
+
+  // Заменяем пустой объект на реальную конфигурацию из переменных окружения
+  const configString = JSON.stringify(config);
+  html = html.replace('const config = {};', `const config = ${configString};`);
+
+  res.send(html);
 });
 
 // Middleware для проверки доступа (домены и API ключ)
@@ -288,6 +306,26 @@ app.get('/dist/web.umd.js', (req, res) => {
 
 app.get('/web.js', (req, res) => {
   res.sendFile(path.join(distPath, 'web.js'));
+});
+
+// Обработка маршрутов с динамической конфигурацией ДО статических файлов
+app.get('/', (_, res) => {
+  const indexPath = path.join(__dirname, 'public', 'index.html');
+  let html = fs.readFileSync(indexPath, 'utf8');
+
+  // Встраиваем конфигурацию напрямую из переменных окружения
+  const config = {
+    apiHost: process.env.API_HOST || CHAT_API_HOST || 'https://app.osmi-it.ru',
+    chatflowId: process.env.CHATFLOW_ID || '416feeac-4a95-4f6e-a81d-73f8f48bc54f',
+    welcomeTitle: process.env.WELCOME_TITLE || 'Я – умный помощник',
+    welcomeText: process.env.WELCOME_TEXT || 'Задавайте мне вопросы так, будто общаетесь с реальным человеком'
+  };
+
+  // Заменяем пустой объект на реальную конфигурацию из переменных окружения
+  const configString = JSON.stringify(config);
+  html = html.replace('const config = {};', `const config = ${configString};`);
+
+  res.send(html);
 });
 
 app.use('/dist', express.static(distPath));

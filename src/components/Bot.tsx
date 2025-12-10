@@ -397,6 +397,7 @@ export const Bot = (botProps: BotProps & { class?: string }) => {
   const [feedback, setFeedback] = createSignal('');
   const [pendingActionData, setPendingActionData] = createSignal(null);
   const [feedbackType, setFeedbackType] = createSignal('');
+  const [isTransferring, setIsTransferring] = createSignal(false);
 
   // start input type
   const [startInputType, setStartInputType] = createSignal('');
@@ -434,10 +435,13 @@ export const Bot = (botProps: BotProps & { class?: string }) => {
     // Загружаем данные пользователя при монтировании компонента
     // URL для auth запроса фиксированный (https://sk.ru/auth/user_info/), не зависит от apiHost
     const data = await getUserDataWithAuth(props.onRequest);
+
     setUserData(data);
     console.log('💾 [Bot] Данные пользователя сохранены:', {
       user_id: data.user_id,
       user_name: data.user_name,
+      email: data.email,
+      fio: data.fio,
       isGuest: !data.token,
     });
 
@@ -1133,10 +1137,6 @@ export const Bot = (botProps: BotProps & { class?: string }) => {
             break;
           case 'end':
             setLocalStorageChatflow(chatflowid, chatId);
-            console.log('📥 [Bot] Streaming ответ завершен:', {
-              chatId,
-              chatflowid,
-            });
             closeResponse();
             break;
           // Событие autofaqMessage больше не используется - используем polling вместо SSE
@@ -1361,6 +1361,18 @@ export const Bot = (botProps: BotProps & { class?: string }) => {
     if (currentUserData.email) {
       userDataForRequest.email = currentUserData.email;
     }
+    // Передаем login если он есть (тестовые данные)
+    if ((currentUserData as any).login) {
+      userDataForRequest.login = (currentUserData as any).login;
+    }
+    // Передаем shortname если он есть (тестовые данные)
+    if ((currentUserData as any).shortname) {
+      userDataForRequest.shortname = (currentUserData as any).shortname;
+    }
+    // Передаем orn если он есть (тестовые данные)
+    if ((currentUserData as any).orn) {
+      userDataForRequest.orn = (currentUserData as any).orn;
+    }
 
     // Если есть хотя бы одно поле, добавляем userData в overrideConfig
     if (Object.keys(userDataForRequest).length > 0) {
@@ -1369,11 +1381,14 @@ export const Bot = (botProps: BotProps & { class?: string }) => {
         userData: userDataForRequest,
       };
       body.overrideConfig = chatflowConfigWithUserData;
-      console.log('📤 [Bot] Отправка сообщения с данными пользователя:', {
+      console.log('📤 [Bot] Отправка сообщения с тестовыми данными пользователя:', {
         user_id: currentUserData.user_id,
         user_name: currentUserData.user_name,
         fio: currentUserData.fio,
         email: currentUserData.email,
+        login: (currentUserData as any).login,
+        shortname: (currentUserData as any).shortname,
+        orn: (currentUserData as any).orn,
       });
     } else if (props.chatflowConfig) {
       body.overrideConfig = props.chatflowConfig;
@@ -1659,6 +1674,7 @@ export const Bot = (botProps: BotProps & { class?: string }) => {
     }
   };
 
+
   const handleActionClick = async (elem: any, action: IAction | undefined | null) => {
     // Проверяем, является ли это кнопкой связи с оператором (AutoFAQ)
     const isOperatorHandoff =
@@ -1671,13 +1687,36 @@ export const Bot = (botProps: BotProps & { class?: string }) => {
       try {
         console.log('🔵 [Bot] Передача истории чата в AutoFAQ через кнопку оператора...');
 
+        const currentUserData = userData();
+
+        // Формируем body с данными пользователя
+        const requestBody = {
+          chatId: chatId(),
+          userMessage: elem.label || 'Пользователь запросил связь с оператором',
+          email: currentUserData.email,
+          fio: currentUserData.fio,
+          overrideConfig: {
+            userData: {
+              email: currentUserData.email,
+              fullName: currentUserData.fio || currentUserData.user_name,
+              fio: currentUserData.fio || currentUserData.user_name,
+              login: (currentUserData as any).login,
+              userId: currentUserData.user_id,
+              shortname: (currentUserData as any).shortname,
+              orn: (currentUserData as any).orn,
+            },
+          },
+        };
+
+        // Логируем body перед отправкой
+        console.log('🔵 [Bot] Body для transferChatHistoryToAutoFAQ (кнопка оператора):', JSON.stringify(requestBody, null, 2));
+        console.log('🔵 [Bot] shortname (кнопка):', (currentUserData as any).shortname);
+        console.log('🔵 [Bot] orn (кнопка):', (currentUserData as any).orn);
+
         const result = await transferChatHistoryToAutoFAQ({
           chatflowid: props.chatflowid,
           apiHost: props.apiHost,
-          body: {
-            chatId: chatId(),
-            userMessage: elem.label || 'Пользователь запросил связь с оператором',
-          },
+          body: requestBody,
           onRequest: props.onRequest,
         });
 
@@ -2473,7 +2512,16 @@ export const Bot = (botProps: BotProps & { class?: string }) => {
                             isFullscreen={props.isFullscreen}
                             isPopup={!props.isFullPage}
                             feedbackReasons={props.feedback?.reasons}
-                            userData={{ fio: userData().fio, email: userData().email }}
+                            userData={{
+                              fio: userData().fio,
+                              email: userData().email,
+                              user_name: userData().user_name,
+                              user_id: userData().user_id,
+                              login: (userData() as any).login,
+                              shortname: (userData() as any).shortname,
+                              orn: (userData() as any).orn,
+                              phone: (userData() as any).phone,
+                            }}
                           />
                         )}
                         {message.type === 'leadCaptureMessage' && leadsConfig()?.status && !getLocalStorageChatflow(props.chatflowid)?.lead && (

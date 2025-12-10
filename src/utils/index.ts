@@ -35,7 +35,10 @@ export const sendRequest = async <ResponseData>(
         body = params.formData;
         // Для FormData не устанавливаем Content-Type - браузер установит автоматически с boundary
       } else if (isDefined(params.body)) {
+        // Логируем body перед сериализацией
+        console.log('🔵 [sendRequest] Body перед сериализацией:', JSON.stringify(params.body, null, 2));
         body = JSON.stringify(params.body);
+        console.log('🔵 [sendRequest] Body после сериализации (первые 500 символов):', body.substring(0, 500));
         if (!headers['Content-Type']) {
           headers['Content-Type'] = 'application/json';
         }
@@ -293,7 +296,6 @@ export const getUserDataWithAuth = async (onRequest?: (request: RequestInit) => 
       user_name: userData.user_name || 'Гость',
       token: undefined,
     };
-    console.log('🔵 [Auth] Токен отсутствует → режим гостя', { user_id: guestData.user_id });
     return guestData;
   }
 
@@ -318,19 +320,50 @@ export const getUserDataWithAuth = async (onRequest?: (request: RequestInit) => 
 
     // Получаем id, fio и email из ответа
     const lowerEmail = result.data.lower_email || '';
-    
+    console.log('🔍 [Company] Проверка lowerEmail:', {
+      lowerEmail,
+      hasLowerEmail: !!lowerEmail,
+      type: typeof lowerEmail,
+      fromResult: result.data.lower_email,
+      fullResultData: result.data,
+    });
+
     // Делаем второй запрос для получения данных компании
     let shortname: string | undefined;
     let orn: string | undefined;
-    
-    if (lowerEmail && typeof lowerEmail === 'string') {
+
+    console.log('🔍 [Company] Проверка условия if (lowerEmail):', {
+      lowerEmail,
+      condition: !!lowerEmail,
+      willEnter: !!lowerEmail,
+    });
+
+    if (lowerEmail) {
+      console.log('✅ [Company] Условие выполнено, входим в блок запроса');
       try {
-        const companyUrl = `https://lk2.uat.sk.ru/apps/api/company/v0/internal/user/${encodeURIComponent(lowerEmail)}/companies`;
-        console.log('🔐 [Company] Запрос данных компании');
-        
+        const companyUrl = `https://lk2.uat.sk.ru/apps/api/company/v0/internal/user/${lowerEmail}/companies`;
+        console.log('🔐 [Company] Формирование URL:', {
+          companyUrl,
+          lowerEmail,
+          urlLength: companyUrl.length,
+        });
+
         // Получаем API ключ (по аналогии с AUTH_API_URL)
+        console.log('🔑 [Company] Получение API ключа...');
         const apiKey = await getSkCompanyKey();
-        
+        console.log('🔑 [Company] API ключ получен:', {
+          hasApiKey: !!apiKey,
+          apiKeyLength: apiKey?.length || 0,
+          apiKeyPreview: apiKey ? `${apiKey.substring(0, 5)}...` : 'null',
+        });
+
+        console.log('📤 [Company] Отправка запроса:', {
+          method: 'GET',
+          url: companyUrl,
+          hasApiKey: !!apiKey,
+          hasOnRequest: !!onRequest,
+        });
+
         const companyResult = await sendRequest<Array<{ shortname?: string; orn?: string }> | { shortname?: string; orn?: string }>({
           method: 'GET',
           url: companyUrl,
@@ -340,19 +373,60 @@ export const getUserDataWithAuth = async (onRequest?: (request: RequestInit) => 
           onRequest,
         });
 
+        console.log('📥 [Company] Ответ получен:', {
+          hasData: !!companyResult.data,
+          hasError: !!companyResult.error,
+          dataType: typeof companyResult.data,
+          isArray: Array.isArray(companyResult.data),
+          errorMessage: companyResult.error?.message || companyResult.error,
+          dataPreview: companyResult.data ? JSON.stringify(companyResult.data).substring(0, 200) : 'null',
+        });
+
         if (companyResult.data && !companyResult.error) {
+          console.log('✅ [Company] Данные получены успешно, обработка...');
           // Обрабатываем случай, когда ответ - массив компаний (берем первую)
           const companyData = Array.isArray(companyResult.data) ? companyResult.data[0] : companyResult.data;
+          console.log('🔍 [Company] Обработанные данные компании:', {
+            companyData,
+            isArray: Array.isArray(companyResult.data),
+            isObject: typeof companyData === 'object',
+            hasShortname: !!companyData?.shortname,
+            hasOrn: !!companyData?.orn,
+            shortname: companyData?.shortname,
+            orn: companyData?.orn,
+          });
+
           if (companyData && typeof companyData === 'object') {
             shortname = companyData.shortname;
             orn = companyData.orn;
+            console.log('✅ [Company] Данные извлечены:', { shortname, orn });
+          } else {
+            console.warn('⚠️ [Company] companyData не является объектом:', {
+              companyData,
+              type: typeof companyData,
+            });
           }
         } else {
-          console.warn('⚠️ [Company] Ошибка получения данных компании:', companyResult.error);
+          console.warn('⚠️ [Company] Ошибка получения данных компании:', {
+            hasData: !!companyResult.data,
+            hasError: !!companyResult.error,
+            error: companyResult.error,
+            data: companyResult.data,
+          });
         }
       } catch (error) {
-        console.error('❌ [Company] Исключение при получении данных компании:', error);
+        console.error('❌ [Company] Исключение при получении данных компании:', {
+          error,
+          errorMessage: error instanceof Error ? error.message : String(error),
+          errorStack: error instanceof Error ? error.stack : undefined,
+          lowerEmail,
+        });
       }
+    } else {
+      console.warn('⚠️ [Company] Запрос не выполнен: lowerEmail отсутствует или пустой', {
+        lowerEmail,
+        resultData: result.data,
+      });
     }
 
     const userDataResult: UserData = {
@@ -365,12 +439,16 @@ export const getUserDataWithAuth = async (onRequest?: (request: RequestInit) => 
       orn, // ОРН компании
     };
 
-    console.log('✅ [Auth] Пользователь авторизован', {
+    console.log('✅ [Auth] Пользователь авторизован, итоговые данные:', {
       user_id: userDataResult.user_id,
       user_name: userDataResult.user_name,
       email: userDataResult.email,
       shortname: userDataResult.shortname,
       orn: userDataResult.orn,
+      hasShortname: !!userDataResult.shortname,
+      hasOrn: !!userDataResult.orn,
+      lowerEmail,
+      wasRequestMade: !!lowerEmail,
     });
     return userDataResult;
   } catch (error) {

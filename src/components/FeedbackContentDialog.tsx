@@ -18,7 +18,16 @@ type FeedbackContentDialogProps = {
   apiHost?: string;
   onRequest?: (request: RequestInit) => Promise<void>;
   onMessageAdd?: (message: MessageType) => void;
-  userData?: { fio?: string; email?: string };
+  userData?: {
+    fio?: string;
+    email?: string;
+    user_name?: string;
+    user_id?: string;
+    login?: string;
+    shortname?: string;
+    orn?: string;
+    phone?: string;
+  };
   isFullPage?: boolean;
 };
 
@@ -133,15 +142,42 @@ const FeedbackContentDialog = (props: FeedbackContentDialogProps) => {
 
     try {
       console.log('🔵 [FeedbackDialog] Передача истории чата в AutoFAQ...');
+
+      // Формируем body с полными данными пользователя, включая overrideConfig.userData
+      const requestBody = {
+        chatId: props.chatId,
+        userMessage: inputValue() || selectedReason() || undefined,
+        ...(props.userData?.fio && { fio: props.userData.fio }),
+        ...(props.userData?.email && { email: props.userData.email }),
+        overrideConfig: {
+          userData: {
+            ...(props.userData?.email && { email: props.userData.email }),
+            ...(props.userData?.fio && {
+              fullName: props.userData.fio,
+              fio: props.userData.fio
+            }),
+            ...(props.userData?.user_name && {
+              fullName: props.userData.user_name,
+              fio: props.userData.user_name
+            }),
+            ...(props.userData?.login && { login: props.userData.login }),
+            ...(props.userData?.user_id && { userId: props.userData.user_id }),
+            ...(props.userData?.shortname && { shortname: props.userData.shortname }),
+            ...(props.userData?.orn && { orn: props.userData.orn }),
+            ...(props.userData?.phone && { phone: props.userData.phone }),
+          },
+        },
+      };
+
+      // Логируем body перед отправкой
+      console.log('🔵 [FeedbackDialog] Body для transferChatHistoryToAutoFAQ:', JSON.stringify(requestBody, null, 2));
+      console.log('🔵 [FeedbackDialog] shortname:', props.userData?.shortname);
+      console.log('🔵 [FeedbackDialog] orn:', props.userData?.orn);
+
       const result = await transferChatHistoryToAutoFAQ({
         chatflowid: props.chatflowid,
         apiHost: props.apiHost,
-        body: {
-          chatId: props.chatId,
-          userMessage: inputValue() || selectedReason() || undefined,
-          ...(props.userData?.fio && { fio: props.userData.fio }),
-          ...(props.userData?.email && { email: props.userData.email }),
-        },
+        body: requestBody,
         onRequest: props.onRequest,
       });
 

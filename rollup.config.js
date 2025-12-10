@@ -10,6 +10,7 @@ import alias from '@rollup/plugin-alias';
 import commonjs from '@rollup/plugin-commonjs';
 import serve from 'rollup-plugin-serve';
 import livereload from 'rollup-plugin-livereload';
+import copy from 'rollup-plugin-copy';
 import path from 'path';
 import { fileURLToPath } from 'url';
 
@@ -44,6 +45,15 @@ const plugins = [
     autoModules: false,
     minimize: !isDev,
     inject: false,
+  }),
+  // Копируем статические файлы из public в dist (в корень dist)
+  copy({
+    targets: [
+      {
+        src: 'public/operator-avatr.jpg',
+        dest: 'dist',
+      },
+    ],
   }),
 ];
 

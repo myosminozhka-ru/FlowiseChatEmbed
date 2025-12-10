@@ -40,7 +40,16 @@ type Props = {
   isFullscreen?: boolean;
   isPopup?: boolean;
   feedbackReasons?: string[];
-  userData?: { fio?: string; email?: string };
+  userData?: { 
+    fio?: string; 
+    email?: string;
+    user_name?: string;
+    user_id?: string;
+    login?: string;
+    shortname?: string;
+    orn?: string;
+    phone?: string;
+  };
 };
 
 const defaultFontSize = 'var(--chatbot-font-size, 16px)';
@@ -501,7 +510,7 @@ export const BotBubble = (props: Props) => {
                   </Show>
                 </Show>
                 {/* Кнопки фидбека - показываем только если chatFeedbackStatus === true */}
-                <Show when={props.chatFeedbackStatus}>
+                <Show when={props.chatFeedbackStatus && !isOperatorMessage()}>
                   {rating() === '' || rating() === 'THUMBS_UP' ? (
                     <ThumbsUpButton feedbackColor={thumbsUpColor()} isDisabled={rating() === 'THUMBS_UP'} rating={rating()} onClick={onThumbsUpClick} />
                   ) : null}
@@ -568,7 +577,7 @@ export const BotBubble = (props: Props) => {
           {props.message.message ? (
             <span
               ref={setBotMessageRef}
-              class="mt-3 max-w-full prose"
+              class="mt-3 max-w-full prose overflow-hidden"
               data-testid="host-bubble"
             />
           ) : props.isLoading ? (
