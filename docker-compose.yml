@@ -10,3 +10,7 @@ services:
       - NODE_ENV=production
       - PORT=3001
       - HOST=0.0.0.0
+      - CHATFLOW_ID=013960c0-2dbe-4154-9e5d-a98694af8faa
+      - API_HOST=https://assist.uat.sk.ru/
+      - WELCOME_TITLE=Привет! Я ваш виртуальный ассистент от Фонда «Сколково».
+      - WELCOME_TEXT=Задавайте мне вопросы об экосистеме так, словно обращаетесь к сотруднику Сколково.
