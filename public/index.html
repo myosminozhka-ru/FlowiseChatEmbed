@@ -42,14 +42,20 @@
                     throw new Error('Chatbot.init не доступен');
                 }
 
-                // Инициализируем чатбот с параметрами
-                const chatflowid = '560cea41-6c22-45cc-9ea1-485e4450c565'; // UUID вашего chatflow
-                const apiHost = 'https://test.osmi-ai.ru'; // URL вашего AI инстанса
+                // Конфигурация из переменных окружения
+                const config = {};
 
+                // Инициализируем чатбот с параметрами из конфигурации
                 Chatbot.init({
-                    chatflowid,
-                    apiHost,
+                    chatflowid: config.chatflowId,
+                    apiHost: config.apiHost,
                     apiKey: undefined,
+                    theme: {
+                        chatWindow: {
+                            welcomeTitle: config.welcomeTitle,
+                            welcomeText: config.welcomeText
+                        }
+                    }
                 });
             } catch (error) {
                 console.error('❌ Ошибка загрузки чатбота:', error);

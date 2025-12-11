@@ -57,14 +57,13 @@
                     throw new Error('Chatbot.initFull не доступен');
                 }
 
-                // Инициализируем полноэкранный чат с параметрами
-                // ВАЖНО: Замените эти значения на ваши реальные данные
-                const chatflowid = '560cea41-6c22-45cc-9ea1-485e4450c565'; // UUID вашего chatflow
-                const apiHost = 'https://test.osmi-ai.ru'; // URL вашего AI инстанса
+                // Конфигурация из переменных окружения
+                const config = {};
 
+                // Инициализируем полноэкранный чат с параметрами из конфигурации
                 Chatbot.initFull({
-                    chatflowid,
-                    apiHost,
+                    chatflowid: config.chatflowId,
+                    apiHost: config.apiHost,
                     apiKey: undefined,
                     chatflowConfig: {
                         chatFeedback: {
@@ -75,6 +74,9 @@
                         chatWindow: {
                             showTitle: true,
                             title: 'Умный помощник',
+                            welcomeTitle: config.welcomeTitle,
+                            welcomeText: config.welcomeText,
+                            assistantGreeting: 'Я ваш AI-ассистент Сколково. Чем могу помочь?',
                             // Не указываем height и width для полноэкранного режима
                             botMessage: {
                                 showAvatar: true,

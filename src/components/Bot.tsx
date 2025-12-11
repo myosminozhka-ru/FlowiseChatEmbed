@@ -188,8 +188,8 @@ const defaultBackgroundColor = 'var(--chatbot-container-bg-color)';
 const defaultTextColor = 'var(--chatbot-text-bg-color)';
 const defaultTitleBackgroundColor = 'var(--chatbot-title-bg-color)';
 
-const defaultWelcomeTitle = 'Я – умный помощник';
-const defaultWelcomeText = 'Задавайте мне вопросы так, будто общаетесь с реальным человеком';
+const defaultWelcomeTitle = 'Привет! Я ваш виртуальный ассистент от Фонда «Сколково».';
+const defaultWelcomeText = 'Задавайте мне вопросы об экосистеме так, словно обращаетесь к сотруднику Сколково.';
 const defaultAssistantGreeting = 'Я ваш AI-ассистент. Чем могу помочь?';
 
 /* FeedbackDialog component - for collecting user feedback */

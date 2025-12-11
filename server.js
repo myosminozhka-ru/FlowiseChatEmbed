@@ -187,8 +187,8 @@ app.use(
 app.get('/api/config', (_, res) => {
   const apiHost = process.env.API_HOST || CHAT_API_HOST || 'https://app.osmi-it.ru';
   const chatflowId = process.env.CHATFLOW_ID || '416feeac-4a95-4f6e-a81d-73f8f48bc54f';
-  const welcomeTitle = process.env.WELCOME_TITLE || 'Я – умный помощник';
-  const welcomeText = process.env.WELCOME_TEXT || 'Задавайте мне вопросы так, будто общаетесь с реальным человеком';
+  const welcomeTitle = process.env.WELCOME_TITLE || 'Привет! Я ваш виртуальный ассистент от Фонда «Сколково».';
+  const welcomeText = process.env.WELCOME_TEXT || 'Задавайте мне вопросы об экосистеме так, словно обращаетесь к сотруднику Сколково.';
 
   res.json({
     apiHost,
@@ -208,8 +208,8 @@ app.get('/fullchat.html', (_, res) => {
   const config = {
     apiHost: process.env.API_HOST || CHAT_API_HOST || 'https://app.osmi-it.ru',
     chatflowId: process.env.CHATFLOW_ID || '416feeac-4a95-4f6e-a81d-73f8f48bc54f',
-    welcomeTitle: process.env.WELCOME_TITLE || 'Я – умный помощник',
-    welcomeText: process.env.WELCOME_TEXT || 'Задавайте мне вопросы так, будто общаетесь с реальным человеком'
+    welcomeTitle: process.env.WELCOME_TITLE || 'Привет! Я ваш виртуальный ассистент от Фонда «Сколково».',
+    welcomeText: process.env.WELCOME_TEXT || 'Задавайте мне вопросы об экосистеме так, словно обращаетесь к сотруднику Сколково.'
   };
 
   // Заменяем пустой объект на реальную конфигурацию из переменных окружения
@@ -317,8 +317,8 @@ app.get('/', (_, res) => {
   const config = {
     apiHost: process.env.API_HOST || CHAT_API_HOST || 'https://app.osmi-it.ru',
     chatflowId: process.env.CHATFLOW_ID || '416feeac-4a95-4f6e-a81d-73f8f48bc54f',
-    welcomeTitle: process.env.WELCOME_TITLE || 'Я – умный помощник',
-    welcomeText: process.env.WELCOME_TEXT || 'Задавайте мне вопросы так, будто общаетесь с реальным человеком'
+    welcomeTitle: process.env.WELCOME_TITLE || 'Привет! Я ваш виртуальный ассистент от Фонда «Сколково».',
+    welcomeText: process.env.WELCOME_TEXT || 'Задавайте мне вопросы об экосистеме так, словно обращаетесь к сотруднику Сколково.'
   };
 
   // Заменяем пустой объект на реальную конфигурацию из переменных окружения
