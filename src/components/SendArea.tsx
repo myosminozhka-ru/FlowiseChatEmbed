@@ -27,6 +27,7 @@ type SendAreaProps = {
 
 const defaultBackgroundColor = 'var(--chatbot-input-bg-color, #ffffff)';
 const DEFAULT_MAX_CHARS = 200;
+const MIN_TEXTAREA_HEIGHT = 24; // Минимальная высота textarea (одна строка)
 
 export const SendArea = (props: SendAreaProps) => {
   const [isSendButtonDisabled, setIsSendButtonDisabled] = createSignal(false);
@@ -37,39 +38,20 @@ export const SendArea = (props: SendAreaProps) => {
   let imgUploadRef: HTMLInputElement | undefined;
 
   const adjustTextarea = (target: HTMLTextAreaElement) => {
-    // Используем только props.inputValue, так как это контролируемое значение
-    // target.value может быть устаревшим при очистке поля
-    const value = props.inputValue;
-    
-    // Если поле пустое - одна строка
-    if (!value || value.trim() === '') {
-      target.style.whiteSpace = 'nowrap';
-      target.style.height = '24px';
-      return;
-    }
-
-    // Временно устанавливаем nowrap для проверки, помещается ли текст в одну строку
+    // Сначала устанавливаем nowrap для проверки, помещается ли текст в одну строку
     target.style.whiteSpace = 'nowrap';
     target.style.height = 'auto';
     
-    // Используем setTimeout для корректного расчета scrollWidth после изменения стилей
-    setTimeout(() => {
-      if (!target || target !== textareaRef) return;
-      
-      if (target.scrollWidth > target.clientWidth) {
-        // Если не помещается - разрешаем перенос
-        target.style.whiteSpace = 'normal';
-        target.style.height = 'auto';
-        // Максимальная высота = 100% от родителя
-        const maxHeight = target.parentElement?.clientHeight || 100;
-        const newHeight = Math.min(target.scrollHeight, maxHeight);
-        target.style.height = `${newHeight}px`;
-      } else {
-        // Если помещается - оставляем одну строку
-        target.style.whiteSpace = 'nowrap';
-        target.style.height = '24px'; // Высота одной строки
-      }
-    }, 0);
+    // Проверяем, помещается ли текст в одну строку
+    if (target.scrollWidth > target.clientWidth) {
+      // Если не помещается - разрешаем перенос
+      target.style.whiteSpace = 'normal';
+      target.style.height = 'auto';
+    } else {
+      // Если помещается - оставляем одну строку
+      target.style.whiteSpace = 'nowrap';
+      target.style.height = '1.2em'; // Высота одной строки
+    }
   };
 
   const handleInput = (e: Event) => {
@@ -150,15 +132,9 @@ export const SendArea = (props: SendAreaProps) => {
 
   // Обновляем высоту при изменении inputValue извне
   createEffect(() => {
-    // Явно отслеживаем props.inputValue для реактивности
     const currentValue = props.inputValue;
     if (textareaRef && currentValue !== undefined) {
-      // Используем setTimeout для корректного расчета после очистки
-      setTimeout(() => {
-        if (textareaRef) {
-          adjustTextarea(textareaRef);
-        }
-      }, 10);
+      adjustTextarea(textareaRef);
     }
   });
 
@@ -269,11 +245,10 @@ export const SendArea = (props: SendAreaProps) => {
             'font-size': props.fontSize ? `${props.fontSize}px` : '16px',
             'line-height': '1.5',
             resize: 'none',
-            height: '24px', // Изначально одна строка = 24px
+            'min-height': `${MIN_TEXTAREA_HEIGHT}px`, // Изначально одна строка
             'max-height': '100%', // Максимальная высота = 100%
+            'overflow-x': 'hidden', // Скрываем горизонтальную прокрутку
             'overflow-y': 'auto',
-            transition: 'height 0.3s ease',
-            'padding-top': props.inputValue === '' ? 'calc((24px - 1.5em) / 2)' : '0',
           }}
           onInput={handleInput}
           onKeyDown={handleKeyDown}

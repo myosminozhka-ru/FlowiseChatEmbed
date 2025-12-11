@@ -50,6 +50,7 @@ type Props = {
     orn?: string;
     phone?: string;
   };
+  isOperatorConnected?: boolean; // Булевое значение о подключении оператора
 };
 
 const defaultFontSize = 'var(--chatbot-font-size, 16px)';
@@ -674,6 +675,7 @@ export const BotBubble = (props: Props) => {
           onMessageAdd={props.onMessageAdd}
           userData={props.userData}
           isFullPage={props.isFullPage}
+          isOperatorConnected={props.isOperatorConnected}
         />
       </Show>
       {/* Success Alert */}

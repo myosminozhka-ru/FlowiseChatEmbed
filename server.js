@@ -19,7 +19,6 @@ dotenv.config();
 // Константы и утилиты
 
 const isDev = process.env.NODE_ENV === 'development';
-const isProd = process.env.NODE_ENV === 'production';
 
 const errorLog = (...args) => {
   console.error(...args); // Ошибки всегда логируем
@@ -48,16 +47,16 @@ const parseChatflows = () => {
     // Get all environment variables that don't start with special prefixes
     const chatflowVars = Object.entries(process.env).filter(([key]) => {
       return (
-        !key.startsWith('_') &&
-        !key.startsWith('npm_') &&
-        !key.startsWith('yarn_') &&
-        !key.startsWith('VSCODE_') &&
-        key !== 'CHAT_API_HOST' &&
-        key !== 'API_KEY' &&
-        key !== 'PORT' &&
-        key !== 'HOST' &&
-        key !== 'BASE_URL' &&
-        key !== 'NODE_ENV'
+          !key.startsWith('_') &&
+          !key.startsWith('npm_') &&
+          !key.startsWith('yarn_') &&
+          !key.startsWith('VSCODE_') &&
+          key !== 'CHAT_API_HOST' &&
+          key !== 'API_KEY' &&
+          key !== 'PORT' &&
+          key !== 'HOST' &&
+          key !== 'BASE_URL' &&
+          key !== 'NODE_ENV'
       );
     });
 
@@ -144,15 +143,15 @@ const isValidDomain = (origin, domains, host) => {
 
   // Нормализуем origin и host для сравнения (убираем протокол и порт)
   const normalizeOrigin = origin
-    .replace(/^https?:\/\//, '')
-    .replace(/\/$/, '')
-    .split(':')[0];
+      .replace(/^https?:\/\//, '')
+      .replace(/\/$/, '')
+      .split(':')[0];
   const normalizeHost = host
-    ? host
-        .replace(/^https?:\/\//, '')
-        .replace(/\/$/, '')
-        .split(':')[0]
-    : '';
+      ? host
+          .replace(/^https?:\/\//, '')
+          .replace(/\/$/, '')
+          .split(':')[0]
+      : '';
 
   // Если origin совпадает с host сервера (запрос с того же домена), разрешаем
   if (normalizeHost && normalizeOrigin === normalizeHost) {
@@ -175,64 +174,47 @@ app.use(express.json({ limit: '50mb' }));
 app.use(express.urlencoded({ limit: '50mb', extended: true }));
 
 app.use(
-  cors({
-    origin: true,
-    credentials: true,
-    methods: ['GET', 'POST', 'PUT', 'OPTIONS'],
-    allowedHeaders: ['*'],
-  }),
+    cors({
+      origin: true,
+      credentials: true,
+      methods: ['GET', 'POST', 'PUT', 'OPTIONS'],
+      allowedHeaders: ['*'],
+    }),
 );
 
 // Endpoint для получения конфигурации из переменных окружения
 app.get('/api/config', (_, res) => {
-  const apiHost = process.env.API_HOST || CHAT_API_HOST || 'https://app.osmi-it.ru';
+  const apiHost = CHAT_API_HOST || 'https://app.osmi-it.ru';
   const chatflowId = process.env.CHATFLOW_ID || '416feeac-4a95-4f6e-a81d-73f8f48bc54f';
-  const welcomeTitle = process.env.WELCOME_TITLE || 'Привет! Я ваш виртуальный ассистент от Фонда «Сколково».';
-  const welcomeText = process.env.WELCOME_TEXT || 'Задавайте мне вопросы об экосистеме так, словно обращаетесь к сотруднику Сколково.';
 
   res.json({
     apiHost,
     chatflowId,
-    welcomeTitle,
-    welcomeText,
     skCompanyKey: SK_COMPANY_KEY,
   });
 });
 
-// Отдача fullchat.html с встроенными переменными окружения
+// Отдача fullchat.html как статического файла
 app.get('/fullchat.html', (_, res) => {
   const fullchatPath = path.join(__dirname, 'public', 'fullchat.html');
-  let html = fs.readFileSync(fullchatPath, 'utf8');
-
-  // Встраиваем конфигурацию напрямую из переменных окружения
-  const config = {
-    apiHost: process.env.API_HOST || CHAT_API_HOST || 'https://app.osmi-it.ru',
-    chatflowId: process.env.CHATFLOW_ID || '416feeac-4a95-4f6e-a81d-73f8f48bc54f',
-    welcomeTitle: process.env.WELCOME_TITLE || 'Привет! Я ваш виртуальный ассистент от Фонда «Сколково».',
-    welcomeText: process.env.WELCOME_TEXT || 'Задавайте мне вопросы об экосистеме так, словно обращаетесь к сотруднику Сколково.'
-  };
-
-  // Заменяем пустой объект на реальную конфигурацию из переменных окружения
-  const configString = JSON.stringify(config);
-  html = html.replace('const config = {};', `const config = ${configString};`);
-
-  res.send(html);
+  res.sendFile(fullchatPath);
 });
 
 // Middleware для проверки доступа (домены и API ключ)
 const validateApiKey = (req, res, next) => {
   // Разрешаем статические файлы и основные маршруты
   if (
-    req.path === '/web.js' ||
-    req.path === '/dist/web.js' ||
-    req.path === '/' ||
-    req.path === '/favicon.ico' ||
-    req.path === '/api/config' || // Endpoint для получения конфигурации
-    req.path.startsWith('/api/v1/autofaq/') || // Endpoint для AutoFAQ
-    req.path.startsWith('/dist/') ||
-    req.path.startsWith('/public/') ||
-    req.path.endsWith('.html') || // Разрешаем все HTML файлы (fullchat.html и т.д.)
-    req.method === 'OPTIONS'
+      req.path === '/web.js' ||
+      req.path === '/dist/web.js' ||
+      req.path === '/' ||
+      req.path === '/favicon.ico' ||
+      req.path === '/api/config' || // Endpoint для получения конфигурации
+      req.path.startsWith('/api/v1/prediction/') || // Endpoint для prediction (прокси)
+      req.path.startsWith('/api/v1/autofaq/') || // Endpoint для AutoFAQ
+      req.path.startsWith('/dist/') ||
+      req.path.startsWith('/public/') ||
+      req.path.endsWith('.html') || // Разрешаем все HTML файлы (fullchat.html и т.д.)
+      req.method === 'OPTIONS'
   ) {
     return next();
   }
@@ -275,12 +257,12 @@ const validateApiKey = (req, res, next) => {
   const secFetchSite = req.headers['sec-fetch-site'];
 
   if (
-    userAgent &&
-    acceptLanguage &&
-    accept &&
-    secFetchMode === 'cors' &&
-    secFetchSite &&
-    ['same-origin', 'same-site', 'cross-site'].includes(secFetchSite)
+      userAgent &&
+      acceptLanguage &&
+      accept &&
+      secFetchMode === 'cors' &&
+      secFetchSite &&
+      ['same-origin', 'same-site', 'cross-site'].includes(secFetchSite)
   ) {
     const host = req.headers.host;
     if (isValidDomain(origin, chatflow.domains, host)) {
@@ -308,26 +290,6 @@ app.get('/web.js', (req, res) => {
   res.sendFile(path.join(distPath, 'web.js'));
 });
 
-// Обработка маршрутов с динамической конфигурацией ДО статических файлов
-app.get('/', (_, res) => {
-  const indexPath = path.join(__dirname, 'public', 'index.html');
-  let html = fs.readFileSync(indexPath, 'utf8');
-
-  // Встраиваем конфигурацию напрямую из переменных окружения
-  const config = {
-    apiHost: process.env.API_HOST || CHAT_API_HOST || 'https://app.osmi-it.ru',
-    chatflowId: process.env.CHATFLOW_ID || '416feeac-4a95-4f6e-a81d-73f8f48bc54f',
-    welcomeTitle: process.env.WELCOME_TITLE || 'Привет! Я ваш виртуальный ассистент от Фонда «Сколково».',
-    welcomeText: process.env.WELCOME_TEXT || 'Задавайте мне вопросы об экосистеме так, словно обращаетесь к сотруднику Сколково.'
-  };
-
-  // Заменяем пустой объект на реальную конфигурацию из переменных окружения
-  const configString = JSON.stringify(config);
-  html = html.replace('const config = {};', `const config = ${configString};`);
-
-  res.send(html);
-});
-
 app.use('/dist', express.static(distPath));
 app.use(express.static(distPath));
 app.use(express.static(publicPath));
@@ -338,6 +300,55 @@ app.get('/', (_, res) => {
 
 app.get('/favicon.ico', (_, res) => {
   res.status(204).end();
+});
+
+// Проксирование запросов к API prediction (для избежания CORS проблем)
+app.post('/api/v1/prediction/:chatflowId', async (req, res) => {
+  try {
+    const chatflowId = req.params.chatflowId;
+    const body = req.body;
+
+    // Проксируем запрос к основному API
+    const apiHost = CHAT_API_HOST || 'https://app.osmi-it.ru';
+    const apiUrl = `${apiHost}/api/v1/prediction/${chatflowId}`;
+
+    const headers = {
+      'Content-Type': 'application/json',
+    };
+
+    if (API_KEY) {
+      headers['Authorization'] = `Bearer ${API_KEY}`;
+    }
+
+    // Копируем заголовки из оригинального запроса
+    if (req.headers['accept']) {
+      headers['Accept'] = req.headers['accept'];
+    }
+
+    // Для SSE используем node-fetch для правильной обработки потока
+    const response = await fetch(apiUrl, {
+      method: 'POST',
+      headers,
+      body: JSON.stringify(body),
+    });
+
+    // Устанавливаем заголовки для SSE
+    res.setHeader('Content-Type', response.headers.get('content-type') || 'text/event-stream');
+    res.setHeader('Cache-Control', 'no-cache');
+    res.setHeader('Connection', 'keep-alive');
+
+    // Передаем поток ответа клиенту
+    if (response.body) {
+      response.body.pipe(res);
+    } else {
+      res.end();
+    }
+  } catch (error) {
+    errorLog('❌ [Prediction] Ошибка проксирования запроса:', error);
+    const statusCode = error.response?.status || 500;
+    const errorMessage = error.response?.data?.message || error.message || 'Ошибка проксирования запроса';
+    res.status(statusCode).json({ error: errorMessage });
+  }
 });
 
 // Endpoint для передачи истории чата в AutoFAQ

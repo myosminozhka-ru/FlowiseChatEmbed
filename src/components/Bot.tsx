@@ -375,6 +375,30 @@ export const Bot = (botProps: BotProps & { class?: string }) => {
   const [sourcePopupSrc, setSourcePopupSrc] = createSignal({});
   const [messages, setMessages] = createSignal<MessageType[]>([], { equals: false });
 
+  // Проверяем, подключен ли оператор (последнее сообщение от оператора)
+  const isOperatorConnected = createMemo(() => {
+    const currentMessages = messages();
+    if (currentMessages.length === 0) return false;
+
+    const lastMessage = currentMessages[currentMessages.length - 1];
+    if (lastMessage && lastMessage.fileAnnotations) {
+      try {
+        const fileAnnotations = typeof lastMessage.fileAnnotations === 'string' 
+          ? JSON.parse(lastMessage.fileAnnotations) 
+          : lastMessage.fileAnnotations;
+        const operatorInfo = Array.isArray(fileAnnotations)
+          ? fileAnnotations.find((fa: any) => fa.sender === 'operator')
+          : fileAnnotations?.sender === 'operator'
+            ? fileAnnotations
+            : null;
+        return !!operatorInfo;
+      } catch (e) {
+        return false;
+      }
+    }
+    return false;
+  });
+
   const [isChatFlowAvailableToStream, setIsChatFlowAvailableToStream] = createSignal(false);
   const [chatId, setChatId] = createSignal('');
   const [isMessageStopping, setIsMessageStopping] = createSignal(false);
@@ -2522,6 +2546,7 @@ export const Bot = (botProps: BotProps & { class?: string }) => {
                               orn: (userData() as any).orn,
                               phone: (userData() as any).phone,
                             }}
+                            isOperatorConnected={isOperatorConnected()}
                           />
                         )}
                         {message.type === 'leadCaptureMessage' && leadsConfig()?.status && !getLocalStorageChatflow(props.chatflowid)?.lead && (

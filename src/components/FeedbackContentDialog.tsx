@@ -4,7 +4,6 @@ import { Button } from './buttons/Button';
 import { XIcon } from './icons';
 import { transferChatHistoryToAutoFAQ } from '@/queries/sendMessageQuery';
 import { MessageType } from './Bot';
-import { getLocalStorageChatflow } from '@/utils';
 
 type FeedbackContentDialogProps = {
   isOpen: boolean;
@@ -28,6 +27,7 @@ type FeedbackContentDialogProps = {
     phone?: string;
   };
   isFullPage?: boolean;
+  isOperatorConnected?: boolean; // Булевое значение, передается из родительского компонента
 };
 
 const defaultBackgroundColor = 'var(--chatbot-input-bg-color, #ffffff)';
@@ -89,39 +89,12 @@ const FeedbackContentDialog = (props: FeedbackContentDialogProps) => {
       const trimmedValue = inputValue().trim();
       if (!trimmedValue) return true;
       const wordCount = countWords(trimmedValue);
-      if (wordCount <= 2) return true;
+      if (wordCount < 2) return true;
     }
     return false;
   });
 
   const showOperatorButton = createMemo(() => !!props.userData?.email);
-
-  // Функция для проверки, подключен ли оператор в истории чата
-  const isOperatorConnected = createMemo(() => {
-    if (!props.chatflowid) return false;
-    try {
-      const chatDetails = getLocalStorageChatflow(props.chatflowid);
-      const messages: MessageType[] = chatDetails.chatHistory || [];
-
-      // Проверяем, есть ли в истории сообщения от оператора
-      return messages.some((message) => {
-        if (!message.fileAnnotations) return false;
-        try {
-          const fileAnnotations = typeof message.fileAnnotations === 'string' ? JSON.parse(message.fileAnnotations) : message.fileAnnotations;
-          const operatorInfo = Array.isArray(fileAnnotations)
-            ? fileAnnotations.find((fa: any) => fa.sender === 'operator')
-            : fileAnnotations?.sender === 'operator'
-              ? fileAnnotations
-              : null;
-          return !!operatorInfo;
-        } catch (e) {
-          return false;
-        }
-      });
-    } catch (e) {
-      return false;
-    }
-  });
 
   const submit = () => {
     if (!isSubmitDisabled()) {
@@ -272,10 +245,10 @@ const FeedbackContentDialog = (props: FeedbackContentDialogProps) => {
                 {/* Contact operator button */}
                 <Show when={showOperatorButton()}>
                   <Button
-                    text={isOperatorConnected() ? 'Оператор уже вызван' : 'Связаться с оператором'}
+                    text={props.isOperatorConnected ? 'Оператор уже вызван' : 'Связаться с оператором'}
                     type="button"
                     onClick={handleTransferToOperator}
-                    disabled={isOperatorConnected() || isSubmitDisabled()}
+                    disabled={props.isOperatorConnected || isSubmitDisabled()}
                     class={'min-w-full flex-1 bg-white'}
                   />
                 </Show>
