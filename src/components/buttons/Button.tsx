@@ -20,7 +20,7 @@ export const Button = (props: ButtonProps) => {
         text-gray-880
         transition-all duration-150 
         active:scale-95 active:bg-gray-200 
-        focus:outline-none focus:ring-2 focus:ring-gray-500 focus:ring-offset-1
+        focus:outline-none
         shadow-xs 
         disabled:cursor-not-allowed hover:shadow-none ` + (className || '')
       }

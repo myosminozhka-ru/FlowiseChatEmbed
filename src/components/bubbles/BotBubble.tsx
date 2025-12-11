@@ -231,7 +231,6 @@ export const BotBubble = (props: Props) => {
         messageId: messageId,
         rating: 'THUMBS_UP' as FeedbackRatingType,
         content: '',
-        ...(props.userData?.fio && { fio: props.userData.fio }),
         ...(props.userData?.email && { email: props.userData.email }),
       };
       const result = await sendFeedbackQuery({
@@ -262,7 +261,6 @@ export const BotBubble = (props: Props) => {
         messageId: messageId,
         rating: 'THUMBS_DOWN' as FeedbackRatingType,
         content: '',
-        ...(props.userData?.fio && { fio: props.userData.fio }),
         ...(props.userData?.email && { email: props.userData.email }),
       };
       const result = await sendFeedbackQuery({
@@ -298,8 +296,6 @@ export const BotBubble = (props: Props) => {
 
     const body = {
       content: content,
-      ...(props.userData?.fio && { fio: props.userData.fio }),
-      ...(props.userData?.email && { email: props.userData.email }),
     };
     const result = await updateFeedbackQuery({
       id: feedbackId(),

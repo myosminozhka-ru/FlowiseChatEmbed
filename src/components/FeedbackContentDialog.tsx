@@ -23,7 +23,6 @@ type FeedbackContentDialogProps = {
     email?: string;
     user_name?: string;
     user_id?: string;
-    login?: string;
     shortname?: string;
     orn?: string;
     phone?: string;
@@ -67,6 +66,10 @@ const FeedbackContentDialog = (props: FeedbackContentDialogProps) => {
 
   const handleReasonChange = (reason: string) => {
     setSelectedReason(reason);
+    // Очищаем поле, если выбрана причина, отличная от "Другое"
+    if (reason !== OTHER_REASON) {
+      setInputValue('');
+    }
     if (props.errorMessage && props.onErrorClear) {
       props.onErrorClear();
     }
@@ -143,28 +146,20 @@ const FeedbackContentDialog = (props: FeedbackContentDialogProps) => {
     try {
       console.log('🔵 [FeedbackDialog] Передача истории чата в AutoFAQ...');
 
-      // Формируем body с полными данными пользователя, включая overrideConfig.userData
+      // Формируем body для передачи оператору
       const requestBody = {
         chatId: props.chatId,
         userMessage: inputValue() || selectedReason() || undefined,
-        ...(props.userData?.fio && { fio: props.userData.fio }),
-        ...(props.userData?.email && { email: props.userData.email }),
+        fio: props.userData?.fio || '',
+        email: props.userData?.email || '',
         overrideConfig: {
           userData: {
-            ...(props.userData?.email && { email: props.userData.email }),
-            ...(props.userData?.fio && {
-              fullName: props.userData.fio,
-              fio: props.userData.fio
-            }),
-            ...(props.userData?.user_name && {
-              fullName: props.userData.user_name,
-              fio: props.userData.user_name
-            }),
-            ...(props.userData?.login && { login: props.userData.login }),
-            ...(props.userData?.user_id && { userId: props.userData.user_id }),
-            ...(props.userData?.shortname && { shortname: props.userData.shortname }),
-            ...(props.userData?.orn && { orn: props.userData.orn }),
-            ...(props.userData?.phone && { phone: props.userData.phone }),
+            email: props.userData?.email || '',
+            fio: props.userData?.fio || '',
+            userId: props.userData?.user_id || '',
+            shortname: props.userData?.shortname || '',
+            orn: props.userData?.orn || '',
+            phone: props.userData?.phone || '',
           },
         },
       };

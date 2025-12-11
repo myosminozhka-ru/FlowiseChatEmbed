@@ -2347,7 +2347,7 @@ export const Bot = (botProps: BotProps & { class?: string }) => {
 
           {/* Шапка чата */}
           <div
-            class={`flex flex-row items-center justify-between w-full border-b py-3 ${
+            class={`sticky top-0 flex flex-row items-center justify-between w-full border-b py-3 ${
               props.isFullPage || props.isFullscreen ? 'px-4 md:px-6 lg:px-8' : 'px-4'
             } ${props.isFullPage ? 'border-t' : ''}`}
             style={{

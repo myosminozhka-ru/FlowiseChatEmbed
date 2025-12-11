@@ -19,7 +19,7 @@ export const IconButton = (props: IconButtonProps) => {
         bg-white text-gray-880
         transition-all duration-150 
         active:scale-95 active:bg-gray-200 
-        focus:outline-none focus:ring-2 focus:ring-gray-500 focus:ring-offset-1
+        focus:outline-none 
         shadow-xs 
         disabled:opacity-50 disabled:cursor-not-allowed disabled:shadow-none
         hover:text-[var(--chatbot-button-bg-color)] hover:scale-105 ` + props.class

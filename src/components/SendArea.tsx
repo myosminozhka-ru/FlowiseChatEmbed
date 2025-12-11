@@ -26,33 +26,64 @@ type SendAreaProps = {
 };
 
 const defaultBackgroundColor = 'var(--chatbot-input-bg-color, #ffffff)';
-const DEFAULT_HEIGHT = 56;
+const DEFAULT_MAX_CHARS = 200;
 
 export const SendArea = (props: SendAreaProps) => {
   const [isSendButtonDisabled, setIsSendButtonDisabled] = createSignal(false);
   const [warningMessage, setWarningMessage] = createSignal('');
   const [inputHistory] = createSignal(new ChatInputHistory(() => props.maxHistorySize || 10));
-  const [height, setHeight] = createSignal(DEFAULT_HEIGHT);
   let textareaRef: HTMLTextAreaElement | undefined;
   let fileUploadRef: HTMLInputElement | undefined;
   let imgUploadRef: HTMLInputElement | undefined;
+
+  const adjustTextarea = (target: HTMLTextAreaElement) => {
+    // Используем только props.inputValue, так как это контролируемое значение
+    // target.value может быть устаревшим при очистке поля
+    const value = props.inputValue;
+    
+    // Если поле пустое - одна строка
+    if (!value || value.trim() === '') {
+      target.style.whiteSpace = 'nowrap';
+      target.style.height = '24px';
+      return;
+    }
+
+    // Временно устанавливаем nowrap для проверки, помещается ли текст в одну строку
+    target.style.whiteSpace = 'nowrap';
+    target.style.height = 'auto';
+    
+    // Используем setTimeout для корректного расчета scrollWidth после изменения стилей
+    setTimeout(() => {
+      if (!target || target !== textareaRef) return;
+      
+      if (target.scrollWidth > target.clientWidth) {
+        // Если не помещается - разрешаем перенос
+        target.style.whiteSpace = 'normal';
+        target.style.height = 'auto';
+        // Максимальная высота = 100% от родителя
+        const maxHeight = target.parentElement?.clientHeight || 100;
+        const newHeight = Math.min(target.scrollHeight, maxHeight);
+        target.style.height = `${newHeight}px`;
+      } else {
+        // Если помещается - оставляем одну строку
+        target.style.whiteSpace = 'nowrap';
+        target.style.height = '24px'; // Высота одной строки
+      }
+    }, 0);
+  };
 
   const handleInput = (e: Event) => {
     const target = e.currentTarget as HTMLTextAreaElement;
     const inputValue = target.value;
 
-    // Автоматическое изменение высоты
-    if (inputValue === '') {
-      setHeight(DEFAULT_HEIGHT);
-    } else {
-      setHeight(target.scrollHeight);
-    }
-    target.scrollTo(0, target.scrollHeight);
+    // Адаптивное изменение высоты (как на скриншоте)
+    adjustTextarea(target);
 
     // Проверка лимита символов
     const wordCount = inputValue.length;
-    if (props.maxChars && wordCount > props.maxChars) {
-      setWarningMessage(props.maxCharsWarningMessage ?? `You exceeded the characters limit. Please input less than ${props.maxChars} characters.`);
+    const maxChars = props.maxChars ?? DEFAULT_MAX_CHARS;
+    if (wordCount > maxChars) {
+      setWarningMessage(props.maxCharsWarningMessage ?? `Превышен лимит символов. Пожалуйста, введите менее ${maxChars} символов.`);
       setIsSendButtonDisabled(true);
       return;
     }
@@ -69,6 +100,7 @@ export const SendArea = (props: SendAreaProps) => {
       if (props.enableInputHistory) {
         inputHistory().addToHistory(props.inputValue);
       }
+      
       props.onSubmit(props.inputValue);
     }
   };
@@ -116,9 +148,40 @@ export const SendArea = (props: SendAreaProps) => {
     if (!props.disabled && shouldAutoFocus && textareaRef) textareaRef.focus();
   });
 
+  // Обновляем высоту при изменении inputValue извне
+  createEffect(() => {
+    // Явно отслеживаем props.inputValue для реактивности
+    const currentValue = props.inputValue;
+    if (textareaRef && currentValue !== undefined) {
+      // Используем setTimeout для корректного расчета после очистки
+      setTimeout(() => {
+        if (textareaRef) {
+          adjustTextarea(textareaRef);
+        }
+      }, 10);
+    }
+  });
+
   onMount(() => {
     const shouldAutoFocus = props.autoFocus !== undefined ? props.autoFocus : window.innerWidth >= 768;
     if (!props.disabled && shouldAutoFocus && textareaRef) textareaRef.focus();
+
+    // Устанавливаем начальную высоту
+    if (textareaRef) {
+      adjustTextarea(textareaRef);
+    }
+
+    // Также вызываем при ресайзе окна
+    const handleResize = () => {
+      if (textareaRef) {
+        adjustTextarea(textareaRef);
+      }
+    };
+    window.addEventListener('resize', handleResize);
+    
+    return () => {
+      window.removeEventListener('resize', handleResize);
+    };
   });
 
   const handleFileChange = (event: FileEvent<HTMLInputElement>) => {
@@ -138,7 +201,7 @@ export const SendArea = (props: SendAreaProps) => {
 
   return (
     <div
-      class={`sticky bottom-0 w-full h-auto max-h-[192px] min-h-[72px] flex flex-col items-end justify-between chatbot-input border-t pb-4 z-10 text-gray-880 ${
+      class={`sticky bottom-0 w-full min-h-[72px] flex flex-col chatbot-input border-t py-3 pr-[66px] z-10 text-gray-880 ${
         props.isFullscreen ? 'px-4 md:px-6 lg:px-8' : 'px-6'
       }`}
       data-testid="input"
@@ -147,11 +210,11 @@ export const SendArea = (props: SendAreaProps) => {
       }}
     >
       <Show when={warningMessage() !== ''}>
-        <div class="w-full px-4 pt-4 pb-1 text-red-500 text-sm" data-testid="warning-message">
+        <div class="absolute bottom-full left-0 right-0 bg-white/30 w-full p-4 text-red-500 text-sm" data-testid="warning-message">
           {warningMessage()}
         </div>
       </Show>
-      <div class="w-full flex items-center justify-between gap-4">
+      <div class="w-full h-full flex items-center gap-4">
         {props.uploadsConfig?.isImageUploadAllowed ? (
           <>
             <ImageUploadButton
@@ -201,22 +264,29 @@ export const SendArea = (props: SendAreaProps) => {
           value={props.inputValue}
           placeholder={props.placeholder ?? 'Напишите свой вопрос...'}
           disabled={props.disabled}
-          class={`focus:outline-none bg-transparent px-0 pt-[25px] pb-0 flex-1 w-full h-full min-h-[56px] max-h-[128px] text-input placeholder:text-gray-400 disabled:opacity-50 disabled:cursor-not-allowed disabled:brightness-100 ${'caret-[var(--chatbot-input-caret-color)]'}`}
+          class={`focus:outline-none bg-transparent flex-1 !p-0 w-full text-input placeholder:text-gray-400 disabled:opacity-50 disabled:cursor-not-allowed disabled:brightness-100 ${'caret-[var(--chatbot-input-caret-color)]'}`}
           style={{
             'font-size': props.fontSize ? `${props.fontSize}px` : '16px',
+            'line-height': '1.5',
             resize: 'none',
-            height: `${props.inputValue !== '' ? height() : DEFAULT_HEIGHT}px`,
+            height: '24px', // Изначально одна строка = 24px
+            'max-height': '100%', // Максимальная высота = 100%
+            'overflow-y': 'auto',
+            transition: 'height 0.3s ease',
+            'padding-top': props.inputValue === '' ? 'calc((24px - 1.5em) / 2)' : '0',
           }}
           onInput={handleInput}
           onKeyDown={handleKeyDown}
         />
-        <SendButton
-          type="button"
-          isDisabled={props.disabled || isSendButtonDisabled() || !props.inputValue || props.inputValue.trim() === ''}
-          class="m-0 mt-4 h-14 flex items-center justify-center"
-          on:click={submit}
-        />
       </div>
+      <SendButton
+        type="button"
+        isDisabled={props.disabled || isSendButtonDisabled() || !props.inputValue || props.inputValue.trim() === ''}
+        class={`absolute top-1/2 -translate-y-1/2 h-14 flex items-center justify-center ${
+          props.isFullscreen ? 'right-4 md:right-6 lg:right-8' : 'right-6'
+        }`}
+        on:click={submit}
+      />
     </div>
   );
 };
