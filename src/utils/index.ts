@@ -114,8 +114,7 @@ export const setLocalStorageChatflow = (chatflowid: string, chatId: string, save
       const parsedChatDetails = JSON.parse(chatDetails);
       localStorage.setItem(`${chatflowid}_EXTERNAL`, JSON.stringify({ ...parsedChatDetails, ...obj }));
     } catch (e) {
-      const chatId = chatDetails;
-      obj.chatId = chatId;
+      obj.chatId = chatDetails;
       localStorage.setItem(`${chatflowid}_EXTERNAL`, JSON.stringify(obj));
     }
   }
@@ -159,6 +158,7 @@ export const getBubbleButtonSize = (size: 'small' | 'medium' | 'large' | number 
 };
 
 export const setCookie = (cname: string, cvalue: string, exdays: number) => {
+  if (typeof document === 'undefined') return;
   const d = new Date();
   d.setTime(d.getTime() + exdays * 24 * 60 * 60 * 1000);
   const expires = 'expires=' + d.toUTCString();
@@ -166,6 +166,7 @@ export const setCookie = (cname: string, cvalue: string, exdays: number) => {
 };
 
 export const getCookie = (cname: string): string => {
+  if (typeof document === 'undefined') return '';
   const name = cname + '=';
   const decodedCookie = decodeURIComponent(document.cookie);
   const ca = decodedCookie.split(';');
@@ -181,52 +182,6 @@ export const getCookie = (cname: string): string => {
   return '';
 };
 
-
-let skCompanyKeyCache: string | null = null;
-let skCompanyKeyLoading: Promise<string | null> | null = null;
-
-/**
- * Получает SK Company Key (по аналогии с AUTH_API_URL)
- * 1. Сначала проверяет window.__SK_COMPANY_KEY__ (для переопределения)
- * 2. Если нет, загружает из /api/config (из переменной окружения на сервере, один раз, с кэшированием)
- * 3. Если и там нет, использует значение по умолчанию
- * @returns SK Company Key
- */
-const getSkCompanyKey = async (): Promise<string> => {
-  if (typeof window !== 'undefined' && (window as any).__SK_COMPANY_KEY__) {
-    return (window as any).__SK_COMPANY_KEY__;
-  }
-
-  if (skCompanyKeyCache !== null) {
-    return skCompanyKeyCache;
-  }
-
-  if (skCompanyKeyLoading) {
-    const key = await skCompanyKeyLoading;
-    return key || 'XE4dZ1HOaOAKTCPn';
-  }
-
-  skCompanyKeyLoading = (async () => {
-    try {
-      const configResponse = await fetch('/api/config');
-      if (configResponse.ok) {
-        const config = await configResponse.json();
-        const key = config.skCompanyKey;
-        if (key) {
-          skCompanyKeyCache = key;
-          return key;
-        }
-      }
-    } catch (e) {
-      console.warn('⚠️ [Config] Не удалось загрузить SK Company Key из /api/config:', e);
-    }
-    return null;
-  })();
-
-  const key = await skCompanyKeyLoading;
-  return key || '';
-};
-
 export type UserData = {
   user_id?: string;
   user_name?: string;
@@ -237,6 +192,24 @@ export type UserData = {
   orn?: string; // ОРН компании
 };
 
+// Типы для SK SDK
+type SkCompany = {
+  name: string;
+  orn: number;
+  ceo: boolean;
+};
+
+interface SkSdk {
+  init: (config: { node: string }) => void;
+  getCompanies: () => Promise<SkCompany[]>;
+}
+
+declare global {
+  interface Window {
+    SK?: SkSdk;
+  }
+}
+
 /**
  * Получает токен sk_auth из cookies
  * @returns Токен sk_auth или пустая строка
@@ -244,6 +217,19 @@ export type UserData = {
 export const getTokenFromCookies = (): string => {
   // Читаем sk_auth из cookies
   return getCookie('sk_auth');
+};
+
+/**
+ * Проверяет доступность SK SDK
+ * На продакшене SK уже инициализирован глобально, поэтому просто проверяем его наличие
+ * @returns true если SDK доступен, false если нет (для dev режима это нормально)
+ */
+const isSkSdkAvailable = (): boolean => {
+  if (typeof window === 'undefined') {
+    return false;
+  }
+
+  return !!(window.SK && typeof window.SK.getCompanies === 'function');
 };
 
 /**
@@ -291,12 +277,11 @@ export const getUserDataWithAuth = async (onRequest?: (request: RequestInit) => 
 
   // Если токена sk_auth нет, возвращаем данные гостя (не делаем запрос auth)
   if (!userData.token) {
-    const guestData = {
+    return {
       user_id: userData.user_id || 'guest',
       user_name: userData.user_name || 'Гость',
       token: undefined,
     };
-    return guestData;
   }
 
   // Делаем запрос auth для получения id и fio
@@ -328,105 +313,67 @@ export const getUserDataWithAuth = async (onRequest?: (request: RequestInit) => 
       fullResultData: result.data,
     });
 
-    // Делаем второй запрос для получения данных компании
+    // Получаем данные компании через SK SDK
     let shortname: string | undefined;
     let orn: string | undefined;
 
-    console.log('🔍 [Company] Проверка условия if (lowerEmail):', {
-      lowerEmail,
-      condition: !!lowerEmail,
-      willEnter: !!lowerEmail,
-    });
-
-    if (lowerEmail) {
-      console.log('✅ [Company] Условие выполнено, входим в блок запроса');
+    // Проверяем доступность SK SDK (на продакшене он уже инициализирован)
+    if (!isSkSdkAvailable()) {
+      console.log('ℹ️ [Company] SK SDK не доступен (это нормально для dev режима)');
+    } else {
       try {
-        const companyUrl = `https://lk2.uat.sk.ru/apps/api/company/v0/internal/user/${lowerEmail}/companies`;
-        console.log('🔐 [Company] Формирование URL:', {
-          companyUrl,
-          lowerEmail,
-          urlLength: companyUrl.length,
+        console.log('📥 [Company] Начинаем получение данных компании через SK SDK...');
+        console.log('✅ [Company] SDK доступен, вызываем SK.getCompanies()...');
+
+        // Вызываем метод SDK для получения компаний
+        // SDK автоматически использует Cookie sk_auth для определения пользователя
+        const companies = await window.SK!.getCompanies();
+
+        console.log('📥 [Company] Ответ от SK.getCompanies():', {
+          companiesCount: companies?.length || 0,
+          isArray: Array.isArray(companies),
+          companiesPreview: companies ? JSON.stringify(companies).substring(0, 200) : 'null',
         });
 
-        // Получаем API ключ (по аналогии с AUTH_API_URL)
-        console.log('🔑 [Company] Получение API ключа...');
-        const apiKey = await getSkCompanyKey();
-        console.log('🔑 [Company] API ключ получен:', {
-          hasApiKey: !!apiKey,
-          apiKeyLength: apiKey?.length || 0,
-          apiKeyPreview: apiKey ? `${apiKey.substring(0, 5)}...` : 'null',
-        });
-
-        console.log('📤 [Company] Отправка запроса:', {
-          method: 'GET',
-          url: companyUrl,
-          hasApiKey: !!apiKey,
-          hasOnRequest: !!onRequest,
-        });
-
-        const companyResult = await sendRequest<Array<{ shortname?: string; orn?: string }> | { shortname?: string; orn?: string }>({
-          method: 'GET',
-          url: companyUrl,
-          headers: {
-            'X-Sk-Connect-Api-Key': apiKey,
-          },
-          onRequest,
-        });
-
-        console.log('📥 [Company] Ответ получен:', {
-          hasData: !!companyResult.data,
-          hasError: !!companyResult.error,
-          dataType: typeof companyResult.data,
-          isArray: Array.isArray(companyResult.data),
-          errorMessage: companyResult.error?.message || companyResult.error,
-          dataPreview: companyResult.data ? JSON.stringify(companyResult.data).substring(0, 200) : 'null',
-        });
-
-        if (companyResult.data && !companyResult.error) {
-          console.log('✅ [Company] Данные получены успешно, обработка...');
-          // Обрабатываем случай, когда ответ - массив компаний (берем первую)
-          const companyData = Array.isArray(companyResult.data) ? companyResult.data[0] : companyResult.data;
+        if (companies && Array.isArray(companies) && companies.length > 0) {
+          // Всегда берем первую компанию из массива (индекс 0), независимо от количества компаний
+          const companyData = companies[0];
           console.log('🔍 [Company] Обработанные данные компании:', {
             companyData,
-            isArray: Array.isArray(companyResult.data),
-            isObject: typeof companyData === 'object',
-            hasShortname: !!companyData?.shortname,
-            hasOrn: !!companyData?.orn,
-            shortname: companyData?.shortname,
+            name: companyData?.name,
             orn: companyData?.orn,
+            ceo: companyData?.ceo,
           });
 
-          if (companyData && typeof companyData === 'object') {
-            shortname = companyData.shortname;
-            orn = companyData.orn;
+          if (companyData && typeof companyData === 'object' && companyData.name) {
+            // Маппим name -> shortname для обратной совместимости
+            shortname = companyData.name;
+            // orn может быть числом, конвертируем в строку
+            orn = companyData.orn?.toString();
             console.log('✅ [Company] Данные извлечены:', { shortname, orn });
           } else {
-            console.warn('⚠️ [Company] companyData не является объектом:', {
+            console.warn('⚠️ [Company] companyData не является валидным объектом:', {
               companyData,
               type: typeof companyData,
+              hasName: !!companyData?.name,
             });
           }
         } else {
-          console.warn('⚠️ [Company] Ошибка получения данных компании:', {
-            hasData: !!companyResult.data,
-            hasError: !!companyResult.error,
-            error: companyResult.error,
-            data: companyResult.data,
+          console.warn('⚠️ [Company] Массив компаний пуст или не является массивом:', {
+            companies,
+            isArray: Array.isArray(companies),
+            length: companies?.length,
           });
         }
       } catch (error) {
-        console.error('❌ [Company] Исключение при получении данных компании:', {
+        console.error('❌ [Company] Ошибка при получении данных компании через SK SDK:', {
           error,
           errorMessage: error instanceof Error ? error.message : String(error),
           errorStack: error instanceof Error ? error.stack : undefined,
-          lowerEmail,
         });
+        // Не прерываем выполнение, просто не заполняем shortname и orn
+        // Пользователь все равно получит остальные данные (user_id, user_name, email)
       }
-    } else {
-      console.warn('⚠️ [Company] Запрос не выполнен: lowerEmail отсутствует или пустой', {
-        lowerEmail,
-        resultData: result.data,
-      });
     }
 
     const userDataResult: UserData = {

@@ -158,6 +158,7 @@ const FeedbackContentDialog = (props: FeedbackContentDialogProps) => {
             message: 'Чат передан оператору. Ожидайте ответа...',
             type: 'apiMessage',
             dateTime: new Date().toISOString(),
+            disableFeedback: true, // У этого сообщения не будет кнопок фидбэка
           };
           props.onMessageAdd(transferMessage);
           console.log('[FeedbackDialog] Сообщение о передаче оператору добавлено через callback');

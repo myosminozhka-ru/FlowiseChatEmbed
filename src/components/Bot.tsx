@@ -127,6 +127,7 @@ export type MessageType = {
   id?: string;
   followUpPrompts?: string;
   dateTime?: string;
+  disableFeedback?: boolean; // Если true, кнопки фидбэка не будут отображаться для этого сообщения
 };
 
 type IUploads = {

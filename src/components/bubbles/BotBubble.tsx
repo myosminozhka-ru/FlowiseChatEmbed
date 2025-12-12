@@ -506,8 +506,8 @@ export const BotBubble = (props: Props) => {
                     <div class={`copied-message text-xs ${props.feedbackColor ? `text-[${props.feedbackColor}]` : 'text-gray-500'}`}>Скопировано</div>
                   </Show>
                 </Show>
-                {/* Кнопки фидбека - показываем только если chatFeedbackStatus === true */}
-                <Show when={props.chatFeedbackStatus && !isOperatorMessage()}>
+                {/* Кнопки фидбека - показываем только если chatFeedbackStatus === true и disableFeedback !== true */}
+                <Show when={props.chatFeedbackStatus && !isOperatorMessage() && !props.message.disableFeedback}>
                   {rating() === '' || rating() === 'THUMBS_UP' ? (
                     <ThumbsUpButton feedbackColor={thumbsUpColor()} isDisabled={rating() === 'THUMBS_UP'} rating={rating()} onClick={onThumbsUpClick} />
                   ) : null}
