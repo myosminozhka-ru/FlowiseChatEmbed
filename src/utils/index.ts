@@ -165,6 +165,12 @@ export const setCookie = (cname: string, cvalue: string, exdays: number) => {
   document.cookie = cname + '=' + cvalue + ';' + expires + ';path=/';
 };
 
+export const deleteCookie = (cname: string) => {
+  if (typeof document === 'undefined') return;
+  // Устанавливаем прошедшую дату, чтобы удалить cookie
+  document.cookie = `${cname}=;expires=Thu, 01 Jan 1970 00:00:00 GMT;path=/`;
+};
+
 export const getCookie = (cname: string): string => {
   if (typeof document === 'undefined') return '';
   const name = cname + '=';

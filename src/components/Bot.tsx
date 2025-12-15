@@ -32,7 +32,15 @@ import { IconButton } from '@/components/buttons/IconButton';
 import { FilePreview } from '@/components/inputs/textInput/components/FilePreview';
 import { SparklesIcon, TrashIcon, XIcon, ResizeIcon } from './icons';
 import { LeadCaptureBubble } from '@/components/bubbles/LeadCaptureBubble';
-import { removeLocalStorageChatHistory, getLocalStorageChatflow, setLocalStorageChatflow, setCookie, getCookie, getUserDataWithAuth } from '@/utils';
+import {
+  removeLocalStorageChatHistory,
+  getLocalStorageChatflow,
+  setLocalStorageChatflow,
+  setCookie,
+  getCookie,
+  deleteCookie,
+  getUserDataWithAuth,
+} from '@/utils';
 import { cloneDeep } from 'lodash';
 import { FollowUpPromptBubble } from '@/components/bubbles/FollowUpPromptBubble';
 import { fetchEventSource, EventStreamContentType } from '@microsoft/fetch-event-source';
@@ -1828,6 +1836,10 @@ export const Bot = (botProps: BotProps & { class?: string }) => {
       // Останавливаем polling при очистке чата
       stopAutoFAQPolling();
 
+      // Чистим cookies, связанные с текущим диалогом
+      deleteCookie('guest_id');
+      deleteCookie('chatbotDisclaimer');
+
       removeLocalStorageChatHistory(props.chatflowid);
       setChatId(
         (props.chatflowConfig?.vars as any)?.customerId ? `${(props.chatflowConfig?.vars as any).customerId.toString()}+${uuidv4()}` : uuidv4(),
@@ -2435,6 +2447,7 @@ export const Bot = (botProps: BotProps & { class?: string }) => {
                   fontSize={props.fontSize}
                   showWelcomeImage={typeof props.showWelcomeImage === 'boolean' ? props.showWelcomeImage : true}
                   starterPrompts={starterPrompts()}
+                  isLoading={loading()}
                   onPromptClick={promptClick}
                 />
                 <For each={[...messages()]}>

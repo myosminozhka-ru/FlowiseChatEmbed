@@ -9,6 +9,7 @@ type WelcomeMessageProps = {
   showWelcomeImage?: boolean;
   starterPrompts?: string[];
   onPromptClick?: (prompt: string) => void;
+  isLoading?: boolean;
 };
 
 const defaultFontSize = 'var(--chatbot-font-size, 16px)';
@@ -40,7 +41,13 @@ export const WelcomeMessage = (props: WelcomeMessageProps) => {
       <Show when={props.starterPrompts && props.starterPrompts.length > 0}>
         <div class="w-full flex flex-row flex-wrap justify-center gap-2 mt-6">
           <For each={[...(props.starterPrompts || [])]}>
-            {(key) => <StarterPromptBubble prompt={key} onPromptClick={() => props.onPromptClick?.(key)} />}
+            {(key) => (
+              <StarterPromptBubble
+                prompt={key}
+                onPromptClick={() => props.onPromptClick?.(key)}
+                disabled={props.isLoading}
+              />
+            )}
           </For>
         </div>
       </Show>
