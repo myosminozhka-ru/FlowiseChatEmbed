@@ -432,6 +432,9 @@ export const Bot = (botProps: BotProps & { class?: string }) => {
   const [feedbackType, setFeedbackType] = createSignal('');
   const [isTransferring, setIsTransferring] = createSignal(false);
 
+  // AbortController для текущего SSE-запроса (streaming)
+  let sseAbortController: AbortController | null = null;
+
   // start input type
   const [startInputType, setStartInputType] = createSignal('');
   const [formTitle, setFormTitle] = createSignal('');
@@ -1017,6 +1020,13 @@ export const Bot = (botProps: BotProps & { class?: string }) => {
       chatId,
     });
 
+    // Перед каждым новым SSE-запросом отменяем предыдущий, если он ещё активен
+    if (sseAbortController) {
+      sseAbortController.abort();
+      sseAbortController = null;
+    }
+    sseAbortController = new AbortController();
+
     // ВАЖНО: fetchEventSource использует fetch API, который требует правильной настройки CORS
     // Используем 'same-origin' для credentials, чтобы избежать проблем с CORS
     fetchEventSource(`${props.apiHost}/api/v1/prediction/${chatflowid}`, {
@@ -1025,6 +1035,7 @@ export const Bot = (botProps: BotProps & { class?: string }) => {
       body: JSON.stringify(params),
       headers: sseHeaders,
       credentials: 'include', // Используем include для cross-origin запросов
+      signal: sseAbortController.signal,
       // ВАЖНО: При credentials: 'include' сервер должен устанавливать Access-Control-Allow-Credentials: true
       // и Access-Control-Allow-Origin должен быть конкретным origin (не '*')
       async onopen(response) {
@@ -1189,6 +1200,13 @@ export const Bot = (botProps: BotProps & { class?: string }) => {
           url: `${props.apiHost}/api/v1/prediction/${chatflowid}`,
           timestamp: new Date().toISOString(),
         });
+
+        // Если запрос был прерван явно (AbortController), не считаем это ошибкой сервиса
+        if (err?.name === 'AbortError') {
+          console.log('[Bot] ⏹ SSE запрос прерван (AbortController)');
+          closeResponse();
+          return;
+        }
 
         // Если это наша ошибка для закрытия соединения при AutoFAQ режиме, не показываем ошибку
         if (err?.message === 'AutoFAQ mode - closing SSE connection') {
@@ -1835,6 +1853,17 @@ export const Bot = (botProps: BotProps & { class?: string }) => {
     try {
       // Останавливаем polling при очистке чата
       stopAutoFAQPolling();
+
+      // Если есть активный streaming-запрос (SSE), прерываем его
+      if (sseAbortController) {
+        sseAbortController.abort();
+        sseAbortController = null;
+      }
+
+      // Приводим состояние к такому же виду, как при завершении ответа
+      setLoading(false);
+      setUserInput('');
+      setUploadedFiles([]);
 
       // Чистим cookies, связанные с текущим диалогом
       deleteCookie('guest_id');
