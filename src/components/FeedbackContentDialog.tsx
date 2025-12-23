@@ -117,8 +117,6 @@ const FeedbackContentDialog = (props: FeedbackContentDialogProps) => {
     }
 
     try {
-      console.log('🔵 [FeedbackDialog] Передача истории чата в AutoFAQ...');
-
       // Формируем body для передачи оператору
       const requestBody = {
         chatId: props.chatId,
@@ -137,11 +135,6 @@ const FeedbackContentDialog = (props: FeedbackContentDialogProps) => {
         },
       };
 
-      // Логируем body перед отправкой
-      console.log('🔵 [FeedbackDialog] Body для transferChatHistoryToAutoFAQ:', JSON.stringify(requestBody, null, 2));
-      console.log('🔵 [FeedbackDialog] shortname:', props.userData?.shortname);
-      console.log('🔵 [FeedbackDialog] orn:', props.userData?.orn);
-
       const result = await transferChatHistoryToAutoFAQ({
         chatflowid: props.chatflowid,
         apiHost: props.apiHost,
@@ -150,8 +143,6 @@ const FeedbackContentDialog = (props: FeedbackContentDialogProps) => {
       });
 
       if (result.data) {
-        console.log('✅ [FeedbackDialog] История чата успешно передана в AutoFAQ:', result.data);
-
         // Добавляем сообщение о передаче оператору
         if (props.onMessageAdd) {
           const transferMessage: MessageType = {
@@ -161,7 +152,6 @@ const FeedbackContentDialog = (props: FeedbackContentDialogProps) => {
             disableFeedback: true, // У этого сообщения не будет кнопок фидбэка
           };
           props.onMessageAdd(transferMessage);
-          console.log('[FeedbackDialog] Сообщение о передаче оператору добавлено через callback');
         }
 
         props.onClose();

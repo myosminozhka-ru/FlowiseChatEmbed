@@ -35,10 +35,7 @@ export const sendRequest = async <ResponseData>(
         body = params.formData;
         // Для FormData не устанавливаем Content-Type - браузер установит автоматически с boundary
       } else if (isDefined(params.body)) {
-        // Логируем body перед сериализацией
-        console.log('🔵 [sendRequest] Body перед сериализацией:', JSON.stringify(params.body, null, 2));
         body = JSON.stringify(params.body);
-        console.log('🔵 [sendRequest] Body после сериализации (первые 500 символов):', body.substring(0, 500));
         if (!headers['Content-Type']) {
           headers['Content-Type'] = 'application/json';
         }
@@ -52,21 +49,6 @@ export const sendRequest = async <ResponseData>(
       body,
     };
 
-    // Логируем заголовки для отладки (скрываем токены)
-    if (typeof params !== 'string' && requestInfo.headers) {
-      // Преобразуем headers в объект для безопасного доступа
-      const logHeaders: Record<string, string> =
-        requestInfo.headers instanceof Headers
-          ? Object.fromEntries(requestInfo.headers.entries())
-          : Array.isArray(requestInfo.headers)
-            ? Object.fromEntries(requestInfo.headers)
-            : { ...requestInfo.headers };
-
-      if (logHeaders.Authorization) {
-        logHeaders.Authorization = logHeaders.Authorization.substring(0, 20) + '...';
-      }
-      console.log('🔵 [sendRequest] Заголовки запроса:', logHeaders);
-    }
 
     if (typeof params !== 'string' && params.onRequest) {
       await params.onRequest(requestInfo);
@@ -311,52 +293,27 @@ export const getUserDataWithAuth = async (onRequest?: (request: RequestInit) => 
 
     // Получаем id, fio и email из ответа
     const lowerEmail = result.data.lower_email || '';
-    console.log('🔍 [Company] Проверка lowerEmail:', {
-      lowerEmail,
-      hasLowerEmail: !!lowerEmail,
-      type: typeof lowerEmail,
-      fromResult: result.data.lower_email,
-      fullResultData: result.data,
-    });
 
     // Получаем данные компании через SK SDK
     let shortname: string | undefined;
     let orn: string | undefined;
 
     // Проверяем доступность SK SDK (на продакшене он уже инициализирован)
-    if (!isSkSdkAvailable()) {
-      console.log('ℹ️ [Company] SK SDK не доступен (это нормально для dev режима)');
-    } else {
+    if (isSkSdkAvailable()) {
       try {
-        console.log('📥 [Company] Начинаем получение данных компании через SK SDK...');
-        console.log('✅ [Company] SDK доступен, вызываем SK.getCompanies()...');
-
         // Вызываем метод SDK для получения компаний
         // SDK автоматически использует Cookie sk_auth для определения пользователя
         const companies = await window.SK!.getCompanies();
 
-        console.log('📥 [Company] Ответ от SK.getCompanies():', {
-          companiesCount: companies?.length || 0,
-          isArray: Array.isArray(companies),
-          companiesPreview: companies ? JSON.stringify(companies).substring(0, 200) : 'null',
-        });
-
         if (companies && Array.isArray(companies) && companies.length > 0) {
           // Всегда берем первую компанию из массива (индекс 0), независимо от количества компаний
           const companyData = companies[0];
-          console.log('🔍 [Company] Обработанные данные компании:', {
-            companyData,
-            name: companyData?.name,
-            orn: companyData?.orn,
-            ceo: companyData?.ceo,
-          });
 
           if (companyData && typeof companyData === 'object' && companyData.name) {
             // Маппим name -> shortname для обратной совместимости
             shortname = companyData.name;
             // orn может быть числом, конвертируем в строку
             orn = companyData.orn?.toString();
-            console.log('✅ [Company] Данные извлечены:', { shortname, orn });
           } else {
             console.warn('⚠️ [Company] companyData не является валидным объектом:', {
               companyData,
@@ -382,7 +339,7 @@ export const getUserDataWithAuth = async (onRequest?: (request: RequestInit) => 
       }
     }
 
-    const userDataResult: UserData = {
+    return {
       ...userData,
       user_id: result.data.user_id || result.data.id || '', // id из ответа
       user_name: result.data.fio || 'Гость', // fio из ответа -> user_name
@@ -391,19 +348,6 @@ export const getUserDataWithAuth = async (onRequest?: (request: RequestInit) => 
       shortname, // Короткое название компании
       orn, // ОРН компании
     };
-
-    console.log('✅ [Auth] Пользователь авторизован, итоговые данные:', {
-      user_id: userDataResult.user_id,
-      user_name: userDataResult.user_name,
-      email: userDataResult.email,
-      shortname: userDataResult.shortname,
-      orn: userDataResult.orn,
-      hasShortname: !!userDataResult.shortname,
-      hasOrn: !!userDataResult.orn,
-      lowerEmail,
-      wasRequestMade: !!lowerEmail,
-    });
-    return userDataResult;
   } catch (error) {
     console.error('❌ [Auth] Исключение при получении данных:', error);
     // В случае ошибки возвращаем данные гостя

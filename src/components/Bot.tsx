@@ -1,51 +1,50 @@
-import { createSignal, createEffect, For, onMount, Show, mergeProps, on, createMemo } from 'solid-js';
-import { v4 as uuidv4 } from 'uuid';
+import {createEffect, createMemo, createSignal, For, mergeProps, onMount, Show} from 'solid-js';
+import {v4 as uuidv4} from 'uuid';
 import {
-  sendMessageQuery,
-  upsertVectorStoreWithFormData,
-  isStreamAvailableQuery,
-  IncomingInput,
-  getChatbotConfig,
-  FeedbackRatingType,
   createAttachmentWithFormData,
-  transferChatHistoryToAutoFAQ,
+  FeedbackRatingType,
+  getChatbotConfig,
   getChatMessagesQuery,
+  IncomingInput,
+  isStreamAvailableQuery,
+  sendMessageQuery,
+  transferChatHistoryToAutoFAQ,
+  upsertVectorStoreWithFormData,
 } from '@/queries/sendMessageQuery';
-import { SendArea } from './SendArea';
-import { GuestBubble } from './bubbles/GuestBubble';
-import { BotBubble } from './bubbles/BotBubble';
-import { LoadingBubble } from './bubbles/LoadingBubble';
-import { DateDivider } from './DateDivider';
+import {SendArea} from './SendArea';
+import {GuestBubble} from './bubbles/GuestBubble';
+import {BotBubble} from './bubbles/BotBubble';
+import {DateDivider} from './DateDivider';
 import {
   BotMessageTheme,
+  DateTimeToggleTheme,
+  DisclaimerPopUpTheme,
+  FeedbackTheme,
   FooterTheme,
   TextInputTheme,
   UserMessageTheme,
-  FeedbackTheme,
-  DisclaimerPopUpTheme,
-  DateTimeToggleTheme,
 } from '@/features/bubble/types';
-import { Badge } from './Badge';
-import { Popup, DisclaimerPopup } from '@/features/popup';
-import { DeleteButton } from '@/components/buttons/DeleteButton';
-import { IconButton } from '@/components/buttons/IconButton';
-import { FilePreview } from '@/components/inputs/textInput/components/FilePreview';
-import { SparklesIcon, TrashIcon, XIcon, ResizeIcon } from './icons';
-import { LeadCaptureBubble } from '@/components/bubbles/LeadCaptureBubble';
+import {Badge} from './Badge';
+import {DisclaimerPopup, Popup} from '@/features/popup';
+import {DeleteButton} from '@/components/buttons/DeleteButton';
+import {IconButton} from '@/components/buttons/IconButton';
+import {FilePreview} from '@/components/inputs/textInput/components/FilePreview';
+import {ResizeIcon, SparklesIcon, TrashIcon, XIcon} from './icons';
+import {LeadCaptureBubble} from '@/components/bubbles/LeadCaptureBubble';
 import {
-  removeLocalStorageChatHistory,
-  getLocalStorageChatflow,
-  setLocalStorageChatflow,
-  setCookie,
-  getCookie,
   deleteCookie,
+  getCookie,
+  getLocalStorageChatflow,
   getUserDataWithAuth,
+  removeLocalStorageChatHistory,
+  setCookie,
+  setLocalStorageChatflow,
 } from '@/utils';
-import { cloneDeep } from 'lodash';
-import { FollowUpPromptBubble } from '@/components/bubbles/FollowUpPromptBubble';
-import { fetchEventSource, EventStreamContentType } from '@microsoft/fetch-event-source';
-import { WelcomeMessage } from '@/components/bubbles/WelcomeMessage';
-import { ServiceErrorScreen } from './ServiceErrorScreen';
+import {cloneDeep} from 'lodash';
+import {FollowUpPromptBubble} from '@/components/bubbles/FollowUpPromptBubble';
+import {EventStreamContentType, fetchEventSource} from '@microsoft/fetch-event-source';
+import {WelcomeMessage} from '@/components/bubbles/WelcomeMessage';
+import {ServiceErrorScreen} from './ServiceErrorScreen';
 
 export type FileEvent<T = EventTarget> = {
   target: T;
@@ -392,8 +391,8 @@ export const Bot = (botProps: BotProps & { class?: string }) => {
     const lastMessage = currentMessages[currentMessages.length - 1];
     if (lastMessage && lastMessage.fileAnnotations) {
       try {
-        const fileAnnotations = typeof lastMessage.fileAnnotations === 'string' 
-          ? JSON.parse(lastMessage.fileAnnotations) 
+        const fileAnnotations = typeof lastMessage.fileAnnotations === 'string'
+          ? JSON.parse(lastMessage.fileAnnotations)
           : lastMessage.fileAnnotations;
         const operatorInfo = Array.isArray(fileAnnotations)
           ? fileAnnotations.find((fa: any) => fa.sender === 'operator')
@@ -412,7 +411,6 @@ export const Bot = (botProps: BotProps & { class?: string }) => {
   const [chatId, setChatId] = createSignal('');
   const [isMessageStopping, setIsMessageStopping] = createSignal(false);
 
-  // Глобальное состояние для polling AutoFAQ
   let autofaqPollingInterval: NodeJS.Timeout | null = null;
   let autofaqLastMessageId: string | undefined = undefined;
   let isPollingActive = false;
@@ -473,14 +471,6 @@ export const Bot = (botProps: BotProps & { class?: string }) => {
     const data = await getUserDataWithAuth(props.onRequest);
 
     setUserData(data);
-    console.log('💾 [Bot] Данные пользователя сохранены:', {
-      user_id: data.user_id,
-      user_name: data.user_name,
-      email: data.email,
-      fio: data.fio,
-      isGuest: !data.token,
-    });
-
 
     if (botProps?.observersConfig) {
       const { observeUserInput, observeLoading, observeMessages } = botProps.observersConfig;
@@ -507,79 +497,43 @@ export const Bot = (botProps: BotProps & { class?: string }) => {
     }, 50);
   });
 
-  // Функция для запуска polling AutoFAQ
   const startAutoFAQPolling = () => {
-    if (isPollingActive) {
-      console.log('[Bot] ⚠️ Polling уже активен, пропускаем запуск');
-      return;
-    }
-
-    console.log('[Bot] 🚀 Запуск polling для получения сообщений от оператора...');
+    if (isPollingActive) return;
     isPollingActive = true;
 
     const pollForNewMessages = async () => {
       try {
         const currentChatId = chatId();
-        if (!currentChatId) {
-          console.error('[Bot] ❌ chatId не найден для polling');
-          return;
-        }
+        if (!currentChatId) return;
 
-        console.log('[Bot] 🔍 Polling: используем chatId из виджета:', currentChatId);
-
-        // Получаем последнее сообщение с реальным ID для использования как lastMessageId
         const currentMessages = messages();
+        // ВАЖНО: Определяем lastMessageId по дате создания, а не по порядку в массиве
+        // Это гарантирует, что мы получим действительно последнее сообщение
         const lastMessageWithId = [...currentMessages]
-          .reverse()
-          .find((msg) => (msg.messageId || msg.id) && !String(msg.messageId || msg.id).startsWith('transfer-'));
+          .filter((msg) => (msg.messageId || msg.id) && !String(msg.messageId || msg.id).startsWith('transfer-'))
+          .sort((a, b) => {
+            // Сортируем по дате создания, если она есть
+            const aDate = a.dateTime ? new Date(a.dateTime).getTime() : 0;
+            const bDate = b.dateTime ? new Date(b.dateTime).getTime() : 0;
+            if (aDate !== bDate) return bDate - aDate; // Более новые сообщения первыми
+            // Если даты равны или отсутствуют, используем порядок в массиве
+            return 0;
+          })[0];
         const newLastMessageId = lastMessageWithId?.messageId || lastMessageWithId?.id;
 
-        // Если lastMessageId изменился, обновляем его
         if (newLastMessageId && newLastMessageId !== autofaqLastMessageId) {
           autofaqLastMessageId = newLastMessageId;
-          console.log('[Bot] 🔄 Обновлен lastMessageId для polling:', autofaqLastMessageId);
         }
-
-        const pollingLastMessageId = autofaqLastMessageId || undefined;
-        console.log('[Bot] 🔍 Polling новых сообщений:', {
-          chatId: currentChatId,
-          lastMessageId: pollingLastMessageId,
-          chatflowid: props.chatflowid,
-          apiHost: props.apiHost,
-        });
-
-        console.log('[Bot] 🔄 Polling запрос:', {
-          chatId: currentChatId,
-          chatflowid: props.chatflowid,
-          lastMessageId: pollingLastMessageId,
-          currentMessagesCount: messages().length,
-          timestamp: new Date().toISOString(),
-        });
 
         const result = await getChatMessagesQuery({
           chatflowid: props.chatflowid,
           apiHost: props.apiHost,
           chatId: currentChatId,
-          lastMessageId: pollingLastMessageId,
+          lastMessageId: autofaqLastMessageId || undefined,
           onRequest: props.onRequest,
         });
 
-        console.log('[Bot] 📥 Получен ответ от polling:', {
-          hasError: !!result.error,
-          hasData: !!result.data,
-          dataType: typeof result.data,
-          isArray: Array.isArray(result.data),
-          errorMessage: result.error?.message || result.error,
-          dataLength: Array.isArray(result.data) ? result.data.length : 'not array',
-          dataPreview: Array.isArray(result.data)
-            ? result.data.slice(0, 3).map((m: any) => ({ id: m.id, content: m.content?.substring(0, 30), chatType: m.chatType, role: m.role }))
-            : result.data,
-        });
-
-        if (result.error) {
-          console.error('[Bot] ❌ Ошибка при получении сообщений:', result.error);
-          return;
-        }
+        if (result.error) return;
 
         let messagesData = result.data;
         if (messagesData && !Array.isArray(messagesData) && typeof messagesData === 'object') {
@@ -599,76 +553,38 @@ export const Bot = (botProps: BotProps & { class?: string }) => {
               .filter(Boolean),
           );
 
+          const parseJsonField = (field: any) => {
+            if (field && typeof field === 'string') {
+              try {
+                return JSON.parse(field);
+              } catch {
+                return field;
+              }
+            }
+            return field;
+          };
+
           const newMessages = messagesData
             .filter((msg: any) => {
               const msgId = msg.id || msg.messageId;
               return msgId && !currentMessageIds.has(msgId);
             })
-            .map((message: any) => {
-              let fileAnnotations = message.fileAnnotations;
-              if (fileAnnotations && typeof fileAnnotations === 'string') {
-                try {
-                  fileAnnotations = JSON.parse(fileAnnotations);
-                } catch (e) {
-                  console.error('[Bot] Ошибка парсинга fileAnnotations:', e);
-                }
-              }
-
-              let sourceDocuments = message.sourceDocuments;
-              if (sourceDocuments && typeof sourceDocuments === 'string') {
-                try {
-                  sourceDocuments = JSON.parse(sourceDocuments);
-                } catch (e) {
-                  // Игнорируем ошибки
-                }
-              }
-
-              let action = message.action;
-              if (action && typeof action === 'string') {
-                try {
-                  action = JSON.parse(action);
-                } catch (e) {
-                  // Игнорируем ошибки
-                }
-              }
-
-              const mappedMessage = {
-                message: message.content || message.message || '',
-                type: (message.role || 'apiMessage') as 'apiMessage' | 'userMessage',
-                messageId: message.id,
-                id: message.id,
-                dateTime: message.createdDate || new Date().toISOString(),
-                sourceDocuments: sourceDocuments,
-                usedTools: message.usedTools,
-                fileAnnotations: fileAnnotations,
-                agentReasoning: message.agentReasoning,
-                action: action,
-                artifacts: message.artifacts,
-                feedback: message.feedback,
-              };
-
-              console.log('[Bot] 📝 Обработка сообщения от polling:', {
-                id: mappedMessage.id,
-                type: mappedMessage.type,
-                messagePreview: mappedMessage.message.substring(0, 50),
-                chatType: message.chatType,
-                role: message.role,
-                hasContent: !!mappedMessage.message,
-              });
-
-              return mappedMessage;
-            });
+            .map((message: any) => ({
+              message: message.content || message.message || '',
+              type: (message.role || 'apiMessage') as 'apiMessage' | 'userMessage',
+              messageId: message.id,
+              id: message.id,
+              dateTime: message.createdDate || new Date().toISOString(),
+              sourceDocuments: parseJsonField(message.sourceDocuments),
+              usedTools: message.usedTools,
+              fileAnnotations: parseJsonField(message.fileAnnotations),
+              agentReasoning: message.agentReasoning,
+              action: parseJsonField(message.action),
+              artifacts: message.artifacts,
+              feedback: message.feedback,
+            }));
 
           if (newMessages.length > 0) {
-            console.log(
-              `[Bot] ✅ Получено ${newMessages.length} новых сообщений от оператора:`,
-              newMessages.map((m) => ({
-                id: m.id,
-                message: m.message.substring(0, 50),
-              })),
-            );
-
-            // Проверяем, есть ли сообщение о завершении чата
             const closingMessage = newMessages.find((msg) => {
               const messageText = (msg.message || '').toLowerCase().trim();
               return (
@@ -681,51 +597,50 @@ export const Bot = (botProps: BotProps & { class?: string }) => {
             });
 
             if (closingMessage) {
-              console.log('[Bot] 🔚 Обнаружено сообщение о завершении чата от оператора, останавливаем polling и возвращаемся к LLM режиму');
-              // Останавливаем polling перед добавлением сообщений
               stopAutoFAQPolling();
             }
 
             setMessages((prevMessages) => {
-              const updated = [...prevMessages, ...newMessages];
-              addChatMessage(updated);
-
-              const lastNewMessage = newMessages[newMessages.length - 1];
-              if (lastNewMessage && (lastNewMessage.messageId || lastNewMessage.id)) {
-                autofaqLastMessageId = lastNewMessage.messageId || lastNewMessage.id;
-                console.log('[Bot] 🔄 lastMessageId обновлен после получения новых сообщений:', autofaqLastMessageId);
+              const allMessages = [...prevMessages, ...newMessages];
+              // ВАЖНО: Сортируем все сообщения по дате создания для правильного порядка
+              const sortedMessages = allMessages.sort((a, b) => {
+                const aDate = a.dateTime ? new Date(a.dateTime).getTime() : 0;
+                const bDate = b.dateTime ? new Date(b.dateTime).getTime() : 0;
+                if (aDate !== bDate) return aDate - bDate; // Сортируем по возрастанию даты
+                return 0; // Если даты равны, сохраняем порядок
+              });
+              addChatMessage(sortedMessages);
+              // Обновляем lastMessageId на последнее сообщение по дате
+              const lastMessageByDate = sortedMessages
+                .filter((msg) => (msg.messageId || msg.id) && !String(msg.messageId || msg.id).startsWith('transfer-'))
+                .sort((a, b) => {
+                  const aDate = a.dateTime ? new Date(a.dateTime).getTime() : 0;
+                  const bDate = b.dateTime ? new Date(b.dateTime).getTime() : 0;
+                  return bDate - aDate; // Более новые первыми
+                })[0];
+              if (lastMessageByDate && (lastMessageByDate.messageId || lastMessageByDate.id)) {
+                autofaqLastMessageId = lastMessageByDate.messageId || lastMessageByDate.id;
               }
-
-              return updated;
+              return sortedMessages;
             });
 
             scrollToBottom();
-          } else {
-            console.log('[Bot] ℹ️ Новых сообщений нет');
           }
-        } else {
-          console.log('[Bot] ℹ️ Сообщений в ответе нет или пустой массив');
         }
       } catch (error) {
-        console.error('[Bot] ❌ Ошибка при polling сообщений:', error);
+        // Игнорируем ошибки
       }
     };
 
-    // Запускаем polling каждые 2 секунды
     autofaqPollingInterval = setInterval(pollForNewMessages, 2000);
-    console.log('[Bot] ✅ Polling запущен для получения сообщений от оператора');
-
-    // Выполняем первый запрос сразу
     pollForNewMessages();
   };
 
-  // Функция для остановки polling
   const stopAutoFAQPolling = () => {
     if (autofaqPollingInterval) {
       clearInterval(autofaqPollingInterval);
       autofaqPollingInterval = null;
       isPollingActive = false;
-      console.log('[Bot] 🛑 Polling остановлен');
     }
   };
 
@@ -1012,14 +927,6 @@ export const Bot = (botProps: BotProps & { class?: string }) => {
       'Content-Type': 'application/json',
     };
 
-    // Убираем Authorization и другие кастомные заголовки для SSE, чтобы избежать CORS ошибок
-    // Если нужна авторизация, она должна быть через cookies или query параметры
-    console.log('[Bot] 🔵 SSE запрос:', {
-      url: `${props.apiHost}/api/v1/prediction/${chatflowid}`,
-      headers: sseHeaders,
-      chatId,
-    });
-
     // Перед каждым новым SSE-запросом отменяем предыдущий, если он ещё активен
     if (sseAbortController) {
       sseAbortController.abort();
@@ -1043,18 +950,7 @@ export const Bot = (botProps: BotProps & { class?: string }) => {
         const contentType = response.headers.get('content-type') || '';
         const isEventStream = contentType.startsWith(EventStreamContentType);
 
-        console.log('[Bot] 🔵 onopen вызван:', {
-          status: response.status,
-          statusText: response.statusText,
-          contentType,
-          isEventStream,
-          ok: response.ok,
-        });
-
-        if (response.ok && isEventStream) {
-          console.log('[Bot] ✅ SSE поток успешно открыт');
-          return; // everything's good - это SSE поток
-        }
+        if (response.ok && isEventStream) return; // everything's good - это SSE поток
 
         // Если ответ не SSE, проверяем, не является ли это JSON ответом с autofaqMode
         // ВАЖНО: response.text() можно вызвать только один раз, поэтому клонируем response
@@ -1063,23 +959,12 @@ export const Bot = (botProps: BotProps & { class?: string }) => {
             // Клонируем response, чтобы можно было прочитать его несколько раз
             const clonedResponse = response.clone();
             const responseText = await clonedResponse.text();
-            console.log('[Bot] 📥 Получен JSON ответ (не SSE):', {
-              text: responseText.substring(0, 200),
-              contentType,
-            });
 
             const jsonData = JSON.parse(responseText);
 
             // Если это ответ от AutoFAQ режима, обрабатываем его специально
             if (jsonData.autofaqMode) {
-              console.log('[Bot] ✅ Получен JSON ответ от AutoFAQ режима:', {
-                chatId: jsonData.chatId,
-                conversationId: jsonData.conversationId,
-                message: jsonData.message,
-              });
 
-              // Для AutoFAQ режима не добавляем сообщение в чат
-              // Сообщения от оператора придут через polling
               setLoading(false);
               setUserInput('');
               setUploadedFiles([]);
@@ -1183,8 +1068,6 @@ export const Bot = (botProps: BotProps & { class?: string }) => {
             setLocalStorageChatflow(chatflowid, chatId);
             closeResponse();
             break;
-          // Событие autofaqMessage больше не используется - используем polling вместо SSE
-          // case 'autofaqMessage': - удалено, сообщения получаются через polling
         }
       },
       async onclose() {
@@ -1203,14 +1086,12 @@ export const Bot = (botProps: BotProps & { class?: string }) => {
 
         // Если запрос был прерван явно (AbortController), не считаем это ошибкой сервиса
         if (err?.name === 'AbortError') {
-          console.log('[Bot] ⏹ SSE запрос прерван (AbortController)');
           closeResponse();
           return;
         }
 
         // Если это наша ошибка для закрытия соединения при AutoFAQ режиме, не показываем ошибку
         if (err?.message === 'AutoFAQ mode - closing SSE connection') {
-          console.log('[Bot] ✅ SSE соединение закрыто для AutoFAQ режима - это нормально');
           closeResponse();
           return; // Не бросаем ошибку дальше
         }
@@ -1375,12 +1256,6 @@ export const Bot = (botProps: BotProps & { class?: string }) => {
     });
 
     const currentChatId = chatId();
-    console.log('[Bot] 📤 Отправка сообщения пользователя:', {
-      chatId: currentChatId,
-      message: typeof value === 'string' ? value.substring(0, 50) : 'object',
-      chatflowid: props.chatflowid,
-    });
-
     const body: IncomingInput = {
       question: value,
       chatId: currentChatId,
@@ -1427,20 +1302,10 @@ export const Bot = (botProps: BotProps & { class?: string }) => {
 
     // Если есть хотя бы одно поле, добавляем userData в overrideConfig
     if (Object.keys(userDataForRequest).length > 0) {
-      const chatflowConfigWithUserData = {
+      body.overrideConfig = {
         ...(props.chatflowConfig || {}),
         userData: userDataForRequest,
       };
-      body.overrideConfig = chatflowConfigWithUserData;
-      console.log('📤 [Bot] Отправка сообщения с тестовыми данными пользователя:', {
-        user_id: currentUserData.user_id,
-        user_name: currentUserData.user_name,
-        fio: currentUserData.fio,
-        email: currentUserData.email,
-        login: (currentUserData as any).login,
-        shortname: (currentUserData as any).shortname,
-        orn: (currentUserData as any).orn,
-      });
     } else if (props.chatflowConfig) {
       body.overrideConfig = props.chatflowConfig;
     }
@@ -1451,36 +1316,30 @@ export const Bot = (botProps: BotProps & { class?: string }) => {
 
     if (humanInput) body.humanInput = humanInput;
 
-    // ВАЖНО: Проверяем AutoFAQ режим ТОЛЬКО если есть явные признаки передачи оператору
-    // По умолчанию чат НЕ в AutoFAQ режиме, поэтому SSE используется нормально
-    // AutoFAQ режим определяется только по явным признакам:
-    // 1. Наличие сообщения "Чат передан оператору" (точное совпадение)
-    // 2. Активность polling (это означает, что чат уже передан оператору)
-
-    // Проверяем ТОЛЬКО точное сообщение о передаче оператору
     const hasTransferMessage = messages().some(
       (msg) => msg.message && typeof msg.message === 'string' &&
         msg.message.includes('Чат передан оператору')
     );
 
-    // Проверяем активность polling - это самый надежный индикатор AutoFAQ режима
-    // Если polling активен, значит чат уже передан оператору
     const isTransferredToOperator = hasTransferMessage || isPollingActive;
 
-    console.log('[Bot] 🔍 Проверка AutoFAQ режима:', {
-      hasTransferMessage,
-      isPollingActive,
-      isTransferredToOperator,
-      messagesCount: messages().length,
-      willUseSSE: !isTransferredToOperator && isChatFlowAvailableToStream(),
-    });
 
-    // КРИТИЧЕСКИ ВАЖНО: Для AutoFAQ режима ВСЕГДА используем обычный запрос, НЕ SSE
-    // Это предотвращает CORS ошибки и ошибки EventSource
     if (isTransferredToOperator) {
-      // Чат в AutoFAQ режиме - используем только обычный запрос
-      console.log('[Bot] ✅ Чат в AutoFAQ режиме, используем обычный запрос вместо SSE. chatId=', currentChatId, 'chatflowid=', props.chatflowid);
-      // НЕ создаем пустое сообщение для AutoFAQ режима - сообщения придут через polling
+      // ВАЖНО: Создаем пустое сообщение для показа loading bubble перед отправкой запроса
+      // Это нужно для случая, когда чат возвращается из AutoFAQ в LLM режим
+      // Убеждаемся, что loading установлен в true, чтобы показать TypingBubble
+      setLoading(true);
+
+      setMessages((prevMessages) => {
+        const allMessages = [...cloneDeep(prevMessages)];
+        // Проверяем, есть ли уже пустое apiMessage (loading bubble)
+        const lastMessage = allMessages[allMessages.length - 1];
+        if (!lastMessage || lastMessage.type !== 'apiMessage' || lastMessage.message !== '') {
+          // Если последнее сообщение не является пустым apiMessage, создаем его
+          allMessages.push({ message: '', type: 'apiMessage', dateTime: new Date().toISOString() });
+        }
+        return allMessages;
+      });
 
       try {
         const result = await sendMessageQuery({
@@ -1492,22 +1351,31 @@ export const Bot = (botProps: BotProps & { class?: string }) => {
 
         if (result.data) {
           const data = result.data;
-          // Если это ответ от AutoFAQ режима, обрабатываем его специально
           if (data.autofaqMode) {
-            // Для AutoFAQ режима не добавляем сообщение в чат
-            // Сообщения от оператора придут через polling
-            console.log('[Bot] ✅ Сообщение отправлено в AutoFAQ, ожидаем ответ через polling. conversationId=', data.conversationId);
+            // Если ответ указывает на AutoFAQ режим, удаляем пустое сообщение и переключаемся в AutoFAQ
+            setMessages((prevMessages) => {
+              const allMessages = [...cloneDeep(prevMessages)];
+              // Удаляем последнее пустое сообщение, если оно есть
+              if (allMessages[allMessages.length - 1]?.type === 'apiMessage' && allMessages[allMessages.length - 1]?.message === '') {
+                allMessages.pop();
+              }
+              return allMessages;
+            });
             setLoading(false);
             setUserInput('');
             setUploadedFiles([]);
-            // Убеждаемся, что polling запущен
             if (!isPollingActive) {
-              console.log('[Bot] 🔄 Запускаем polling для получения сообщений от оператора');
               startAutoFAQPolling();
             }
             return;
           }
-          // Обрабатываем обычный ответ
+          // Обрабатываем обычный ответ (LLM режим)
+          // ВАЖНО: Если получили обычный ответ (не autofaqMode), значит чат вернулся в LLM режим
+          // Останавливаем polling AutoFAQ, если он был активен
+          if (isPollingActive) {
+            stopAutoFAQPolling();
+          }
+
           let text = '';
           if (data.text) text = data.text;
           else if (data.json) text = JSON.stringify(data.json, null, 2);
@@ -1518,6 +1386,7 @@ export const Bot = (botProps: BotProps & { class?: string }) => {
           setMessages((prevMessages) => {
             const allMessages = [...cloneDeep(prevMessages)];
             const lastMessage = allMessages[allMessages.length - 1];
+            // Обновляем пустое сообщение (loading bubble) содержимым ответа
             if (lastMessage && lastMessage.type === 'apiMessage' && lastMessage.message === '') {
               lastMessage.message = text;
               lastMessage.id = data?.chatMessageId;
@@ -1530,6 +1399,7 @@ export const Bot = (botProps: BotProps & { class?: string }) => {
               lastMessage.artifacts = data?.artifacts;
               lastMessage.dateTime = data?.dateTime ?? new Date().toISOString();
             } else {
+              // Если пустого сообщения нет, создаем новое
               const newMessage = {
                 message: text,
                 id: data?.chatMessageId,
@@ -1586,9 +1456,6 @@ export const Bot = (botProps: BotProps & { class?: string }) => {
         return;
       }
     } else if (isChatFlowAvailableToStream() && !isTransferredToOperator) {
-      // ВАЖНО: SSE используется ТОЛЬКО если НЕ в AutoFAQ режиме
-      // Проверка isTransferredToOperator уже выполнена выше, поэтому здесь мы уверены, что НЕ в AutoFAQ режиме
-      console.log('[Bot] ✅ Используем SSE для обычного режима (не AutoFAQ)');
       // Создаем пустое сообщение сразу, чтобы показать индикатор загрузки
       setMessages((prevMessages) => [...prevMessages, { message: '', type: 'apiMessage', dateTime: new Date().toISOString() }]);
       fetchResponseFromEventStream(props.chatflowid, body);
@@ -1605,21 +1472,11 @@ export const Bot = (botProps: BotProps & { class?: string }) => {
 
       if (result.data) {
         const data = result.data;
-        console.log('[Bot] transferChatHistoryToAutoFAQ успешно, данные:', data);
 
         let text = '';
         if (data.text) text = data.text;
         else if (data.json) text = JSON.stringify(data.json, null, 2);
         else text = JSON.stringify(data, null, 2);
-
-        console.log('📥 [Bot] Ответ от сервера получен:', {
-          chatId: data?.chatId,
-          messageId: data?.chatMessageId,
-          hasText: !!data.text,
-          hasSourceDocuments: !!data?.sourceDocuments,
-          hasUsedTools: !!data?.usedTools,
-          hasAction: !!data?.action,
-        });
 
         if (data?.chatId) setChatId(data.chatId);
 
@@ -1736,8 +1593,6 @@ export const Bot = (botProps: BotProps & { class?: string }) => {
 
     if (isOperatorHandoff) {
       try {
-        console.log('🔵 [Bot] Передача истории чата в AutoFAQ через кнопку оператора...');
-
         const currentUserData = userData();
 
         // Формируем body с данными пользователя
@@ -1758,12 +1613,6 @@ export const Bot = (botProps: BotProps & { class?: string }) => {
             },
           },
         };
-
-        // Логируем body перед отправкой
-        console.log('🔵 [Bot] Body для transferChatHistoryToAutoFAQ (кнопка оператора):', JSON.stringify(requestBody, null, 2));
-        console.log('🔵 [Bot] shortname (кнопка):', (currentUserData as any).shortname);
-        console.log('🔵 [Bot] orn (кнопка):', (currentUserData as any).orn);
-
         const result = await transferChatHistoryToAutoFAQ({
           chatflowid: props.chatflowid,
           apiHost: props.apiHost,
@@ -1772,8 +1621,6 @@ export const Bot = (botProps: BotProps & { class?: string }) => {
         });
 
         if (result.data) {
-          console.log('✅ [Bot] История чата успешно передана в AutoFAQ:', result.data);
-
           // Убираем кнопку из сообщения
           setMessages((data) => {
             const updated = data.map((item, i) => {
@@ -1786,13 +1633,10 @@ export const Bot = (botProps: BotProps & { class?: string }) => {
             return [...updated];
           });
 
-          // Показываем сообщение пользователю о передаче оператору
-          // НЕ добавляем messageId, чтобы использовать ID последнего реального сообщения для polling
           const transferMessage = {
             message: 'Чат передан оператору. Ожидайте ответа...',
             type: 'apiMessage' as const,
             dateTime: new Date().toISOString(),
-            // НЕ добавляем messageId и id, чтобы polling использовал ID предыдущего сообщения
           };
           setMessages((prevMessages) => {
             const updated = [...prevMessages, transferMessage];
@@ -1800,9 +1644,6 @@ export const Bot = (botProps: BotProps & { class?: string }) => {
             return updated;
           });
 
-          console.log('[Bot] Сообщение о передаче оператору добавлено. Запускаем polling для получения сообщений от оператора...');
-
-          // Запускаем polling для получения новых сообщений от AutoFAQ оператора
           setTimeout(() => {
             startAutoFAQPolling();
           }, 1000);
@@ -1851,7 +1692,6 @@ export const Bot = (botProps: BotProps & { class?: string }) => {
 
   const clearChat = () => {
     try {
-      // Останавливаем polling при очистке чата
       stopAutoFAQPolling();
 
       // Если есть активный streaming-запрос (SSE), прерываем его
@@ -2549,15 +2389,11 @@ export const Bot = (botProps: BotProps & { class?: string }) => {
                                 const updated = [...prevMessages, newMessage];
                                 addChatMessage(updated);
 
-                                // Если это сообщение о передаче оператору, запускаем polling
                                 if (
                                   newMessage.message &&
                                   typeof newMessage.message === 'string' &&
                                   (newMessage.message.includes('Чат передан оператору') || newMessage.message.includes('оператору'))
                                 ) {
-                                  console.log('[Bot] Обнаружено сообщение о передаче оператору через onMessageAdd, запускаем polling...');
-
-                                  // Запускаем polling через небольшую задержку
                                   setTimeout(() => {
                                     startAutoFAQPolling();
                                   }, 1000);

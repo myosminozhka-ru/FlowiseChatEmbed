@@ -59,11 +59,13 @@
 
                 // Инициализируем чатбот с параметрами
                 const chatflowid = '560cea41-6c22-45cc-9ea1-485e4450c565'; // UUID вашего chatflow
-                const apiHost = 'https://test.osmi-ai.ru'; // URL вашего AI инстанса
+                const apiHost = 'https://sk.osmi-ai.ru'; // URL вашего AI инстанса
+                const authApiUrl = 'https://sk.ru/auth/user_info/'; // URL для auth API
 
                 Chatbot.initFull({
                     chatflowid,
                     apiHost,
+                    authApiUrl,
                     apiKey: undefined,
                     chatflowConfig: {
                         chatFeedback: {
@@ -89,7 +91,6 @@
                     }
                 });
 
-                console.log('✅ Полноэкранный чат инициализирован');
             } catch (error) {
                 console.error('❌ Ошибка загрузки чатбота:', error);
                 document.body.innerHTML = `

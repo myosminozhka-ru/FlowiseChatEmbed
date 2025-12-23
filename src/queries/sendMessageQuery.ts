@@ -140,9 +140,15 @@ export const addLeadQuery = ({ apiHost = 'http://localhost:3000', body, onReques
     onRequest: onRequest,
   });
 
-// URL для auth API, можно переопределить через window.__AUTH_API_URL__
-const AUTH_API_URL =
-  typeof window !== 'undefined' && (window as any).__AUTH_API_URL__ ? (window as any).__AUTH_API_URL__ : 'https://uat.sk.ru/auth/user_info/';
+// URL для auth API, должен быть установлен через параметр authApiUrl при инициализации Chatbot.init() или Chatbot.initFull()
+const getAuthApiUrl = (): string => {
+  if (typeof window !== 'undefined' && (window as any).__AUTH_API_URL__) {
+    return (window as any).__AUTH_API_URL__;
+  }
+  
+  console.error('❌ [AUTH_API_URL] Переменная AUTH_API_URL не установлена! Установите параметр authApiUrl при инициализации Chatbot.init() или Chatbot.initFull()');
+  throw new Error('AUTH_API_URL не установлена. Установите параметр authApiUrl при инициализации чатбота');
+};
 
 export type TransferToAutoFAQRequest = BaseRequest & {
   chatflowid: string;
@@ -201,8 +207,8 @@ export type AuthResponse = {
  */
 export const authQuery = async ({ token, onRequest }: AuthRequest): Promise<{ data?: AuthResponse; error?: Error }> => {
   try {
-    const url = `${AUTH_API_URL}?sk_auth=${encodeURIComponent(token)}`;
-    console.log('🔐 [Auth] Запрос данных пользователя:', url.replace(token, '***'));
+    const authApiUrl = getAuthApiUrl();
+    const url = `${authApiUrl}?sk_auth=${encodeURIComponent(token)}`;
     return await sendRequest<AuthResponse>({
       method: 'GET',
       url,
