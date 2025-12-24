@@ -101,7 +101,7 @@ const FeedbackContentDialog = (props: FeedbackContentDialogProps) => {
       // Склеиваем причину и комментарий
       let finalText = reason;
       if (comment) {
-        finalText = `${reason}. ${comment}`;
+        finalText = `${reason}: ${comment}`;
       }
 
       props.onSubmit(finalText, reason);
@@ -126,7 +126,7 @@ const FeedbackContentDialog = (props: FeedbackContentDialogProps) => {
       const comment = inputValue().trim();
 
       // Склеиваем причину и комментарий (reason всегда есть, т.к. кнопка активна только при выбранной причине)
-      const userMessage = comment ? `${reason}. ${comment}` : reason;
+      const userMessage = comment ? `${reason}: ${comment}` : reason;
 
       const requestBody = {
         chatId: props.chatId,

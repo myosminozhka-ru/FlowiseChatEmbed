@@ -290,13 +290,9 @@ export const BotBubble = (props: Props) => {
   const submitFeedbackContent = async (text: string, reason?: string) => {
     setFeedbackError('');
 
-    let content = text;
-    if (reason && reason !== 'Другое') {
-      content = reason + (text ? `: ${text}` : '');
-    }
-
+    // text уже содержит склеенную причину и комментарий из FeedbackContentDialog
     const body = {
-      content: content,
+      content: text,
     };
     const result = await updateFeedbackQuery({
       id: feedbackId(),
