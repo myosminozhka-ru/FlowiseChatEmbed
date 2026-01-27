@@ -8,7 +8,7 @@ type Props = {
   badgeBackgroundColor?: string;
 };
 
-const defaultTextColor = '#303235';
+const defaultTextColor = '#FFFFFF';
 
 export const Badge = (props: Props) => {
   let liteBadge: HTMLAnchorElement | undefined;
@@ -40,13 +40,12 @@ export const Badge = (props: Props) => {
 
   return (
     <span
-      class="w-full text-center px-[10px] pt-[6px] pb-[10px] m-auto text-[13px]"
+      class="hidden md:block w-full text-center px-[10px] pt-[6px] pb-[10px] m-auto text-[13px]"
       style={{
         color: props.poweredByTextColor ?? defaultTextColor,
-        'background-color': props.badgeBackgroundColor ?? '#ffffff',
+        'background-color': props.badgeBackgroundColor ?? '#4D5164',
       }}
     >
-      {/* Разработано на{' '}
       <a
         ref={liteBadge}
         href={'https://osmi-it.ru/'}
@@ -56,8 +55,8 @@ export const Badge = (props: Props) => {
         id="lite-badge"
         style={{ 'font-weight': 'bold', color: props.poweredByTextColor ?? defaultTextColor }}
       >
-        <span>Osmi AI</span>
-      </a> */}
+        <span>Разработано OsmiIt</span>
+      </a>
     </span>
   );
 };

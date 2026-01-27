@@ -32,8 +32,8 @@ type TextInputProps = {
   maxHistorySize?: number;
 };
 
-const defaultBackgroundColor = '#ffffff';
-const defaultTextColor = '#303235';
+const defaultBackgroundColor = '#19191B';
+const defaultTextColor = '#9E9E9E';
 // CDN link for default send sound
 const defaultSendSound = 'https://cdn.jsdelivr.net/gh/FlowiseAI/FlowiseChatEmbed@latest/src/assets/send_message.mp3';
 
@@ -139,11 +139,10 @@ export const TextInput = (props: TextInputProps) => {
 
   return (
     <div
-      class="w-full h-auto max-h-[192px] min-h-[56px] flex flex-col items-end justify-between chatbot-input border border-[#eeeeee]"
+      class="w-full h-auto max-h-[192px] pb-9 md:pb-0 min-h-[54px] flex flex-col items-end justify-between"
       data-testid="input"
       style={{
         margin: 'auto',
-        'background-color': props.backgroundColor ?? defaultBackgroundColor,
         color: props.textColor ?? defaultTextColor,
       }}
       onKeyDown={handleKeyDown}
@@ -153,7 +152,7 @@ export const TextInput = (props: TextInputProps) => {
           {warningMessage()}
         </div>
       </Show>
-      <div class="w-full flex items-end justify-between">
+      <div class="w-full flex items-end justify-between gap-4">
         {props.uploadsConfig?.isImageUploadAllowed ? (
           <>
             <ImageUploadButton
@@ -206,24 +205,23 @@ export const TextInput = (props: TextInputProps) => {
           value={props.inputValue}
           fontSize={props.fontSize}
           disabled={props.disabled}
-          placeholder={props.placeholder ?? 'Введите свой вопрос'}
+          placeholder={props.placeholder ?? 'Спроси что-то'}
         />
-        {props.uploadsConfig?.isSpeechToTextEnabled ? (
-          <RecordAudioButton
-            buttonColor={props.sendButtonColor}
-            type="button"
-            class="m-0 start-recording-button h-14 flex items-center justify-center"
-            isDisabled={props.disabled || isSendButtonDisabled()}
-            on:click={props.onMicrophoneClicked}
-          >
-            <span style={{ 'font-family': 'Poppins, sans-serif' }}>Record Audio</span>
-          </RecordAudioButton>
-        ) : null}
+        <RecordAudioButton
+          buttonColor={props.sendButtonColor}
+          type="button"
+          class="absolute right-[92px] m-0 start-recording-button h-[54px] flex items-center justify-center"
+          isDisabled={props.disabled || isSendButtonDisabled()}
+          on:click={props.onMicrophoneClicked}
+        >
+          <span style={{ 'font-family': 'Poppins, sans-serif' }}>Record Audio</span>
+        </RecordAudioButton>
         <SendButton
           sendButtonColor={props.sendButtonColor}
           type="button"
           isDisabled={props.disabled || isSendButtonDisabled()}
-          class="m-0 h-14 flex items-center justify-center"
+          active={props.inputValue.length > 0}
+          class="m-0 h-[54px] flex items-center justify-center"
           on:click={submit}
         >
           <span style={{ 'font-family': 'Poppins, sans-serif' }}>Send</span>

@@ -16,8 +16,8 @@ type Props = {
   renderHTML?: boolean;
 };
 
-const defaultBackgroundColor = '#f7f8ff';
-const defaultTextColor = '#303235';
+const defaultBackgroundColor = '#19191B';
+const defaultTextColor = '#FFFFFF';
 const defaultFontSize = 16;
 
 export const AgentReasoningBubble = (props: Props) => {
@@ -72,7 +72,8 @@ export const AgentReasoningBubble = (props: Props) => {
           style={{
             'background-color': props.backgroundColor ?? defaultBackgroundColor,
             color: props.textColor ?? defaultTextColor,
-            'border-radius': '6px',
+            'border-radius': '16px',
+            border: '1px solid #4D5164',
             'font-size': props.fontSize ? `${props.fontSize}px` : `${defaultFontSize}px`,
           }}
         />
@@ -99,6 +100,8 @@ export const AgentReasoningBubble = (props: Props) => {
             'background-color': props.backgroundColor ?? defaultBackgroundColor,
             color: props.textColor ?? defaultTextColor,
             'font-size': props.fontSize ? `${props.fontSize}px` : `${defaultFontSize}px`,
+            'border-radius': '16px',
+            border: '1px solid #4D5164',
           }}
         />
       )}

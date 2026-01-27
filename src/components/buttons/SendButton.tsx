@@ -7,6 +7,7 @@ type SendButtonProps = {
   isDisabled?: boolean;
   isLoading?: boolean;
   disableIcon?: boolean;
+  active?: boolean;
 } & JSX.ButtonHTMLAttributes<HTMLButtonElement>;
 
 export const SendButton = (props: SendButtonProps) => {
@@ -16,13 +17,13 @@ export const SendButton = (props: SendButtonProps) => {
       disabled={props.isDisabled || props.isLoading}
       {...props}
       class={
-        'py-2 px-4 justify-center font-semibold text-white focus:outline-none flex items-center disabled:opacity-50 disabled:cursor-not-allowed disabled:brightness-100 transition-all filter hover:brightness-90 active:brightness-75 chatbot-button ' +
+        'py-2 px-4 justify-center font-semibold text-white rounded-full overflow-hidden focus:outline-none flex items-center disabled:opacity-50 disabled:cursor-not-allowed disabled:brightness-100 transition-all filter hover:bg-[#FF4978] active:brightness-75 chatbot-button ' +
         props.class
       }
-      style={{ background: 'transparent', border: 'none' }}
+      style={{ border: 'none', background: props.active ? '#FF4978' : '' }}
     >
       <Show when={!props.isLoading} fallback={<Spinner class="text-white" />}>
-        <SendIcon color={props.sendButtonColor} class={'send-icon flex ' + (props.disableIcon ? 'hidden' : '')} />
+        <SendIcon class={'send-icon flex' + (props.disableIcon ? 'hidden' : '')} />
       </Show>
     </button>
   );
